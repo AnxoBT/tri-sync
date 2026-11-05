@@ -23,6 +23,27 @@ def _load_env():
 
 ENV = _load_env()
 
+EDITABLES = ["DATA_DIR", "SERIALIZD_USER", "LETTERBOXD_USER", "SERIALIZD_TOKEN", "DIXMAX_COOKIE", "DIXMAX_API_KEY"]
+SECRETOS = {"SERIALIZD_TOKEN", "DIXMAX_COOKIE", "DIXMAX_API_KEY"}
+
+
+def config_publica():
+    """Configuración para mostrar en la web: los secretos solo como 'puesto / no puesto'."""
+    return {k: ({"puesto": bool(ENV.get(k))} if k in SECRETOS else ENV.get(k, "")) for k in EDITABLES}
+
+
+def guardar_config(cambios):
+    """Actualiza el .env (solo claves conocidas; un secreto vacío no borra el existente)."""
+    for k, v in cambios.items():
+        if k not in EDITABLES:
+            continue
+        v = (v or "").strip()
+        if k in SECRETOS and not v:
+            continue
+        ENV[k] = v
+    lines = [f"{k}={ENV.get(k, '')}" for k in EDITABLES]
+    (ROOT / ".env").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
 
 def env(key, default=""):
     return ENV.get(key) or os.environ.get(key) or default

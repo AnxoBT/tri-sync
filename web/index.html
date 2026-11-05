@@ -5,110 +5,273 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>seriesypelis-sync</title>
 <style>
-  :root { --bg:#14181c; --panel:#1c2228; --line:#2c3440; --text:#d8dee4; --muted:#8a96a3; --acc:#40bcf4; --ok:#00c030; --warn:#ff8000; }
+  :root {
+    --bg:#0f1317; --panel:#171d23; --panel2:#1d252c; --line:#28323c; --text:#e3e8ed; --muted:#8994a0;
+    --acc:#3fb0ff; --ok:#2fbf71; --warn:#f0a020; --bad:#ef5350;
+    --dx:#ff7a00; --lb:#40bcf4; --sz:#9b7bff; --r:10px;
+  }
   * { box-sizing:border-box; }
-  body { margin:0; font:14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--text); }
-  header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); padding:12px 16px; z-index:2; }
-  h1 { margin:0 0 6px; font-size:18px; }
-  .fuentes { color:var(--muted); font-size:12px; }
-  .bar { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center; }
-  input[type=search], select { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; }
-  button { background:var(--acc); color:#000; border:0; border-radius:6px; padding:7px 12px; font-weight:600; cursor:pointer; }
-  button.sec { background:var(--line); color:var(--text); }
-  main { padding:12px 16px 80px; max-width:1100px; margin:0 auto; }
-  details { background:var(--panel); border:1px solid var(--line); border-radius:8px; margin:10px 0; }
-  summary { padding:10px 12px; cursor:pointer; font-weight:600; }
-  summary .n { color:var(--muted); font-weight:400; }
-  .item { border-top:1px solid var(--line); padding:8px 12px; display:grid; grid-template-columns:1fr auto; gap:6px 16px; }
-  .item .t { font-weight:600; }
-  .item .d { color:var(--muted); font-size:13px; }
-  .item a { color:var(--acc); margin-right:10px; font-size:12px; }
-  .ops { display:flex; flex-direction:column; gap:2px; min-width:280px; }
-  .ops label { font-size:13px; cursor:pointer; }
-  .fase { font-size:11px; color:var(--warn); margin-left:4px; }
-  .vacio { color:var(--muted); padding:40px; text-align:center; }
-  #msg { color:var(--ok); margin-left:8px; }
-  @media (max-width:700px) { .item { grid-template-columns:1fr; } .ops { min-width:0; } }
+  body { margin:0; font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  a { color:var(--acc); text-decoration:none; } a:hover { text-decoration:underline; }
+  button { font:inherit; border:0; border-radius:8px; padding:8px 14px; cursor:pointer; background:var(--panel2); color:var(--text); border:1px solid var(--line); }
+  button:hover:not(:disabled) { border-color:var(--acc); }
+  button.pri { background:var(--acc); color:#04121c; border-color:var(--acc); font-weight:650; }
+  button.danger { background:var(--ok); color:#04170c; border-color:var(--ok); font-weight:650; }
+  button:disabled { opacity:.45; cursor:default; }
+  input, select { font:inherit; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .wrap { max-width:1100px; margin:0 auto; padding:0 16px; }
+
+  header { background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
+  header .wrap { display:flex; align-items:center; gap:20px; height:54px; }
+  .logo { font-weight:750; letter-spacing:.2px; }
+  .logo span { color:var(--muted); font-weight:500; }
+  nav { display:flex; gap:4px; }
+  nav button { background:none; border:0; color:var(--muted); padding:8px 12px; }
+  nav button.on { color:var(--text); background:var(--panel2); }
+  .hstat { margin-left:auto; color:var(--muted); font-size:12px; }
+
+  .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:18px 0; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; border-top:3px solid var(--line); }
+  .card.dx { border-top-color:var(--dx); } .card.lb { border-top-color:var(--lb); } .card.sz { border-top-color:var(--sz); }
+  .card h3 { margin:0 0 4px; font-size:13px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+  .card .v { font-size:15px; font-weight:600; } .card .s { color:var(--muted); font-size:12px; }
+
+  .steps { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .step { display:flex; align-items:center; gap:8px; }
+  .num { width:22px; height:22px; border-radius:50%; background:var(--panel2); border:1px solid var(--line); display:grid; place-items:center; font-size:12px; color:var(--muted); }
+  .sep { color:var(--line); }
+  #prog { margin-top:10px; color:var(--muted); font-size:13px; min-height:20px; }
+  .bar { height:4px; background:var(--panel2); border-radius:4px; overflow:hidden; margin-top:6px; display:none; }
+  .bar i { display:block; height:100%; width:30%; background:var(--acc); animation:mv 1.2s infinite ease-in-out; }
+  @keyframes mv { 0% { margin-left:-30% } 100% { margin-left:100% } }
+
+  .tools { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 8px; align-items:center; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { padding:5px 10px; border-radius:20px; background:var(--panel); border:1px solid var(--line); cursor:pointer; font-size:13px; }
+  .chip.on { border-color:var(--acc); color:var(--acc); }
+  .chip b { margin-left:4px; }
+
+  .group { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); margin:10px 0; overflow:hidden; }
+  .ghead { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--panel2); cursor:pointer; }
+  .ghead .t { font-weight:650; } .ghead .n { color:var(--muted); }
+  .ghead select { margin-left:auto; padding:5px 8px; font-size:13px; }
+  .tag { font-size:11px; padding:2px 7px; border-radius:10px; border:1px solid var(--line); color:var(--muted); }
+  .tag.Películas { color:var(--lb); border-color:var(--lb); } .tag.Series { color:var(--sz); border-color:var(--sz); }
+  .row { display:grid; grid-template-columns:1fr auto; gap:6px 14px; padding:9px 12px; border-top:1px solid var(--line); align-items:center; }
+  .row.sel { background:rgba(63,176,255,.06); }
+  .row .t { font-weight:600; } .row .d { color:var(--muted); font-size:13px; } .row .l a { font-size:12px; margin-right:10px; }
+  .seg { display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end; }
+  .seg label { font-size:12px; padding:5px 9px; border:1px solid var(--line); border-radius:7px; cursor:pointer; color:var(--muted); }
+  .seg input { display:none; }
+  .seg input:checked + span { color:var(--text); }
+  .seg label:has(input:checked) { border-color:var(--acc); background:rgba(63,176,255,.12); color:var(--text); }
+  .seg label.ign:has(input:checked) { border-color:var(--line); background:var(--panel2); }
+  .empty { text-align:center; padding:50px 20px; color:var(--muted); background:var(--panel); border:1px dashed var(--line); border-radius:var(--r); margin-top:18px; }
+  .empty b { display:block; color:var(--ok); font-size:18px; margin-bottom:6px; }
+
+  .actionbar { position:sticky; bottom:0; background:var(--panel); border-top:1px solid var(--line); margin-top:20px; }
+  .actionbar .wrap { display:flex; align-items:center; gap:10px; height:58px; }
+  .actionbar .info { color:var(--muted); margin-right:auto; }
+
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; place-items:center; z-index:10; padding:16px; }
+  .modal.on { display:grid; }
+  .box { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); width:min(760px,100%); max-height:85vh; overflow:auto; padding:18px; }
+  .box h2 { margin:0 0 10px; font-size:17px; }
+  pre { white-space:pre-wrap; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; color:var(--muted); font-size:12.5px; max-height:330px; overflow:auto; }
+  .file { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:10px; margin:8px 0; }
+
+  .cfg { display:grid; grid-template-columns:220px 1fr; gap:12px 16px; align-items:start; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:18px; margin-top:18px; }
+  .cfg label { font-weight:600; padding-top:8px; } .cfg .h { color:var(--muted); font-size:12px; margin-top:4px; }
+  .cfg input { width:100%; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+  .hidden { display:none !important; }
+  @media (max-width:760px) { .cards { grid-template-columns:1fr; } .row { grid-template-columns:1fr; } .seg { justify-content:flex-start; } .cfg { grid-template-columns:1fr; } .hstat { display:none; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>seriesypelis-sync</h1>
-  <div class="fuentes" id="fuentes"></div>
-  <div class="bar">
-    <input type="search" id="q" placeholder="Buscar título…">
-    <select id="sec"><option value="">Todo</option><option>Películas</option><option>Series</option></select>
-    <button class="sec" onclick="todas('ignorar')">Marcar todo como ignorar</button>
-    <button class="sec" onclick="guardar()">Guardar plan</button>
-    <button class="sec" onclick="ejecutar(true)">Simular</button>
-    <button onclick="ejecutar(false)">Aplicar</button><span id="msg"></span>
-  </div>
-</header>
-<section id="res" style="display:none;max-width:1100px;margin:12px auto;padding:0 16px">
-  <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px">
-    <b id="resT"></b><button class="sec" style="float:right" onclick="res.style.display='none'">Cerrar</button>
-    <div id="resF"></div>
-    <pre id="resL" style="white-space:pre-wrap;color:var(--muted);max-height:320px;overflow:auto;margin:8px 0 0"></pre>
-  </div>
-</section>
-<main id="main"><div class="vacio">Cargando…</div></main>
-<script>
-let DATA = {diferencias: []};
-const sel = {};
-const FASE = {1: "", 2: "", 3: " (CSV)"};
-fetch('/api/diff').then(r => r.json()).then(d => { DATA = d; pintar(); });
-document.getElementById('q').oninput = pintar;
-document.getElementById('sec').onchange = pintar;
+<header><div class="wrap">
+  <div class="logo">seriesypelis<span>-sync</span></div>
+  <nav><button id="tRev" class="on" onclick="vista('rev')">Revisión</button><button id="tCfg" onclick="vista('cfg')">Configuración</button></nav>
+  <div class="hstat" id="hstat"></div>
+</div></header>
 
-function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+<!-- ============ REVISIÓN ============ -->
+<div id="vRev" class="wrap">
+  <div class="cards">
+    <div class="card dx"><h3>Dixmax</h3><div class="v" id="cDx">—</div><div class="s">export descargado</div></div>
+    <div class="card lb"><h3>Letterboxd</h3><div class="v" id="cLb">—</div><div class="s">export descargado</div></div>
+    <div class="card sz"><h3>Serializd</h3><div class="v">En directo</div><div class="s">se lee al revisar</div></div>
+  </div>
+
+  <div class="steps">
+    <div class="step"><span class="num">1</span>
+      <button onclick="window.open('https://playmax.mx/settings.php?module=profile&mode=my_data')">Export Dixmax ↗</button>
+      <button onclick="window.open('https://letterboxd.com/settings/data/')">Export Letterboxd ↗</button></div>
+    <span class="sep">›</span>
+    <div class="step"><span class="num">2</span><button onclick="importar()">Importar desde Descargas</button></div>
+    <span class="sep">›</span>
+    <div class="step"><span class="num">3</span><button class="pri" id="bRev" onclick="revisar()">Revisar ahora</button></div>
+    <div style="flex-basis:100%"><div id="prog"></div><div class="bar" id="bar"><i></i></div></div>
+  </div>
+
+  <div class="tools" id="tools">
+    <input type="search" id="q" placeholder="Buscar título…" oninput="pintar()" style="min-width:220px">
+    <div class="chips" id="chips"></div>
+  </div>
+  <div id="lista"></div>
+</div>
+
+<!-- ============ CONFIGURACIÓN ============ -->
+<div id="vCfg" class="wrap hidden">
+  <div class="cfg" id="cfgForm"></div>
+  <div style="display:flex;gap:10px;margin:14px 0">
+    <button class="pri" onclick="guardarCfg()">Guardar</button>
+    <button onclick="probar()">Probar conexiones</button>
+    <span id="cfgMsg" style="align-self:center"></span>
+  </div>
+  <div id="probar"></div>
+</div>
+
+<div class="actionbar" id="abar"><div class="wrap">
+  <div class="info" id="selInfo">Nada seleccionado</div>
+  <button onclick="todas('ignorar')">Limpiar selección</button>
+  <button onclick="ejecutar(true)">Simular</button>
+  <button class="danger" onclick="ejecutar(false)">Aplicar</button>
+</div></div>
+
+<div class="modal" id="modal"><div class="box">
+  <h2 id="mT"></h2><div id="mF"></div><pre id="mL"></pre>
+  <div style="text-align:right;margin-top:10px"><button onclick="modal.classList.remove('on')">Cerrar</button></div>
+</div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let DATA = {diferencias: []}, sel = {}, filtroCat = null, poll = null;
+
+function vista(v) {
+  $('vRev').classList.toggle('hidden', v !== 'rev'); $('vCfg').classList.toggle('hidden', v !== 'cfg');
+  $('abar').classList.toggle('hidden', v !== 'rev');
+  $('tRev').classList.toggle('on', v === 'rev'); $('tCfg').classList.toggle('on', v === 'cfg');
+  if (v === 'cfg') cargarCfg();
+}
+
+async function estado() {
+  const e = await (await fetch('/api/estado')).json();
+  $('cDx').textContent = e.exports.dixmax.fecha || 'sin export';
+  $('cLb').textContent = e.exports.letterboxd.fecha || 'sin export';
+  $('hstat').textContent = e.calculado ? `Última revisión: ${e.calculado}` : 'Sin revisar todavía';
+  return e;
+}
+async function cargarDiff() { DATA = await (await fetch('/api/diff')).json(); sel = {}; pintar(); }
+
+async function importar() {
+  const r = await (await fetch('/api/importar', {method: 'POST'})).json();
+  $('prog').innerHTML = r.log.map(esc).join(' · ');
+  estado();
+}
+async function revisar() {
+  $('bRev').disabled = true; $('bar').style.display = 'block';
+  await fetch('/api/revisar', {method: 'POST', body: '{}'});
+  poll = setInterval(async () => {
+    const j = await (await fetch('/api/progreso')).json();
+    $('prog').textContent = j.mensajes.slice(-1)[0] || 'Empezando…';
+    if (!j.activo) {
+      clearInterval(poll); $('bRev').disabled = false; $('bar').style.display = 'none';
+      if (j.error) { $('prog').innerHTML = `<span class="bad">Error: ${esc(j.error)}</span>`; return; }
+      $('prog').innerHTML = `<span class="ok">Revisión terminada (${j.fin})</span>`;
+      await estado(); await cargarDiff();
+    }
+  }, 900);
+}
 
 function pintar() {
-  const q = document.getElementById('q').value.toLowerCase();
-  const sec = document.getElementById('sec').value;
-  document.getElementById('fuentes').textContent = Object.entries(DATA.fuentes || {}).map(([k, v]) => `${k}: ${v}`).join(' · ');
-  const items = DATA.diferencias.filter(d => (!sec || d.seccion === sec) && (!q || d.titulo.toLowerCase().includes(q)));
-  if (!items.length) { document.getElementById('main').innerHTML = '<div class="vacio">Sin diferencias 🎉</div>'; return; }
-  const grupos = {};
-  items.forEach(d => (grupos[d.seccion + ' · ' + d.categoria] ??= []).push(d));
-  document.getElementById('main').innerHTML = Object.entries(grupos).map(([g, lst]) => `
-    <details ${lst.length <= 30 ? 'open' : ''}><summary>${esc(g)} <span class="n">(${lst.length})</span></summary>
-    ${lst.map(d => `<div class="item"><div>
-        <div class="t">${esc(d.titulo)}</div><div class="d">${esc(d.detalle)}</div>
-        <div>${Object.entries(d.enlaces || {}).filter(([, u]) => u).map(([k, u]) => `<a href="${esc(u)}" target="_blank">${esc(k)}</a>`).join('')}</div>
-      </div><div class="ops">${d.opciones.map(o => `<label><input type="radio" name="${d.id}" value="${o.clave}"
-        ${(sel[d.id] ?? 'ignorar') === o.clave ? 'checked' : ''} onchange="sel['${d.id}']=this.value">
-        ${esc(o.texto)}<span class="fase">${FASE[o.fase] || ''}</span></label>`).join('')}</div></div>`).join('')}
-    </details>`).join('');
+  const q = $('q').value.toLowerCase();
+  const all = DATA.diferencias || [];
+  const cats = {};
+  all.forEach(d => cats[d.categoria] = (cats[d.categoria] || 0) + 1);
+  $('tools').classList.toggle('hidden', !all.length);
+  $('chips').innerHTML = `<span class="chip ${!filtroCat ? 'on' : ''}" onclick="filtroCat=null;pintar()">Todas<b>${all.length}</b></span>` +
+    Object.entries(cats).map(([c, n]) => `<span class="chip ${filtroCat === c ? 'on' : ''}" onclick='filtroCat=${JSON.stringify(c)};pintar()'>${esc(c)}<b>${n}</b></span>`).join('');
+  const items = all.filter(d => (!filtroCat || d.categoria === filtroCat) && (!q || d.titulo.toLowerCase().includes(q)));
+  if (!DATA.calculado && !all.length) { $('lista').innerHTML = `<div class="empty"><b>Aún no has revisado</b>Pulsa «Revisar ahora».</div>`; return contar(); }
+  if (!all.length) { $('lista').innerHTML = `<div class="empty"><b>✓ Todo cuadra</b>Dixmax, Letterboxd y Serializd están sincronizados.</div>`; return contar(); }
+  const g = {};
+  items.forEach(d => (g[d.seccion + '|' + d.categoria] ??= []).push(d));
+  $('lista').innerHTML = Object.entries(g).map(([k, lst]) => {
+    const [sec, cat] = k.split('|');
+    const opts = {}; lst.forEach(d => d.opciones.forEach(o => opts[o.clave] = o.texto));
+    return `<div class="group"><div class="ghead">
+        <span class="tag ${esc(sec)}">${esc(sec)}</span><span class="t">${esc(cat)}</span><span class="n">${lst.length}</span>
+        <select onchange='grupo(${JSON.stringify(lst.map(d => d.id))}, this.value); this.value=""'>
+          <option value="">Aplicar a todo el grupo…</option>
+          ${Object.entries(opts).map(([c, t]) => `<option value="${c}">${esc(t)}</option>`).join('')}
+        </select></div>
+      ${lst.map(fila).join('')}</div>`;
+  }).join('');
+  contar();
 }
+function fila(d) {
+  const cur = sel[d.id] ?? 'ignorar';
+  return `<div class="row ${cur !== 'ignorar' ? 'sel' : ''}" id="r_${d.id}"><div>
+      <div class="t">${esc(d.titulo)}</div><div class="d">${esc(d.detalle)}</div>
+      <div class="l">${Object.entries(d.enlaces || {}).filter(([, u]) => u).map(([k, u]) => `<a href="${esc(u)}" target="_blank">${esc(k)} ↗</a>`).join('')}</div>
+    </div><div class="seg">${d.opciones.map(o => `<label class="${o.clave === 'ignorar' ? 'ign' : ''}">
+      <input type="radio" name="${d.id}" value="${o.clave}" ${cur === o.clave ? 'checked' : ''} onchange="elegir('${d.id}', this.value)">
+      <span>${esc(o.texto)}${o.fase === 3 ? ' (CSV)' : ''}</span></label>`).join('')}</div></div>`;
+}
+function elegir(id, v) { sel[id] = v; $('r_' + id).classList.toggle('sel', v !== 'ignorar'); contar(); }
+function grupo(ids, v) { if (!v) return; ids.forEach(id => { const d = DATA.diferencias.find(x => x.id === id); if (d.opciones.some(o => o.clave === v)) sel[id] = v; }); pintar(); }
+function todas(v) { (DATA.diferencias || []).forEach(d => sel[d.id] = v); pintar(); }
 function elegidas() {
-  return DATA.diferencias.filter(d => (sel[d.id] ?? 'ignorar') !== 'ignorar')
+  return (DATA.diferencias || []).filter(d => (sel[d.id] ?? 'ignorar') !== 'ignorar')
     .map(d => ({id: d.id, categoria: d.categoria, titulo: d.titulo, accion: sel[d.id], datos: d.datos}));
 }
-function ejecutar(simulacion) {
+function contar() { const n = elegidas().length; $('selInfo').textContent = n ? `${n} acciones seleccionadas` : 'Nada seleccionado'; }
+
+async function ejecutar(simulacion) {
   const acciones = elegidas();
-  if (!acciones.length) { document.getElementById('msg').textContent = 'No has elegido ninguna acción'; return; }
-  if (!simulacion && !confirm(`Aplicar ${acciones.length} acciones de verdad en Serializd/Dixmax y generar los CSV de Letterboxd?`)) return;
-  document.getElementById('msg').textContent = simulacion ? 'Simulando…' : 'Aplicando… (puede tardar)';
-  fetch('/api/run', {method: 'POST', body: JSON.stringify({acciones, simulacion})}).then(r => r.json()).then(r => {
-    document.getElementById('msg').textContent = '';
-    const res = document.getElementById('res'); res.style.display = 'block';
-    document.getElementById('resT').textContent = (simulacion ? 'Simulación' : 'Resultado') + ` (${acciones.length} acciones)`;
-    document.getElementById('resL').textContent = (r.log || []).join('\n');
-    document.getElementById('resF').innerHTML = (r.archivos || []).map(f =>
-      `<p>📄 ${esc(f.texto)}: <code>${esc(f.archivo)}</code><br>
-       <button class="sec" onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button>
-       <a href="${esc(f.abrir)}" target="_blank">Abrir importador</a></p>`).join('');
-    window.scrollTo(0, 0);
-  });
+  if (!acciones.length) return;
+  if (!simulacion && !confirm(`¿Aplicar ${acciones.length} acciones de verdad?\n\nSerializd y Dixmax se cambian directamente; para Letterboxd se genera el CSV.`)) return;
+  $('mT').textContent = simulacion ? 'Simulando…' : 'Aplicando…'; $('mF').innerHTML = ''; $('mL').textContent = ''; $('modal').classList.add('on');
+  const r = await (await fetch('/api/run', {method: 'POST', body: JSON.stringify({acciones, simulacion})})).json();
+  $('mT').textContent = (simulacion ? 'Simulación' : (r.ok ? 'Hecho' : 'Error')) + ` · ${acciones.length} acciones`;
+  $('mL').textContent = (r.log || []).join('\n');
+  $('mF').innerHTML = (r.archivos || []).map(f => `<div class="file">📄 ${esc(f.texto)}<br><small>${esc(f.archivo)}</small><br>
+      <button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button> <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
+  if (!simulacion && r.ok) $('mF').innerHTML += `<p class="ok">Cuando termines, pulsa «Revisar ahora» para comprobar.</p>`;
 }
 function abrir(archivo) { fetch('/api/abrir', {method: 'POST', body: JSON.stringify({archivo})}); }
-function todas(v) { DATA.diferencias.forEach(d => sel[d.id] = v); pintar(); }
-function guardar() {
-  const acciones = DATA.diferencias.filter(d => (sel[d.id] ?? 'ignorar') !== 'ignorar')
-    .map(d => ({id: d.id, categoria: d.categoria, titulo: d.titulo, accion: sel[d.id], datos: d.datos}));
-  fetch('/api/plan', {method: 'POST', body: JSON.stringify({acciones})}).then(r => r.json())
-    .then(r => document.getElementById('msg').textContent = `Plan guardado (${r.acciones} acciones): ${r.archivo}`);
+
+// ---------- configuración ----------
+const CAMPOS = [
+  ['DATA_DIR', 'Carpeta de datos', 'Donde se guardan los exports importados.'],
+  ['LETTERBOXD_USER', 'Usuario de Letterboxd', ''],
+  ['SERIALIZD_USER', 'Usuario de Serializd', ''],
+  ['SERIALIZD_TOKEN', 'Token de Serializd', 'serializd.com → F12 → Application → Cookies → tvproject_credentials. Caduca de vez en cuando.', 1],
+  ['DIXMAX_COOKIE', 'Cookie de Dixmax', 'playmax.mx → F12 → Network → clic en una petición /api/json/… → Request Headers → cookie. Solo para aplicar cambios en Dixmax.', 1],
+  ['DIXMAX_API_KEY', 'Clave API de Dixmax', 'El código de la URL /api/json/get/…/v1/<CLAVE>/ de esa misma petición.', 1],
+];
+async function cargarCfg() {
+  const c = await (await fetch('/api/config')).json();
+  $('cfgForm').innerHTML = CAMPOS.map(([k, t, h, sec]) => `<label for="f_${k}">${t}</label><div>
+    <input id="f_${k}" ${sec ? 'type="password" autocomplete="off"' : ''} value="${sec ? '' : esc(c[k])}"
+      placeholder="${sec ? (c[k].puesto ? '•••••• guardado (escribe para cambiarlo)' : 'no configurado') : ''}">
+    ${h ? `<div class="h">${esc(h)}</div>` : ''}</div>`).join('');
 }
+async function guardarCfg() {
+  const body = {}; CAMPOS.forEach(([k]) => body[k] = $('f_' + k).value);
+  await fetch('/api/config', {method: 'POST', body: JSON.stringify(body)});
+  $('cfgMsg').innerHTML = '<span class="ok">Guardado</span>'; cargarCfg(); estado();
+}
+async function probar() {
+  $('probar').innerHTML = 'Probando…';
+  const r = await (await fetch('/api/probar', {method: 'POST'})).json();
+  $('probar').innerHTML = Object.entries(r).map(([k, v]) => `<p><b>${k}</b>: <span class="${v.ok ? 'ok' : 'bad'}">${esc(v.texto)}</span></p>`).join('');
+}
+
+estado().then(e => { if (e.trabajo && e.trabajo.activo) revisar(); });
+cargarDiff();
 </script>
 </body>
 </html>

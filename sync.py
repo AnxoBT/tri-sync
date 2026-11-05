@@ -1,42 +1,36 @@
 """seriesypelis-sync: compara Dixmax, Letterboxd y Serializd y te deja elegir qué corregir.
 
 Uso:
-    python sync.py                 # calcula diferencias y abre la web local
-    python sync.py --solo peliculas|series
-    python sync.py --sin-calcular  # abre la web con el último cálculo
+    python sync.py              # abre la web local (desde ahí importas, revisas y aplicas)
+    python sync.py --revisar    # revisa antes de abrir la web
     python sync.py --no-navegador
 """
 import argparse
-import json
 import sys
 import webbrowser
+from datetime import datetime
 from threading import Timer
 
 from core.config import save_cache
-from core.serializd import TokenError
 
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--revisar", action="store_true")
     ap.add_argument("--solo", choices=["peliculas", "series"])
-    ap.add_argument("--sin-calcular", action="store_true")
     ap.add_argument("--no-navegador", action="store_true")
     ap.add_argument("--puerto", type=int, default=8765)
     args = ap.parse_args()
 
-    if not args.sin_calcular:
+    if args.revisar:
         from core import diff
         try:
             res = diff.compute(solo=args.solo)
-        except TokenError as e:
+        except Exception as e:
             sys.exit(f"ERROR: {e}")
+        res["calculado"] = datetime.now().strftime("%d/%m/%Y %H:%M")
         save_cache("diff.json", res)
-        por_cat = {}
-        for d in res["diferencias"]:
-            por_cat[d["categoria"]] = por_cat.get(d["categoria"], 0) + 1
-        print(f"\n{len(res['diferencias'])} diferencias:")
-        for k, v in sorted(por_cat.items(), key=lambda x: -x[1]):
-            print(f"  {v:5}  {k}")
+        print(f"{len(res['diferencias'])} diferencias")
 
     from web.server import serve
     if not args.no_navegador:
