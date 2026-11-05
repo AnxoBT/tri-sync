@@ -23,7 +23,7 @@ copy .env.example .env      # y rellénalo
 | `DATA_DIR` | Carpeta donde dejas los exports de Dixmax y Letterboxd |
 | `SERIALIZD_TOKEN` | Cookie `tvproject_credentials` de serializd.com (F12 → Application → Cookies) |
 | `SERIALIZD_USER` / `LETTERBOXD_USER` | Tus usuarios |
-| `DIXMAX_COOKIE` | Cookie de sesión de playmax.mx (fase 2) |
+| `DIXMAX_API_KEY` / `DIXMAX_AUTH_KEY` | API oficial de PlayMax: crea una app en playmax.mx/tusapps.php y autorízala en Panel de Control > Aplicaciones autorizadas |
 
 El `.env`, los exports y las cachés **nunca** se suben al repo (ver `.gitignore`).
 

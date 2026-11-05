@@ -39,7 +39,7 @@ def _probar():
     try:
         from core.dixmax_api import Dixmax
         Dixmax().check()
-        out["dixmax"] = {"ok": True, "texto": "Sesión válida (se pueden aplicar cambios)"}
+        out["dixmax"] = {"ok": True, "texto": "API oficial conectada (se pueden aplicar cambios)"}
     except Exception as e:
         out["dixmax"] = {"ok": False, "texto": str(e)}
     return out

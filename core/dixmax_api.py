@@ -1,17 +1,18 @@
-"""Escritura en Dixmax/PlayMax con tu sesión (API interna, no oficial).
+"""Dixmax/PlayMax mediante su API oficial v2 (https://playmax.mx/documentacion_api.php).
 
-Necesita en .env:
-  DIXMAX_COOKIE   cabecera Cookie completa de playmax.mx (F12 > Network > cualquier petición > Request Headers > cookie)
-  DIXMAX_API_KEY  el código que aparece en las URLs /api/json/.../v1/<CLAVE>/ de esas mismas peticiones
+Necesita en Configuración / .env:
+  DIXMAX_API_KEY   apiKey de tu app (playmax.mx/tusapps.php > Añadir App)
+  DIXMAX_AUTH_KEY  authKey de tu usuario (Panel de Control > Aplicaciones autorizadas)
+Límite de la API: 20 peticiones cada 10 s por IP (el cliente espera lo necesario).
 """
-import json
+import time
 from urllib.parse import urlencode
 
 from .config import env
 from .http import call
 
-BASE = "https://playmax.mx"
-TIPO = {"following": 1, "pending": 2, "favorite": 3, "viewed": 4, "abandoned": 5}
+BASE = "https://playmax.mx/api/json"
+MARK = {"following": 1, "pending": 2, "favorite": 3, "viewed": 4, "abandoned": 5}
 
 
 class DixmaxError(Exception):
@@ -20,50 +21,60 @@ class DixmaxError(Exception):
 
 class Dixmax:
     def __init__(self):
-        self.cookie = env("DIXMAX_COOKIE")
         self.key = env("DIXMAX_API_KEY")
-        if not self.cookie or not self.key:
-            raise DixmaxError("Faltan DIXMAX_COOKIE y/o DIXMAX_API_KEY en .env (ver README)")
-        self.h = {"Cookie": self.cookie, "X-Requested-With": "XMLHttpRequest", "Referer": BASE + "/"}
+        self.auth = env("DIXMAX_AUTH_KEY")
+        if not self.key or not self.auth:
+            raise DixmaxError("Faltan DIXMAX_API_KEY y/o DIXMAX_AUTH_KEY (pestaña Configuración)")
+        self._t = []
 
-    def _api(self, kind, name, version, params=None, post=None):
-        url = f"{BASE}/api/json/{kind}/{name}/{version}/{self.key}/?&" + urlencode(params or {})
+    def _api(self, kind, page, version, params=None, post=None):
+        # respetar 20 peticiones / 10 s
+        now = time.time()
+        self._t = [t for t in self._t if now - t < 10]
+        if len(self._t) >= 18:
+            time.sleep(10 - (now - self._t[0]) + 0.2)
+        self._t.append(time.time())
+        url = f"{BASE}/{kind}/{page}/{version}/{self.key}/{self.auth}/"
+        if params:
+            url += "?" + urlencode(params, doseq=True)
         if post is not None:
-            h = {**self.h, "Content-Type": "application/x-www-form-urlencoded"}
             from urllib.request import Request, urlopen
-            with urlopen(Request(url, data=urlencode(post).encode(), method="POST", headers=h), timeout=60) as r:
-                return r.status, json.loads(r.read().decode("utf-8"))
-        return call("GET", url, headers=self.h)
+            import json
+            data = urlencode(post, doseq=True).encode()
+            with urlopen(Request(url, data=data, method="POST",
+                                 headers={"Content-Type": "application/x-www-form-urlencoded"}), timeout=60) as r:
+                d = json.loads(r.read().decode("utf-8"))
+        else:
+            s, d = call("GET", url, delay=0)
+            if not isinstance(d, dict):
+                raise DixmaxError(f"Respuesta inesperada de Dixmax ({s})")
+        err = d.get("error", {})
+        if err.get("code"):
+            raise DixmaxError(f"Dixmax: {err.get('message')} (código {err.get('code')})")
+        return d.get("result")
 
-    def dates(self, ficha_id=None, episode_id=None):
-        p = {"fichaId": ficha_id} if ficha_id else {"episodeId": episode_id}
-        s, d = self._api("get", "ficha_user_dates", "v1", p)
-        if s != 200 or not isinstance(d, dict) or "result" not in d:
-            raise DixmaxError(f"Sesión de Dixmax no válida o caducada ({s}). Renueva DIXMAX_COOKIE.")
-        return d["result"]
+    # ---------- lectura ----------
+    def check(self):
+        u = self._api("get", "user_data", "v1")
+        return u.get("name") if isinstance(u, dict) else True
 
-    def check(self, ficha_prueba=180):
-        self.dates(ficha_prueba)
-        return True
+    def my_fichas(self):
+        """{'movie': {'viewed': [...], 'pending': [...]...}, 'series': {...}, ...} con user.marked y user.rating."""
+        return self._api("get", "my_fichas", "v1.1", {"disableFolders": "true"})
 
+    def ficha(self, ficha_id):
+        return self._api("get", "ficha", "v1.2", {"fichaId": ficha_id, "showEpisodeSynopsis": "false"})
+
+    # ---------- escritura ----------
     def set_mark(self, ficha_id, mark):
-        """mark: viewed/pending/favorite/abandoned/following. No hace nada si ya la tiene
-        (en Dixmax volver a pulsar la misma marca la QUITA)."""
-        actual = self.dates(ficha_id).get("marked") or ""
-        if actual == mark:
-            return "ya estaba"
-        s, _ = call("GET", f"{BASE}/data.php?mode=marcar_ficha&tipo={TIPO[mark]}&ficha={ficha_id}", headers=self.h)
-        return "ok" if s == 200 else f"error {s}"
+        """mark: viewed/pending/favorite/abandoned/following. forceMark=1: nunca desmarca."""
+        self._api("set", "mark_ficha", "v1", {"fichaId": ficha_id, "mark": MARK[mark], "forceMark": 1})
+        return "ok"
 
     def rate(self, ficha_id, value10):
-        s, _ = call("GET", f"{BASE}/data.php?mode=valorar_ficha&value={value10}&ficha={ficha_id}", headers=self.h)
-        return "ok" if s == 200 else f"error {s}"
+        self._api("set", "rating_ficha", "v1.1", {"fichaId": ficha_id, "rating": value10})
+        return "ok"
 
-    def set_dates(self, entries):
-        """entries: [{fichaId|episodeId, type: mark|rating|viewed|all, unix}]"""
-        s, d = self._api("set", "ficha_user_dates", "v1", {"debug": 1}, post={"dates": json.dumps(entries)})
-        return "ok" if s == 200 else f"error {s}"
-
-    def mark_episode(self, episode_id):
-        s, _ = self._api("set", "mark_episode", "v1.1", {"episodeId": episode_id, "forceMark": 1})
-        return "ok" if s == 200 else f"error {s}"
+    def mark_episodes(self, episode_ids):
+        self._api("set", "mark_episodes", "v1", post={"episodesId[]": list(episode_ids), "forceMark": 1})
+        return "ok"

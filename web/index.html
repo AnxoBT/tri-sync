@@ -249,8 +249,8 @@ const CAMPOS = [
   ['LETTERBOXD_USER', 'Usuario de Letterboxd', ''],
   ['SERIALIZD_USER', 'Usuario de Serializd', ''],
   ['SERIALIZD_TOKEN', 'Token de Serializd', 'serializd.com → F12 → Application → Cookies → tvproject_credentials. Caduca de vez en cuando.', 1],
-  ['DIXMAX_COOKIE', 'Cookie de Dixmax', 'playmax.mx → F12 → Network → clic en una petición /api/json/… → Request Headers → cookie. Solo para aplicar cambios en Dixmax.', 1],
-  ['DIXMAX_API_KEY', 'Clave API de Dixmax', 'El código de la URL /api/json/get/…/v1/<CLAVE>/ de esa misma petición.', 1],
+  ['DIXMAX_API_KEY', 'apiKey de Dixmax', 'playmax.mx/tusapps.php → Añadir App → copia la apiKey de tu app.', 1],
+  ['DIXMAX_AUTH_KEY', 'authKey de Dixmax', 'Panel de Control → Aplicaciones autorizadas → autoriza tu app y copia la authKey.', 1],
 ];
 async function cargarCfg() {
   const c = await (await fetch('/api/config')).json();
