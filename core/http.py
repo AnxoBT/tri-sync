@@ -4,7 +4,7 @@ import time
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-UA = "seriesypelis-sync/1.0 (uso personal)"
+UA = "tri-sync/1.0 (uso personal)"
 
 
 def call(method, url, body=None, headers=None, retries=4, delay=0.25, timeout=90):

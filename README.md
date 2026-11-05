@@ -1,4 +1,4 @@
-# seriesypelis-sync
+# Tri-Sync
 
 Compara mi historial de **Dixmax/PlayMax**, **Letterboxd** (películas) y **Serializd** (series),
 muestra las diferencias en una web local y me deja elegir qué hacer con cada una.
@@ -11,8 +11,8 @@ muestra las diferencias en una web local y me deja elegir qué hacer con cada un
 Solo hace falta Python 3.10+ (sin dependencias externas).
 
 ```bash
-git clone https://github.com/AnxoBT/seriesypelis-sync.git
-cd seriesypelis-sync
+git clone https://github.com/AnxoBT/tri-sync.git
+cd tri-sync
 copy .env.example .env      # y rellénalo
 ```
 

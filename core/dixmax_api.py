@@ -66,9 +66,29 @@ class Dixmax:
         return self._api("get", "ficha", "v1.2", {"fichaId": ficha_id, "showEpisodeSynopsis": "false"})
 
     # ---------- escritura ----------
-    def set_mark(self, ficha_id, mark):
-        """mark: viewed/pending/favorite/abandoned/following. forceMark=1: nunca desmarca."""
+    def dates(self, ficha_id):
+        """Fechas de tu marca y valoración de una ficha (markedDate.unix, ratingDate.unix)."""
+        return self._api("get", "ficha_user_dates", "v1", {"fichaId": ficha_id})
+
+    def set_dates(self, entries):
+        """entries: [{fichaId|episodeId, type: mark|rating|viewed|all, unix}]"""
+        import json
+        self._api("set", "ficha_user_dates", "v1", post={"dates": json.dumps(entries)})
+
+    def set_mark(self, ficha_id, mark, keep_date=True):
+        """mark: viewed/pending/favorite/abandoned/following. forceMark=1: nunca desmarca.
+        keep_date: al cambiar de marca (p. ej. Vista -> Favorita) Dixmax pone la fecha de hoy;
+        se restaura la fecha que tenía la marca anterior."""
+        prev = None
+        if keep_date:
+            d = self.dates(ficha_id)
+            if d.get("marked") and (d.get("markedDate") or {}).get("unix"):
+                prev = d["markedDate"]["unix"]
         self._api("set", "mark_ficha", "v1", {"fichaId": ficha_id, "mark": MARK[mark], "forceMark": 1})
+        if prev:
+            self.set_dates([{"fichaId": ficha_id, "type": "mark", "unix": prev}])
+            after = (self.dates(ficha_id).get("markedDate") or {}).get("unix")
+            return "ok (fecha conservada)" if after == prev else f"ok, pero la fecha quedó en {after} (antes {prev})"
         return "ok"
 
     def rate(self, ficha_id, value10):

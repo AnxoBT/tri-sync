@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>seriesypelis-sync</title>
+<title>Tri-Sync</title>
 <link rel="icon" href="/logo.svg" type="image/svg+xml">
 <style>
   :root {
@@ -57,6 +57,7 @@
 
   .group { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); margin:10px 0; overflow:hidden; }
   .ghead { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--panel2); cursor:pointer; }
+  .group.fold .row { display:none; } .ghead .car { color:var(--muted); transition:transform .15s; } .group.fold .car { transform:rotate(-90deg); }
   .ghead .t { font-weight:650; } .ghead .n { color:var(--muted); }
   .ghead select { margin-left:auto; padding:5px 8px; font-size:13px; }
   .tag { font-size:11px; padding:2px 7px; border-radius:10px; border:1px solid var(--line); color:var(--muted); }
@@ -94,7 +95,7 @@
 </head>
 <body>
 <header><div class="wrap">
-  <div class="logo"><img src="/logo.svg" alt="">seriesypelis<span>-sync</span></div>
+  <div class="logo"><img src="/logo.svg" alt="">Tri<span>-Sync</span></div>
   <nav><button id="tRev" class="on" onclick="vista('rev')">Revisión</button><button id="tHist" onclick="vista('hist')">Historial</button><button id="tCfg" onclick="vista('cfg')">Configuración</button></nav>
   <div class="hstat" id="hstat"></div>
 </div></header>
@@ -121,6 +122,7 @@
   <div class="tools" id="tools">
     <input type="search" id="q" placeholder="Buscar título…" oninput="pintar()" style="min-width:220px">
     <div class="chips" id="chips"></div>
+    <button onclick="plegarTodo(true)">Plegar todo</button><button onclick="plegarTodo(false)">Desplegar todo</button>
   </div>
   <div id="lista"></div>
 </div>
@@ -226,15 +228,27 @@ function pintar() {
   $('lista').innerHTML = Object.entries(g).map(([k, lst]) => {
     const [sec, cat] = k.split('|');
     const opts = {}; lst.forEach(d => d.opciones.forEach(o => opts[o.clave] = o.texto));
-    return `<div class="group"><div class="ghead">
-        <span class="tag ${esc(sec)}">${esc(sec)}</span><span class="t">${esc(cat)}</span><span class="n">${lst.length}</span>
-        <select onchange='grupo(${JSON.stringify(lst.map(d => d.id))}, this.value); this.value=""'>
+    const fold = plegado(k, lst.length);
+    return `<div class="group ${fold ? 'fold' : ''}"><div class="ghead" onclick='plegar(event, ${JSON.stringify(k)})'>
+        <span class="car">▾</span><span class="tag ${esc(sec)}">${esc(sec)}</span><span class="t">${esc(cat)}</span><span class="n">${lst.length}</span>
+        <select onclick='event.stopPropagation()' onchange='grupo(${JSON.stringify(lst.map(d => d.id))}, this.value); this.value=""'>
           <option value="">Aplicar a todo el grupo…</option>
           ${Object.entries(opts).map(([c, t]) => `<option value="${c}">${esc(t)}</option>`).join('')}
         </select></div>
       ${lst.map(fila).join('')}</div>`;
   }).join('');
   contar();
+}
+// secciones plegables (se recuerda por navegador); las de más de 15 empiezan plegadas
+let FOLD = {}; try { FOLD = JSON.parse(localStorage.getItem('plegados') || '{}'); } catch (e) {}
+const plegado = (k, n) => FOLD[k] ?? n > 15;
+function guardarFold() { try { localStorage.setItem('plegados', JSON.stringify(FOLD)); } catch (e) {} }
+function plegar(ev, k) {
+  const g = ev.currentTarget.parentElement; FOLD[k] = !g.classList.contains('fold');
+  g.classList.toggle('fold', FOLD[k]); guardarFold();
+}
+function plegarTodo(v) {
+  (DATA.diferencias || []).forEach(d => FOLD[d.seccion + '|' + d.categoria] = v); guardarFold(); pintar();
 }
 function fila(d) {
   const cur = sel[d.id] ?? 'ignorar';
