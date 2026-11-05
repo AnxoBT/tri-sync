@@ -20,7 +20,7 @@ copy .env.example .env      # y rellénalo
 
 | Variable | Qué es |
 |---|---|
-| `DATA_DIR` | Carpeta donde dejas los exports de Dixmax y Letterboxd |
+| `DATA_DIR` | Carpetas donde buscar los exports (zip o carpeta), separadas por `;`. Vacío = Descargas |
 | `SERIALIZD_TOKEN` | Cookie `tvproject_credentials` de serializd.com (F12 → Application → Cookies) |
 | `SERIALIZD_USER` / `LETTERBOXD_USER` | Tus usuarios |
 | `DIXMAX_API_KEY` / `DIXMAX_AUTH_KEY` | API oficial de PlayMax: crea una app en playmax.mx/tusapps.php y autorízala en Panel de Control > Aplicaciones autorizadas |
@@ -36,8 +36,9 @@ Para apagarlo, cierra la ventana negra.
    - **Letterboxd**: cada vez que revises (1 clic).
    - **Dixmax**: opcional; con la API configurada se lee en directo. Descárgalo cuando quieras **fechas exactas**
      (lo detectado solo por la API se registra con la fecha del día de la revisión).
-2. **Revisar ahora**: importa los zips nuevos (busca `playmax-userdata-*.zip` y `letterboxd-*.zip` en Descargas
-   y en la carpeta de datos, coge el más reciente de cada uno) y compara todo (~3 min).
+2. **Revisar ahora**: lee directamente el zip (o carpeta) más reciente de cada web en las carpetas de
+   `DATA_DIR` (por defecto Descargas; varias separadas por `;`). Busca nombres que empiecen por
+   `playmax-userdata-` y `letterboxd-`, ignora los incompletos y compara todo (~2-3 min).
 3. Elige qué hacer con cada diferencia → **Simular** → **Aplicar**:
    - Serializd y Dixmax: se cambian directamente.
    - Letterboxd: genera el CSV en `logs/` con botones para abrir la carpeta y el importador.

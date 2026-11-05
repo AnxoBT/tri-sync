@@ -1,15 +1,14 @@
 """Lectura del export oficial de Letterboxd (carpeta letterboxd-*), y generación de CSV de importación."""
 import csv
+import io
 
 from .config import latest_export
 
 
 def _read(exp, name):
-    p = exp / name
-    if not p.exists():
+    if not exp.exists(name):
         return []
-    with open(p, encoding="utf-8") as fh:
-        return list(csv.DictReader(fh))
+    return list(csv.DictReader(io.StringIO(exp.read_text(name))))
 
 
 def load():

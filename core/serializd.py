@@ -39,7 +39,7 @@ class Serializd:
         s, d = self._call("GET", f"/user/{self.user}/diary?page=1")
         pages = d["totalPages"]
         out = list(d["reviews"])
-        with ThreadPoolExecutor(6) as ex:
+        with ThreadPoolExecutor(10) as ex:
             for lst in ex.map(lambda p: self._call("GET", f"/user/{self.user}/diary?page={p}")[1]["reviews"],
                               range(2, pages + 1)):
                 out += lst

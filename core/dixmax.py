@@ -22,7 +22,7 @@ def load():
     mark_ov = {int(k): v for k, v in r.get("mark_override", {}).items()}
 
     fichas = {}
-    for f in json.loads((exp / "fichas.json").read_text(encoding="utf-8")):
+    for f in json.loads(exp.read_text("fichas.json")):
         if f["id"] in ign:
             continue
         if f["id"] in tmdb_ov:
@@ -35,8 +35,8 @@ def load():
         fichas[f["id"]] = f
 
     listas = {l["name"]: {x["fichaId"]: x["date"] for x in l["fichas"]}
-              for l in json.loads((exp / "lists.json").read_text(encoding="utf-8"))}
-    episodes = json.loads((exp / "episodes.json").read_text(encoding="utf-8"))
+              for l in json.loads(exp.read_text("lists.json"))}
+    episodes = json.loads(exp.read_text("episodes.json"))
 
     # Películas: estado según tus listas (como las usas tú), con fallback a la marca de la ficha
     vistas = listas.get(LISTA_PELIS_VISTAS, {})
@@ -88,7 +88,7 @@ def load():
                       "rating_date": iso_utc(f["ratingDateUnix"]) if f.get("ratingDateUnix") else None,
                       "episodes": sorted(eps_by.get(f["id"], []), key=lambda x: (x["season"], x["episode"])),
                       "url": f["url"]})
-    return {"export": exp.name, "movies": movies, "shows": shows}
+    return {"export": exp.name, "export_mtime": exp.mtime, "movies": movies, "shows": shows}
 
 
 def apply_live(data, progress=print):
@@ -170,6 +170,10 @@ def apply_live(data, progress=print):
 
     # episodios nuevos de las series que sigues (y de las nuevas)
     revisar = [s for s in shows.values() if s["status"] == "watching" or not s["episodes"] and s["status"] == "finished"]
+    import time
+    if time.time() - data.get("export_mtime", 0) < 3600:  # export de hace menos de 1 h: ya trae los episodios
+        progress("Dixmax: export reciente, no hace falta revisar episodios por la API")
+        revisar = [s for s in revisar if not s["episodes"]]
     for i, s in enumerate(revisar, 1):
         if i % 10 == 0:
             progress(f"Dixmax: episodios {i}/{len(revisar)}")

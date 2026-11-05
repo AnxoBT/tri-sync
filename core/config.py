@@ -49,19 +49,84 @@ def env(key, default=""):
     return ENV.get(key) or os.environ.get(key) or default
 
 
+def descargas():
+    return Path.home() / "Downloads"
+
+
+def export_dirs():
+    """Carpetas donde buscar exports (DATA_DIR, separadas por ';'). Por defecto: Descargas."""
+    out = []
+    for x in (env("DATA_DIR") or str(descargas())).split(";"):
+        x = x.strip()
+        if x:
+            d = Path(x)
+            out.append(d if d.is_absolute() else ROOT / d)
+    return out
+
+
 def data_dir():
-    d = Path(env("DATA_DIR", "data"))
-    return d if d.is_absolute() else (ROOT / d)
+    return export_dirs()[0]
+
+
+# archivos que debe tener cada export para darlo por válido
+REQUIRED = {"playmax-userdata-": ["fichas.json", "episodes.json", "lists.json"],
+            "letterboxd-": ["watched.csv", "watchlist.csv", "ratings.csv", "diary.csv"]}
+
+
+class Export:
+    """Export descargado, en carpeta o directamente en el zip (no hace falta descomprimir)."""
+
+    def __init__(self, path):
+        self.path = Path(path)
+        self.name = self.path.name
+        self.mtime = self.path.stat().st_mtime
+        self.zip = self.path.suffix.lower() == ".zip"
+        self._prefix = ""
+        if self.zip:
+            import zipfile
+            self._zf = zipfile.ZipFile(self.path)
+            names = [n for n in self._zf.namelist() if not n.endswith("/")]
+            tops = {n.split("/")[0] for n in names}
+            if len(tops) == 1 and all("/" in n for n in names):  # zip con una carpeta dentro
+                self._prefix = tops.pop() + "/"
+            self._names = set(names)
+
+    def exists(self, rel):
+        return (self._prefix + rel) in self._names if self.zip else (self.path / rel).exists()
+
+    def read_text(self, rel):
+        if self.zip:
+            return self._zf.read(self._prefix + rel).decode("utf-8-sig")
+        return (self.path / rel).read_text(encoding="utf-8-sig")
+
+    def missing(self, prefix):
+        return [f for f in REQUIRED.get(prefix, []) if not self.exists(f)]
+
+
+def find_exports(prefix):
+    """Exports válidos (carpetas o zips) de todas las carpetas, del más reciente al más antiguo.
+    Se ordena por fecha de descarga: la fecha del nombre da igual. Los incompletos se descartan."""
+    cands = []
+    for d in export_dirs():
+        if not d.exists():
+            continue
+        for p in d.glob(prefix + "*"):
+            if p.is_dir() or p.suffix.lower() == ".zip":
+                try:
+                    x = Export(p)
+                except Exception:  # zip a medio descargar o dañado
+                    continue
+                if not x.missing(prefix):
+                    cands.append(x)
+    return sorted(cands, key=lambda x: x.mtime, reverse=True)
 
 
 def latest_export(prefix):
-    """Carpeta de export más reciente (playmax-userdata-* / letterboxd-*)."""
-    # por fecha de modificación (Dixmax nombra con DD-MM-YYYY y el orden alfabético falla entre meses)
-    found = sorted((p for p in data_dir().glob(prefix + "*") if p.is_dir()), key=lambda p: p.stat().st_mtime)
+    found = find_exports(prefix)
     if not found:
-        raise SystemExit(f"No encuentro ningún export '{prefix}*' en {data_dir()}. "
-                         f"Descárgalo, descomprímelo y déjalo ahí.")
-    return found[-1]
+        raise SystemExit(f"No encuentro ningún export '{prefix}*' (zip o carpeta) en "
+                         f"{' ; '.join(map(str, export_dirs()))}. Descárgalo y vuelve a revisar.")
+    return found[0]
 
 
 def rules():

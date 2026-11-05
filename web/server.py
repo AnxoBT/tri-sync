@@ -18,11 +18,13 @@ JOB = {"activo": False, "mensajes": [], "error": None, "fin": None}
 
 def _revisar(solo):
     from core import diff
-    from core.imports import importar_desde_descargas
+    from core.imports import estado_exports
     JOB.update(activo=True, mensajes=[], error=None, fin=None)
     try:
-        for m in importar_desde_descargas():  # importa solo los zips nuevos antes de revisar
-            JOB["mensajes"].append(m)
+        ex = estado_exports()
+        for k in ("dixmax", "letterboxd"):
+            e = ex[k]
+            JOB["mensajes"].append(f"{k}: {e['carpeta']} ({e['edad']})" if e["carpeta"] else f"{k}: sin export")
         res = diff.compute(progress=lambda m: JOB["mensajes"].append(m), solo=solo)
         res["calculado"] = datetime.now().strftime("%d/%m/%Y %H:%M")
         config.save_cache("diff.json", res)
@@ -33,7 +35,24 @@ def _revisar(solo):
 
 
 def _probar():
+    from core.imports import estado_exports
     out = {}
+    ex = estado_exports()
+    out["carpetas"] = {"ok": all("no existe" not in c for c in ex["carpetas"]), "texto": " · ".join(ex["carpetas"])}
+    for k, nombre, max_h in (("dixmax", "export Dixmax", 24 * 30), ("letterboxd", "export Letterboxd", 24)):
+        e = ex[k]
+        if not e["carpeta"]:
+            pre = "playmax-userdata-" if k == "dixmax" else "letterboxd-"
+            out[nombre] = {"ok": False, "texto": f"No encontrado (zip o carpeta completa que empiece por '{pre}')"}
+            continue
+        txt = (f"{e['carpeta']} ({e['tipo']}) en {e['ubicacion']} · descargado {e['fecha']} ({e['edad']}) · "
+               f"archivos OK: {', '.join(e['archivos'])}")
+        if e["otros"]:
+            txt += f" · hay {e['otros']} más antiguos (se ignoran)"
+        aviso = e["horas"] > max_h
+        if aviso:
+            txt += " · ⚠ antiguo, descarga uno nuevo" if k == "letterboxd" else " · ⚠ fechas poco actualizadas"
+        out[nombre] = {"ok": True, "aviso": aviso, "texto": txt}
     try:
         from core.serializd import Serializd
         out["serializd"] = {"ok": True, "texto": f"Conectado como {Serializd().check()}"}
@@ -88,12 +107,6 @@ class Handler(BaseHTTPRequestHandler):
             if not JOB["activo"]:
                 threading.Thread(target=_revisar, args=(self._body().get("solo"),), daemon=True).start()
             return self._send(200, {"ok": True})
-        if self.path == "/api/importar":
-            from core.imports import importar_desde_descargas
-            try:
-                return self._send(200, {"ok": True, "log": importar_desde_descargas()})
-            except Exception as e:
-                return self._send(200, {"ok": False, "log": [str(e)]})
         if self.path == "/api/config":
             config.guardar_config(self._body())
             return self._send(200, {"ok": True, "config": config.config_publica()})
