@@ -35,7 +35,8 @@ def data_dir():
 
 def latest_export(prefix):
     """Carpeta de export más reciente (playmax-userdata-* / letterboxd-*)."""
-    found = sorted(p for p in data_dir().glob(prefix + "*") if p.is_dir())
+    # por fecha de modificación (Dixmax nombra con DD-MM-YYYY y el orden alfabético falla entre meses)
+    found = sorted((p for p in data_dir().glob(prefix + "*") if p.is_dir()), key=lambda p: p.stat().st_mtime)
     if not found:
         raise SystemExit(f"No encuentro ningún export '{prefix}*' en {data_dir()}. "
                          f"Descárgalo, descomprímelo y déjalo ahí.")

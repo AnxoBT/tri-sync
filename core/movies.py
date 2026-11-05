@@ -55,7 +55,8 @@ def match(dx_movies, lb_films):
         hit = None
         for n in filter(None, names):
             for f in index.get(norm(n), []):
-                if id(f) not in used and any(abs(int(f["year"] or 0) - int(y or 0)) <= 1 for y in years):
+                # sin año en Letterboxd (pasa en algunas fichas) basta con el título
+                if id(f) not in used and (not f["year"] or any(abs(int(f["year"]) - int(y or 0)) <= 1 for y in years)):
                     hit = f
                     break
             if hit:
