@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="a" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ff8000"/><stop offset="1" stop-color="#00e054"/></linearGradient>
-    <linearGradient id="b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff8000"/><stop offset="1" stop-color="#40bcf4"/></linearGradient>
-    <linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00e054"/><stop offset="1" stop-color="#40bcf4"/></linearGradient>
+    <linearGradient id="a" gradientUnits="userSpaceOnUse" x1="12" y1="50" x2="32" y2="14"><stop offset="0" stop-color="#ff8000"/><stop offset="1" stop-color="#00e054"/></linearGradient>
+    <linearGradient id="b" gradientUnits="userSpaceOnUse" x1="12" y1="50" x2="52" y2="50"><stop offset="0" stop-color="#ff8000"/><stop offset="1" stop-color="#40bcf4"/></linearGradient>
+    <linearGradient id="c" gradientUnits="userSpaceOnUse" x1="32" y1="14" x2="52" y2="50"><stop offset="0" stop-color="#00e054"/><stop offset="1" stop-color="#40bcf4"/></linearGradient>
   </defs>
-  <g stroke-width="5" stroke-linecap="round" fill="none">
+  <g stroke-width="5.5" stroke-linecap="round" fill="none">
     <line x1="12" y1="50" x2="32" y2="14" stroke="url(#a)"/>
     <line x1="12" y1="50" x2="52" y2="50" stroke="url(#b)"/>
     <line x1="32" y1="14" x2="52" y2="50" stroke="url(#c)"/>
   </g>
-  <circle cx="32" cy="14" r="9" fill="#00e054"/>
-  <circle cx="12" cy="50" r="9" fill="#ff8000"/>
-  <circle cx="52" cy="50" r="9" fill="#40bcf4"/>
+  <circle cx="32" cy="14" r="9.5" fill="#00e054"/>
+  <circle cx="12" cy="50" r="9.5" fill="#ff8000"/>
+  <circle cx="52" cy="50" r="9.5" fill="#40bcf4"/>
 </svg>

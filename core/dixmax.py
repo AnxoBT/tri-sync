@@ -58,6 +58,7 @@ def load():
         movies.append({"id": f["id"], "title": f["title"], "year": f["year"], "tmdb": f["tmdb"],
                        "imdb": f.get("idImdb"), "status": status, "date": iso_utc(ts) if ts else None,
                        "rating10": f["rating"] or None, "favorite": f["mark"] == "favorite",
+                       "mark": f["mark"], "mark_unix": f.get("markDateUnix") or None,
                        "url": f["url"]})
 
     # Series
@@ -84,7 +85,8 @@ def load():
             continue
         shows.append({"id": f["id"], "title": f["title"], "year": f["year"], "tmdb": f["tmdb"],
                       "status": status_map.get(f["mark"]), "rating10": f["rating"] or None,
-                      "favorite": f["mark"] == "favorite", "mark_date": iso_utc(f["markDateUnix"]) if f["markDateUnix"] else None,
+                      "favorite": f["mark"] == "favorite", "mark": f["mark"], "mark_unix": f.get("markDateUnix") or None,
+                      "mark_date": iso_utc(f["markDateUnix"]) if f["markDateUnix"] else None,
                       "rating_date": iso_utc(f["ratingDateUnix"]) if f.get("ratingDateUnix") else None,
                       "episodes": sorted(eps_by.get(f["id"], []), key=lambda x: (x["season"], x["episode"])),
                       "url": f["url"]})
@@ -149,6 +151,8 @@ def apply_live(data, progress=print, rapida=False):
                     m["status"], cambios = st, cambios + 1
                 if nota != m["rating10"]:
                     m["rating10"], cambios = nota, cambios + 1
+                if m.get("mark") != mark:
+                    m["mark"], m["mark_unix"] = mark, None
                 m["favorite"] = mark == "favorite"
         else:
             s = shows.get(fid)
@@ -164,6 +168,8 @@ def apply_live(data, progress=print, rapida=False):
             else:
                 if s["status"] != st or s["rating10"] != nota:
                     cambios += 1
+                if s.get("mark") != mark:
+                    s["mark"], s["mark_unix"] = mark, None
                 s["status"], s["rating10"], s["favorite"] = st, nota, mark == "favorite"
     # Nota: las fichas del export que no salen en la API no se tocan (p. ej. películas que tienes en
     # tus listas sin marca). Para reflejar marcas QUITADAS, descarga un export nuevo.

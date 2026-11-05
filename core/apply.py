@@ -108,11 +108,34 @@ def execute(acciones, dry=True):
                 out(f"   ERROR {s}: {str(r)[:80]}")
 
     # ---------------- Dixmax ----------------
-    for a in por["dx_favorita"]:
-        d = a["datos"].get("dx") or a["datos"].get("show")
-        out(f"[Dixmax] {a['titulo']}: marcar como favorita")
-        if not dry:
-            out(f"   {dx.set_mark(d['id'], 'favorite')}")
+    if por["dx_favorita"]:
+        fechas, comprobar = [], []
+        for a in por["dx_favorita"]:
+            d = a["datos"].get("dx") or a["datos"].get("show")
+            prev = d.get("mark_unix") if d.get("mark") == "viewed" else None
+            out(f"[Dixmax] {a['titulo']}: marcar como favorita"
+                + (f" conservando la fecha {datetime.fromtimestamp(prev):%d/%m/%Y %H:%M}" if prev else " (fecha leída de Dixmax)"))
+            if dry:
+                continue
+            try:
+                if prev is None:  # sin dato fiable del export: se lee la fecha actual de la marca
+                    prev = (dx.dates(d["id"]).get("markedDate") or {}).get("unix")
+                dx.set_mark(d["id"], "favorite", keep_date=False)
+                if prev:
+                    fechas.append({"fichaId": d["id"], "type": "mark", "unix": prev})
+                    comprobar.append((a["titulo"], d["id"], prev))
+            except Exception as e:
+                out(f"   ERROR: {e}")
+        for i in range(0, len(fechas), 50):  # restaurar fechas en bloques
+            dx.set_dates(fechas[i:i + 50])
+        if comprobar:  # comprobación de una muestra
+            import random
+            for t, fid, prev in random.sample(comprobar, min(3, len(comprobar))):
+                info = dx.dates(fid)
+                ok = info.get("marked") == "favorite" and (info.get("markedDate") or {}).get("unix") == prev
+                out(f"   Comprobación {t}: {'OK' if ok else 'REVISAR'} ({info.get('marked')}, "
+                    f"{(info.get('markedDate') or {}).get('text')})")
+            out(f"   {len(fechas)} favoritas marcadas con su fecha original")
     for a in por["dx_vista"]:
         m, f = a["datos"]["dx"], a["datos"]["lb"]
         out(f"[Dixmax] {m['title']}: marcar como vista")

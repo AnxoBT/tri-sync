@@ -107,6 +107,8 @@ class Handler(BaseHTTPRequestHandler):
             calc = json.loads(p.read_text(encoding="utf-8")).get("calculado") if p.exists() else None
             return self._send(200, {"exports": estado_exports(), "calculado": calc,
                                     "letterboxd_user": config.env("LETTERBOXD_USER"), "trabajo": JOB})
+        if self.path in ("/favicon.ico", "/logo.ico"):
+            return self._send(200, (WEB / "logo.ico").read_bytes(), "image/x-icon")
         if self.path == "/logo.svg":
             return self._send(200, (WEB / "logo.svg").read_bytes(), "image/svg+xml")
         if self.path == "/api/historial":

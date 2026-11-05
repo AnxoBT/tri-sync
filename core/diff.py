@@ -108,7 +108,8 @@ def series(dx, sz, progress=print, rapida=False):
     out = []
 
     def add(cat, show, detalle, opciones, datos):
-        resumen = {k: show.get(k) for k in ("id", "tmdb", "title", "status", "rating10", "rating_date", "favorite", "mark_date")}
+        resumen = {k: show.get(k) for k in ("id", "tmdb", "title", "status", "rating10", "rating_date", "favorite", "mark_date",
+                                            "mark", "mark_unix")}
         resumen["last_date"] = max([e["date"] for e in show["episodes"]] or [show.get("mark_date") or ""]) or None
         resumen["sz_reviews"] = list(show_reviews.get(show["tmdb"], {}).values())
         out.append({"id": f"s{len(out)}", "seccion": "Series", "categoria": cat, "titulo": show["title"],
