@@ -41,7 +41,20 @@ python sync.py --solo series    # o --solo peliculas
 python sync.py --sin-calcular   # reabre la web con el último cálculo
 ```
 
-3. En la web (http://127.0.0.1:8765) eliges para cada diferencia qué hacer y pulsas **Guardar plan**.
+3. En la web (http://127.0.0.1:8765) eliges para cada diferencia qué hacer y pulsas:
+   - **Simular**: te dice qué haría, sin tocar nada.
+   - **Aplicar**: lo hace de verdad (pide confirmación).
+     - Serializd y Dixmax: se cambian directamente con tu sesión.
+     - Letterboxd: genera el CSV en `logs/` con botones para abrir la carpeta y el importador
+       (registros/notas → `letterboxd.com/import/`; watchlist → tu watchlist > Import).
+   - **Guardar plan**: guarda lo elegido en `logs/` sin ejecutar.
+
+Todo lo aplicado queda registrado en `logs/ejecucion_*.log`.
+
+### Lo que se hace a mano (la herramienta te da el enlace)
+
+- Borrar entradas o notas, quitar de la watchlist y "me gusta" en Letterboxd (su importador no lo permite).
+- Añadir en Dixmax algo que solo está en otra web (hay que buscar la ficha).
 
 ## Qué compara
 
@@ -60,5 +73,5 @@ episodios dobles, películas que solo están en una web, etc.
 ## Estado
 
 - [x] Fase 1: leer las 3 webs, calcular diferencias, web local, guardar plan
-- [ ] Fase 2: aplicar cambios en Serializd y Dixmax
-- [ ] Fase 3: generar CSV de importación para Letterboxd
+- [x] Fase 2: aplicar cambios en Serializd (episodios, estados, notas, terminar serie) y Dixmax (marcar vista, notas)
+- [x] Fase 3: generar CSV de importación para Letterboxd (registros con fecha, notas, watchlist)

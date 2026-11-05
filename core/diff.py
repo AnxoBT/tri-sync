@@ -97,10 +97,13 @@ def series(dx, sz, progress=print):
     out = []
 
     def add(cat, show, detalle, opciones, datos):
+        resumen = {k: show.get(k) for k in ("id", "tmdb", "title", "status", "rating10", "rating_date", "favorite", "mark_date")}
+        resumen["last_date"] = max([e["date"] for e in show["episodes"]] or [show.get("mark_date") or ""]) or None
+        resumen["sz_reviews"] = list(show_reviews.get(show["tmdb"], {}).values())
         out.append({"id": f"s{len(out)}", "seccion": "Series", "categoria": cat, "titulo": show["title"],
                     "detalle": detalle, "enlaces": {"Dixmax": show.get("url"),
                                                     "Serializd": f"https://www.serializd.com/show/{show['tmdb']}"},
-                    "opciones": opciones + [IGNORAR], "datos": datos})
+                    "opciones": opciones + [IGNORAR], "datos": {**datos, "show": resumen}})
 
     dshows = [s for s in dx["shows"] if s["tmdb"] not in excl]
     for i, show in enumerate(dshows, 1):

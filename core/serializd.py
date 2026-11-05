@@ -117,12 +117,38 @@ class Serializd:
 
     # ---------- escritura (fase 2) ----------
     def add_diary(self, show, season_id, episode, backdate, rating=0, is_log=True, like=False):
-        body = {"show_id": show, "season_id": season_id, "backdate": backdate, "review_text": "", "rating": rating,
+        body = {"show_id": show, "backdate": backdate, "review_text": "", "rating": rating,
                 "contains_spoiler": False, "is_log": is_log, "is_rewatch": False, "tags": [],
                 "allows_comments": True, "like": like}
+        if season_id is not None:
+            body["season_id"] = season_id
         if episode is not None:
             body["episode_number"] = episode
         return self._call("POST", "/show/reviews/add", body)
+
+    def set_status(self, show, status):
+        """status: watching / watchlist / dropped / watched (todas las temporadas)."""
+        if status == "watching":
+            return self._call("POST", "/currently_watching", {"show_id": show})
+        if status == "dropped":
+            return self._call("POST", "/dropped_shows", {"show_id": show})
+        info = self.show(show) or {"seasons": {}}
+        ids = [v for k, v in info["seasons"].items() if int(k) >= 1]
+        if status == "watchlist":
+            return self._call("POST", "/watchlist_v2", {"show_id": show, "season_ids": ids})
+        if status == "watched":
+            return self._call("POST", "/watched_v2", {"show_id": show, "season_ids": ids, "async": False})
+        raise ValueError(status)
+
+    def update_review(self, review, **changes):
+        body = {"review_id": review["id"], "review_text": review.get("reviewText") or "",
+                "rating": review.get("rating", 0), "contains_spoiler": review.get("containsSpoiler", False),
+                "backdate": review.get("backdate"), "is_log": review.get("isLog", False),
+                "is_rewatch": review.get("isRewatch", False), "episode_number": review.get("episodeNumber"),
+                "tags": review.get("tags") or [], "allows_comments": review.get("allowsComments", True),
+                "like": review.get("like", False)}
+        body.update(changes)
+        return self._call("POST", "/show/reviews/update", body)
 
     def mark_episodes(self, show, season_id, episodes):
         return self._call("POST", "/episode_log/add", {"show_id": show, "season_id": season_id,

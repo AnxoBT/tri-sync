@@ -39,6 +39,22 @@ class Handler(BaseHTTPRequestHandler):
             f.write_text(json.dumps(plan, ensure_ascii=False, indent=1), encoding="utf-8")
             # Fase 1: solo se guarda el plan. Las fases 2 y 3 lo ejecutarán.
             return self._send(200, {"ok": True, "archivo": str(f), "acciones": len(plan.get("acciones", []))})
+        if self.path == "/api/run":
+            from core.apply import execute
+            n = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(n) or b"{}")
+            try:
+                res = execute(body.get("acciones", []), dry=bool(body.get("simulacion", True)))
+                return self._send(200, {"ok": True, **res})
+            except Exception as e:  # sesión caducada, etc.
+                return self._send(200, {"ok": False, "log": [f"ERROR: {e}"], "archivos": []})
+        if self.path == "/api/abrir":
+            import os
+            n = int(self.headers.get("Content-Length", 0))
+            p = Path(json.loads(self.rfile.read(n) or b"{}").get("archivo", ""))
+            if p.exists() and PLANES in p.parents:
+                os.startfile(p.parent)  # abre la carpeta con el CSV (Windows)
+            return self._send(200, {"ok": True})
         self._send(404, {"error": "no existe"})
 
 

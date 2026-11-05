@@ -39,14 +39,23 @@
     <input type="search" id="q" placeholder="Buscar título…">
     <select id="sec"><option value="">Todo</option><option>Películas</option><option>Series</option></select>
     <button class="sec" onclick="todas('ignorar')">Marcar todo como ignorar</button>
-    <button onclick="guardar()">Guardar plan</button><span id="msg"></span>
+    <button class="sec" onclick="guardar()">Guardar plan</button>
+    <button class="sec" onclick="ejecutar(true)">Simular</button>
+    <button onclick="ejecutar(false)">Aplicar</button><span id="msg"></span>
   </div>
 </header>
+<section id="res" style="display:none;max-width:1100px;margin:12px auto;padding:0 16px">
+  <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px">
+    <b id="resT"></b><button class="sec" style="float:right" onclick="res.style.display='none'">Cerrar</button>
+    <div id="resF"></div>
+    <pre id="resL" style="white-space:pre-wrap;color:var(--muted);max-height:320px;overflow:auto;margin:8px 0 0"></pre>
+  </div>
+</section>
 <main id="main"><div class="vacio">Cargando…</div></main>
 <script>
 let DATA = {diferencias: []};
 const sel = {};
-const FASE = {1: "", 2: "fase 2", 3: "fase 3"};
+const FASE = {1: "", 2: "", 3: " (CSV)"};
 fetch('/api/diff').then(r => r.json()).then(d => { DATA = d; pintar(); });
 document.getElementById('q').oninput = pintar;
 document.getElementById('sec').onchange = pintar;
@@ -71,6 +80,28 @@ function pintar() {
         ${esc(o.texto)}<span class="fase">${FASE[o.fase] || ''}</span></label>`).join('')}</div></div>`).join('')}
     </details>`).join('');
 }
+function elegidas() {
+  return DATA.diferencias.filter(d => (sel[d.id] ?? 'ignorar') !== 'ignorar')
+    .map(d => ({id: d.id, categoria: d.categoria, titulo: d.titulo, accion: sel[d.id], datos: d.datos}));
+}
+function ejecutar(simulacion) {
+  const acciones = elegidas();
+  if (!acciones.length) { document.getElementById('msg').textContent = 'No has elegido ninguna acción'; return; }
+  if (!simulacion && !confirm(`Aplicar ${acciones.length} acciones de verdad en Serializd/Dixmax y generar los CSV de Letterboxd?`)) return;
+  document.getElementById('msg').textContent = simulacion ? 'Simulando…' : 'Aplicando… (puede tardar)';
+  fetch('/api/run', {method: 'POST', body: JSON.stringify({acciones, simulacion})}).then(r => r.json()).then(r => {
+    document.getElementById('msg').textContent = '';
+    const res = document.getElementById('res'); res.style.display = 'block';
+    document.getElementById('resT').textContent = (simulacion ? 'Simulación' : 'Resultado') + ` (${acciones.length} acciones)`;
+    document.getElementById('resL').textContent = (r.log || []).join('\n');
+    document.getElementById('resF').innerHTML = (r.archivos || []).map(f =>
+      `<p>📄 ${esc(f.texto)}: <code>${esc(f.archivo)}</code><br>
+       <button class="sec" onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button>
+       <a href="${esc(f.abrir)}" target="_blank">Abrir importador</a></p>`).join('');
+    window.scrollTo(0, 0);
+  });
+}
+function abrir(archivo) { fetch('/api/abrir', {method: 'POST', body: JSON.stringify({archivo})}); }
 function todas(v) { DATA.diferencias.forEach(d => sel[d.id] = v); pintar(); }
 function guardar() {
   const acciones = DATA.diferencias.filter(d => (sel[d.id] ?? 'ignorar') !== 'ignorar')
