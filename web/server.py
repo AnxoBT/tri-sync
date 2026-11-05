@@ -96,6 +96,7 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(n) or b"{}")
 
     def do_GET(self):
+        self.path = self.path.split("?", 1)[0]  # ignora ?v=… (evita caché del navegador)
         if self.path in ("/", "/index.html"):
             return self._send(200, (WEB / "index.html").read_bytes(), "text/html; charset=utf-8")
         if self.path == "/api/diff":

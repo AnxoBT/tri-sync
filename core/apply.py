@@ -34,15 +34,25 @@ def execute(acciones, dry=True):
     sz = dx = None
     sz_acc = {"sz_subir_eps", "sz_estado", "sz_terminar", "sz_nota", "sz_like"}
     dx_acc = {"dx_vista", "nota_lb_a_dx", "dx_nota", "dx_favorita"}
-    if not dry and sz_acc & set(por):
+    # también en simulación: se comprueba que las conexiones funcionan antes de dar el visto bueno
+    if sz_acc & set(por):
         from .serializd import Serializd
         sz = Serializd()
-        sz.check()
-        Serializd.invalidar_diario()  # la próxima revisión rápida rehace el diario
-    if not dry and dx_acc & set(por):
+        out(f"[Comprobación] Serializd conectado como {sz.check()}")
+        if not dry:
+            Serializd.invalidar_diario()  # la próxima revisión rápida rehace el diario
+    if dx_acc & set(por):
         from .dixmax_api import Dixmax
         dx = Dixmax()
-        dx.check()
+        out(f"[Comprobación] Dixmax (API oficial) conectado como {dx.check()}")
+        if dry and por["dx_favorita"]:
+            a = por["dx_favorita"][0]
+            d = a["datos"].get("dx") or a["datos"].get("show")
+            info = dx.dates(d["id"])
+            out(f"[Comprobación] lectura de fechas OK ({a['titulo']}: {info.get('marked')}, "
+                f"{(info.get('markedDate') or {}).get('text')})")
+            n = len(por["dx_favorita"])
+            out(f"[Comprobación] tiempo estimado: ~{max(1, round(n / 1.8 / 60))} min para {n} favoritas (límite de la API)")
 
     # ---------------- Serializd ----------------
     for a in por["sz_subir_eps"]:
