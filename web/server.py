@@ -17,6 +17,20 @@ JOB = {"activo": False, "mensajes": [], "error": None, "fin": None}
 
 
 HIST = "historial.json"
+RUN = {"activo": False, "simulacion": True, "total": 0, "hechos": 0, "actual": "", "cancelar": False,
+       "resultado": None}
+
+
+def _aplicar(acciones, simulacion):
+    from core.apply import execute
+    RUN.update(activo=True, simulacion=simulacion, total=len(acciones), hechos=0, actual="Empezando…",
+               cancelar=False, resultado=None)
+    try:
+        RUN["resultado"] = {"ok": True, **execute(acciones, dry=simulacion, ctl=RUN)}
+    except Exception as e:
+        RUN["resultado"] = {"ok": False, "log": RUN.get("log", []) + [f"ERROR: {e}"], "archivos": []}
+    finally:
+        RUN["activo"] = False
 
 
 def _revisar(solo, rapida=False):
@@ -24,6 +38,10 @@ def _revisar(solo, rapida=False):
     from core.imports import estado_exports
     JOB.update(activo=True, mensajes=[], error=None, fin=None)
     try:
+        if config.env("DIXMAX_API_KEY") and config.env("DIXMAX_AUTH_KEY"):
+            from core.apply import restaurar_pendientes
+            from core.dixmax_api import Dixmax
+            restaurar_pendientes(Dixmax(), JOB["mensajes"].append)
         ex = estado_exports()
         for k in ("dixmax", "letterboxd"):
             e = ex[k]
@@ -114,6 +132,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, (WEB / "logo.svg").read_bytes(), "image/svg+xml")
         if self.path == "/api/historial":
             return self._send(200, list(reversed(config.cache_json(HIST, []))))
+        if self.path == "/api/run":
+            return self._send(200, {k: v for k, v in RUN.items() if k != "log"})
         if self.path == "/api/progreso":
             return self._send(200, JOB)
         if self.path == "/api/config":
@@ -137,12 +157,15 @@ class Handler(BaseHTTPRequestHandler):
             f.write_text(json.dumps(self._body(), ensure_ascii=False, indent=1), encoding="utf-8")
             return self._send(200, {"ok": True, "archivo": str(f)})
         if self.path == "/api/run":
-            from core.apply import execute
             body = self._body()
-            try:
-                return self._send(200, {"ok": True, **execute(body.get("acciones", []), dry=bool(body.get("simulacion", True)))})
-            except Exception as e:
-                return self._send(200, {"ok": False, "log": [f"ERROR: {e}"], "archivos": []})
+            if not RUN["activo"]:
+                RUN.update(activo=True, resultado=None, hechos=0, total=len(body.get("acciones", [])))  # sin carreras con la web
+                threading.Thread(target=_aplicar, args=(body.get("acciones", []), bool(body.get("simulacion", True))),
+                                 daemon=True).start()
+            return self._send(200, {"ok": True})
+        if self.path == "/api/cancelar":
+            RUN["cancelar"] = True
+            return self._send(200, {"ok": True})
         if self.path == "/api/abrir":
             p = Path(self._body().get("archivo", ""))
             if p.exists() and LOGS in p.parents:

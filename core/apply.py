@@ -5,6 +5,7 @@
 - dry=True: simulación, no cambia nada.
 Cada ejecución real queda registrada en logs/.
 """
+import json
 import math
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -24,12 +25,64 @@ def _stars(r10):
     return f"{r10 / 2:g}" if r10 else ""
 
 
-def execute(acciones, dry=True):
+PENDIENTES = LOGS / "fechas_pendientes.json"
+
+
+class Cancelado(Exception):
+    pass
+
+
+def _guardar_pendientes(lst):
+    LOGS.mkdir(exist_ok=True)
+    if lst:
+        PENDIENTES.write_text(json.dumps(lst), encoding="utf-8")
+    elif PENDIENTES.exists():
+        PENDIENTES.unlink()
+
+
+def restaurar_pendientes(dx, out=print):
+    """Si una aplicación se cortó (ventana cerrada, apagón…) entre marcar favorita y restaurar la fecha,
+    aquí se restauran las fechas que quedaron anotadas."""
+    if not PENDIENTES.exists():
+        return 0
+    lst = json.loads(PENDIENTES.read_text(encoding="utf-8"))
+    for i in range(0, len(lst), 50):
+        dx.set_dates(lst[i:i + 50])
+    _guardar_pendientes([])
+    out(f"[Dixmax] restauradas {len(lst)} fechas que quedaron pendientes de una aplicación interrumpida")
+    return len(lst)
+
+
+def execute(acciones, dry=True, ctl=None):
+    """ctl (opcional): dict compartido con la web -> {total, hechos, actual, cancelar}."""
     log, archivos = [], []
-    out = log.append
     por = defaultdict(list)
     for a in acciones:
         por[a["accion"]].append(a)
+    ctl = ctl if ctl is not None else {}
+    ctl.update(total=len(acciones), hechos=0, actual="Conectando…", log=log)
+
+    def out(msg):
+        log.append(msg)
+
+    def tick(a):
+        if ctl.get("cancelar"):
+            raise Cancelado()
+        ctl["actual"] = a.get("titulo", "")
+        ctl["hechos"] += 1
+
+    try:
+        _execute(por, dry, out, tick, archivos, ctl)
+    except Cancelado:
+        out(f"⛔ CANCELADO: se hicieron {ctl['hechos']} de {ctl['total']}; el resto no se ha tocado. "
+            f"Haz una revisión rápida para ver lo que falta.")
+    if not dry:
+        LOGS.mkdir(exist_ok=True)
+        (LOGS / f"ejecucion_{datetime.now():%Y%m%d_%H%M%S}.log").write_text("\n".join(log), encoding="utf-8")
+    return {"log": log, "archivos": archivos}
+
+
+def _execute(por, dry, out, tick, archivos, ctl):
 
     sz = dx = None
     sz_acc = {"sz_subir_eps", "sz_estado", "sz_terminar", "sz_nota", "sz_like"}
@@ -45,6 +98,8 @@ def execute(acciones, dry=True):
         from .dixmax_api import Dixmax
         dx = Dixmax()
         out(f"[Comprobación] Dixmax (API oficial) conectado como {dx.check()}")
+        if not dry:
+            restaurar_pendientes(dx, out)
         if dry and por["dx_favorita"]:
             a = por["dx_favorita"][0]
             d = a["datos"].get("dx") or a["datos"].get("show")
@@ -56,6 +111,7 @@ def execute(acciones, dry=True):
 
     # ---------------- Serializd ----------------
     for a in por["sz_subir_eps"]:
+        tick(a)
         eps = a["datos"]["episodios"]
         out(f"[Serializd] {a['titulo']}: subir {len(eps)} episodios con su fecha")
         if dry:
@@ -76,6 +132,8 @@ def execute(acciones, dry=True):
         sz.mark_episodes(a["datos"]["tmdb"], last["sz_season_id"], [last["sz_episode"]])
 
     for a in por["sz_estado"]:
+
+        tick(a)
         st = a["datos"]["estado"]
         out(f"[Serializd] {a['titulo']}: poner como {st}")
         if not dry:
@@ -84,6 +142,8 @@ def execute(acciones, dry=True):
                 out(f"   ERROR {s}: {str(r)[:80]}")
 
     for a in por["sz_terminar"]:
+
+        tick(a)
         sh = a["datos"]["show"]
         nota = math.floor(sh["rating10"]) if sh.get("rating10") else 0
         fecha = sh.get("last_date") or sh.get("mark_date")
@@ -95,6 +155,8 @@ def execute(acciones, dry=True):
                 out(f"   ERROR {s}: {str(r)[:80]}")
 
     for a in por["sz_nota"]:
+
+        tick(a)
         sh = a["datos"]["show"]
         nota = math.floor(sh["rating10"])
         prev = [x for x in sh.get("sz_reviews", []) if x.get("seasonId") is None and x.get("episodeNumber") is None]
@@ -109,6 +171,8 @@ def execute(acciones, dry=True):
             out(f"   ERROR {s}: {str(r)[:80]}")
 
     for a in por["sz_like"]:
+
+        tick(a)
         sh = a["datos"]["show"]
         logs = [x for x in sh.get("sz_reviews", []) if x.get("isLog")]
         out(f"[Serializd] {a['titulo']}: ♥ en el registro de serie")
@@ -119,45 +183,64 @@ def execute(acciones, dry=True):
 
     # ---------------- Dixmax ----------------
     if por["dx_favorita"]:
-        fechas, comprobar = [], []
-        for a in por["dx_favorita"]:
-            d = a["datos"].get("dx") or a["datos"].get("show")
-            prev = d.get("mark_unix") if d.get("mark") == "viewed" else None
-            out(f"[Dixmax] {a['titulo']}: marcar como favorita"
-                + (f" conservando la fecha {datetime.fromtimestamp(prev):%d/%m/%Y %H:%M}" if prev else " (fecha leída de Dixmax)"))
-            if dry:
-                continue
-            try:
-                if prev is None:  # sin dato fiable del export: se lee la fecha actual de la marca
-                    prev = (dx.dates(d["id"]).get("markedDate") or {}).get("unix")
-                dx.set_mark(d["id"], "favorite", keep_date=False)
-                if prev:
-                    fechas.append({"fichaId": d["id"], "type": "mark", "unix": prev})
-                    comprobar.append((a["titulo"], d["id"], prev))
-            except Exception as e:
-                out(f"   ERROR: {e}")
-        for i in range(0, len(fechas), 50):  # restaurar fechas en bloques
-            dx.set_dates(fechas[i:i + 50])
+        fechas, comprobar, pend = [], [], []
+
+        def volcar():
+            if pend:
+                dx.set_dates(pend)
+                pend.clear()
+                _guardar_pendientes([])
+
+        try:
+            for a in por["dx_favorita"]:
+                tick(a)
+                d = a["datos"].get("dx") or a["datos"].get("show")
+                prev = d.get("mark_unix") if d.get("mark") == "viewed" else None
+                out(f"[Dixmax] {a['titulo']}: marcar como favorita"
+                    + (f" conservando la fecha {datetime.fromtimestamp(prev):%d/%m/%Y %H:%M}" if prev else " (fecha leída de Dixmax)"))
+                if dry:
+                    continue
+                try:
+                    if prev is None:  # sin dato fiable del export: se lee la fecha actual de la marca
+                        prev = (dx.dates(d["id"]).get("markedDate") or {}).get("unix")
+                    if prev:  # se anota ANTES de marcar: si se corta, la fecha se puede restaurar
+                        pend.append({"fichaId": d["id"], "type": "mark", "unix": prev})
+                        _guardar_pendientes(pend)
+                    dx.set_mark(d["id"], "favorite", keep_date=False)
+                    if prev:
+                        fechas.append(pend[-1])
+                        comprobar.append((a["titulo"], d["id"], prev))
+                except Exception as ex:
+                    out(f"   ERROR: {ex}")
+                if len(pend) >= 10:
+                    volcar()
+        finally:
+            if not dry:
+                volcar()  # también si se cancela: las ya marcadas recuperan su fecha
         if comprobar:  # comprobación de una muestra
             import random
-            for t, fid, prev in random.sample(comprobar, min(3, len(comprobar))):
+            ctl["actual"] = "Comprobando una muestra…"
+            for t_, fid, prev in random.sample(comprobar, min(3, len(comprobar))):
                 info = dx.dates(fid)
                 ok = info.get("marked") == "favorite" and (info.get("markedDate") or {}).get("unix") == prev
-                out(f"   Comprobación {t}: {'OK' if ok else 'REVISAR'} ({info.get('marked')}, "
+                out(f"   Comprobación {t_}: {'OK' if ok else 'REVISAR'} ({info.get('marked')}, "
                     f"{(info.get('markedDate') or {}).get('text')})")
             out(f"   {len(fechas)} favoritas marcadas con su fecha original")
     for a in por["dx_vista"]:
+        tick(a)
         m, f = a["datos"]["dx"], a["datos"]["lb"]
         out(f"[Dixmax] {m['title']}: marcar como vista")
         if not dry:
             out(f"   {dx.set_mark(m['id'], 'viewed')}")
     for a in por["nota_lb_a_dx"]:
+        tick(a)
         m, f = a["datos"]["dx"], a["datos"]["lb"]
         v = f["rating"] * 2
         out(f"[Dixmax] {m['title']}: nota {m['rating10']} -> {v:g}")
         if not dry:
             out(f"   {dx.rate(m['id'], int(v) if v == int(v) else v)}")
     for a in por["dx_nota"]:
+        tick(a)
         sh = a["datos"]["show"]
         notas = [x["rating"] for x in sh.get("sz_reviews", []) if x.get("rating")]
         if not notas:
@@ -169,6 +252,7 @@ def execute(acciones, dry=True):
     # ---------------- Letterboxd (CSV) ----------------
     logs_rows, wl_rows = [], []
     for a in por["lb_log"] + por["nota_dx_a_lb"]:
+        tick(a)
         m = a["datos"]["dx"]
         f = a["datos"].get("lb") or {}
         row = {"tmdbID": m.get("tmdb") or "", "Title": f.get("name") or m["title"], "Year": f.get("year") or m["year"],
@@ -177,6 +261,7 @@ def execute(acciones, dry=True):
             row["WatchedDate"] = (m.get("date") or "")[:10]
         logs_rows.append(row)
     for a in por["lb_watchlist"]:
+        tick(a)
         m = a["datos"]["dx"]
         wl_rows.append({"tmdbID": m.get("tmdb") or "", "Title": m["title"], "Year": m["year"]})
     user = env("LETTERBOXD_USER", "")
@@ -204,8 +289,3 @@ def execute(acciones, dry=True):
     for clave in ("dx_buscar", "dx_marcar_eps"):
         for a in por[clave]:
             out(f"[manual] {a['titulo']}: hazlo a mano (enlaces en la web)")
-
-    if not dry:
-        LOGS.mkdir(exist_ok=True)
-        (LOGS / f"ejecucion_{datetime.now():%Y%m%d_%H%M%S}.log").write_text("\n".join(log), encoding="utf-8")
-    return {"log": log, "archivos": archivos}

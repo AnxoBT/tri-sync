@@ -81,6 +81,9 @@
 
   .modal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; place-items:center; z-index:10; padding:16px; }
   .modal.on { display:grid; }
+  .pbar { height:10px; background:var(--bg); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin:6px 0; }
+  .pbar i { display:block; height:100%; width:0; background:linear-gradient(90deg, var(--dx), var(--sz), var(--lb)); transition:width .4s; }
+  .ptxt { color:var(--muted); font-size:13px; margin-bottom:8px; }
   .box { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); width:min(760px,100%); max-height:85vh; overflow:auto; padding:18px; }
   .box h2 { margin:0 0 10px; font-size:17px; }
   pre { white-space:pre-wrap; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; color:var(--muted); font-size:12.5px; max-height:330px; overflow:auto; }
@@ -150,8 +153,12 @@
 </div></div>
 
 <div class="modal" id="modal"><div class="box">
-  <h2 id="mT"></h2><div id="mF"></div><pre id="mL"></pre>
-  <div style="text-align:right;margin-top:10px"><button onclick="modal.classList.remove('on')">Cerrar</button></div>
+  <h2 id="mT"></h2>
+  <div id="mP" class="hidden"><div class="pbar"><i id="mPi"></i></div><div id="mPt" class="ptxt"></div></div>
+  <div id="mF"></div><pre id="mL"></pre>
+  <div style="text-align:right;margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+    <button id="bCancel" class="hidden" onclick="cancelar()">Cancelar</button>
+    <button id="bCerrar" onclick="modal.classList.remove('on')">Cerrar</button></div>
 </div></div>
 
 <script>
@@ -269,18 +276,46 @@ function elegidas() {
 }
 function contar() { const n = elegidas().length; $('selInfo').textContent = n ? `${n} acciones seleccionadas` : 'Nada seleccionado'; }
 
+let runPoll = null;
 async function ejecutar(simulacion) {
   const acciones = elegidas();
   if (!acciones.length) return;
   if (!simulacion && !confirm(`¿Aplicar ${acciones.length} acciones de verdad?\n\nSerializd y Dixmax se cambian directamente; para Letterboxd se genera el CSV.`)) return;
-  $('mT').textContent = simulacion ? 'Simulando…' : 'Aplicando…'; $('mF').innerHTML = ''; $('mL').textContent = ''; $('modal').classList.add('on');
-  const r = await (await fetch('/api/run', {method: 'POST', body: JSON.stringify({acciones, simulacion})})).json();
-  $('mT').textContent = (simulacion ? 'Simulación' : (r.ok ? 'Hecho' : 'Error')) + ` · ${acciones.length} acciones`;
-  $('mL').textContent = (r.log || []).join('\n');
-  $('mF').innerHTML = (r.archivos || []).map(f => `<div class="file">📄 ${esc(f.texto)}<br><small>${esc(f.archivo)}</small><br>
-      <button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button> <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
-  if (!simulacion && r.ok) $('mF').innerHTML += `<p class="ok">Cuando termines, pulsa «Revisión rápida» para comprobar.</p>`;
+  await fetch('/api/run', {method: 'POST', body: JSON.stringify({acciones, simulacion})});
+  seguirRun();
 }
+function seguirRun() {
+  $('mF').innerHTML = ''; $('mL').textContent = ''; $('modal').classList.add('on');
+  $('mP').classList.remove('hidden'); $('bCancel').classList.remove('hidden'); $('bCancel').disabled = false;
+  clearInterval(runPoll);
+  const paso = async () => {
+    const r = await (await fetch('/api/run')).json();
+    const pct = r.total ? Math.round(100 * Math.max(0, r.hechos - (r.activo ? 1 : 0)) / r.total) : 0;
+    $('mT').textContent = (r.simulacion ? 'Simulando' : 'Aplicando') + (r.activo ? '…' : '');
+    $('mPi').style.width = (r.activo ? pct : 100) + '%';
+    $('mPt').textContent = r.activo ? `${Math.max(0, r.hechos - 1)} de ${r.total} · ${r.actual}` +
+      (r.cancelar ? ' · cancelando (termina la acción en curso)…' : '') : '';
+    $('bCerrar').title = r.activo ? 'Puedes cerrar: sigue aplicándose en segundo plano' : '';
+    if (!r.activo && r.resultado) { clearInterval(runPoll); fin(r); }
+  };
+  paso(); runPoll = setInterval(paso, 700);
+}
+function fin(r) {
+  const res = r.resultado, simulacion = r.simulacion;
+  $('mP').classList.add('hidden'); $('bCancel').classList.add('hidden');
+  const cancelado = (res.log || []).some(l => l.includes('CANCELADO'));
+  $('mT').textContent = (simulacion ? 'Simulación' : cancelado ? 'Cancelado' : (res.ok ? 'Hecho' : 'Error')) + ` · ${r.total} acciones`;
+  $('mL').textContent = (res.log || []).join('\n');
+  $('mF').innerHTML = (res.archivos || []).map(f => `<div class="file">📄 ${esc(f.texto)}<br><small>${esc(f.archivo)}</small><br>
+      <button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button> <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
+  if (!simulacion && res.ok) $('mF').innerHTML += `<p class="ok">Cuando termines, pulsa «Revisión rápida» para comprobar.</p>`;
+}
+async function cancelar() {
+  if (!confirm('¿Cancelar? Se termina la acción en curso y no se hace nada más. Lo ya aplicado se queda (con sus fechas correctas).')) return;
+  $('bCancel').disabled = true; await fetch('/api/cancelar', {method: 'POST'});
+}
+// si recargas o reabres la página mientras se aplica, vuelve a enseñar el progreso
+fetch('/api/run').then(r => r.json()).then(r => { if (r.activo) seguirRun(); });
 function abrir(archivo) { fetch('/api/abrir', {method: 'POST', body: JSON.stringify({archivo})}); }
 
 // ---------- configuración ----------
