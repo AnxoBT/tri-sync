@@ -3,18 +3,19 @@
 Compara mi historial de **Dixmax/PlayMax**, **Letterboxd** (películas) y **Serializd** (series),
 muestra las diferencias en una web local y me deja elegir qué hacer con cada una.
 
-> Uso personal. Las APIs de Dixmax y Serializd son internas (no oficiales) y pueden cambiar.
+> Uso personal. Dixmax se usa con su API oficial; la de Serializd es interna (no oficial) y puede cambiar.
 > Letterboxd se lee desde su export oficial y se escribe con su importador CSV.
 
-## Instalación
+## Instalación (también en otro PC)
 
-Solo hace falta Python 3.10+ (sin dependencias externas).
+1. Instala **Python 3.10+** desde python.org (marca *Add python.exe to PATH*).
+2. Descarga la última versión desde **Releases** (zip *Source code*) y descomprímela donde quieras.
+   (O `git clone https://github.com/AnxoBT/tri-sync.git`.)
+3. Doble clic en **`Abrir Tri-Sync.bat`**. La primera vez instala lo necesario (`tzdata`) y abre la web.
+4. Pestaña **Configuración**: rellena los datos (o copia tu `.env` de otro PC a esta carpeta) → **Probar conexiones**.
+5. La primera revisión en un PC nuevo, mejor **Completa** (crea la caché).
 
-```bash
-git clone https://github.com/AnxoBT/tri-sync.git
-cd tri-sync
-copy .env.example .env      # y rellénalo
-```
+Nada personal viaja con el repo: el `.env` (token y claves), la caché y los registros se quedan en cada PC.
 
 ### `.env`
 
