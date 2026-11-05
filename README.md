@@ -29,7 +29,7 @@ El `.env`, los exports y las cachés **nunca** se suben al repo (ver `.gitignore
 
 ## Uso
 
-**Abrir:** doble clic en `Abrir sync.bat` (o `python sync.py`). Se abre la web en http://127.0.0.1:8765.
+**Abrir:** doble clic en `Abrir Tri-Sync.bat` (o `python sync.py`). Se abre la web en http://127.0.0.1:8765.
 Para apagarlo, cierra la ventana negra.
 
 1. **Descarga los exports** con los botones de la web (quedan como zip en Descargas, no hace falta descomprimir):
