@@ -10,6 +10,7 @@ from core import config
 from core.config import CACHE, ROOT
 
 WEB = Path(__file__).resolve().parent
+INDEX = (WEB / "index.html").read_bytes()  # se fija al arrancar: página y servidor siempre de la misma versión
 LOGS = ROOT / "logs"
 
 # estado de la revisión en segundo plano
@@ -116,7 +117,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.path = self.path.split("?", 1)[0]  # ignora ?v=… (evita caché del navegador)
         if self.path in ("/", "/index.html"):
-            return self._send(200, (WEB / "index.html").read_bytes(), "text/html; charset=utf-8")
+            return self._send(200, INDEX, "text/html; charset=utf-8")
         if self.path == "/api/diff":
             p = CACHE / "diff.json"
             return self._send(200, json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"diferencias": []})

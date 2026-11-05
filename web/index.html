@@ -286,23 +286,31 @@ async function ejecutar(simulacion) {
 }
 function seguirRun() {
   $('mF').innerHTML = ''; $('mL').textContent = ''; $('modal').classList.add('on');
-  $('mP').classList.remove('hidden'); $('bCancel').classList.remove('hidden'); $('bCancel').disabled = false;
+  $('mP').classList.remove('hidden'); $('mL').classList.add('hidden');
+  $('bCancel').classList.remove('hidden'); $('bCancel').disabled = false; $('bCerrar').classList.add('hidden');
   clearInterval(runPoll);
   const paso = async () => {
-    const r = await (await fetch('/api/run')).json();
+    let r;
+    try { r = await (await fetch('/api/run')).json(); } catch (e) { r = {error: 'sin conexión'}; }
+    if (r.error || r.activo === undefined) {
+      clearInterval(runPoll); $('mP').classList.add('hidden'); $('bCancel').classList.add('hidden'); $('bCerrar').classList.remove('hidden');
+      $('mT').textContent = 'No puedo seguir el progreso';
+      $('mF').innerHTML = '<p class="bad">Tri-Sync está desactualizado o cerrado: cierra la ventana negra y ábrelo de nuevo desde el acceso directo. Lo que se aplicó queda en la carpeta logs.</p>';
+      return;
+    }
     const pct = r.total ? Math.round(100 * Math.max(0, r.hechos - (r.activo ? 1 : 0)) / r.total) : 0;
     $('mT').textContent = (r.simulacion ? 'Simulando' : 'Aplicando') + (r.activo ? '…' : '');
     $('mPi').style.width = (r.activo ? pct : 100) + '%';
     $('mPt').textContent = r.activo ? `${Math.max(0, r.hechos - 1)} de ${r.total} · ${r.actual}` +
       (r.cancelar ? ' · cancelando (termina la acción en curso)…' : '') : '';
-    $('bCerrar').title = r.activo ? 'Puedes cerrar: sigue aplicándose en segundo plano' : '';
     if (!r.activo && r.resultado) { clearInterval(runPoll); fin(r); }
   };
   paso(); runPoll = setInterval(paso, 700);
 }
 function fin(r) {
   const res = r.resultado, simulacion = r.simulacion;
-  $('mP').classList.add('hidden'); $('bCancel').classList.add('hidden');
+  $('mP').classList.add('hidden'); $('bCancel').classList.add('hidden'); $('bCerrar').classList.remove('hidden');
+  $('mL').classList.toggle('hidden', !(res.log || []).length);
   const cancelado = (res.log || []).some(l => l.includes('CANCELADO'));
   $('mT').textContent = (simulacion ? 'Simulación' : cancelado ? 'Cancelado' : (res.ok ? 'Hecho' : 'Error')) + ` · ${r.total} acciones`;
   $('mL').textContent = (res.log || []).join('\n');
