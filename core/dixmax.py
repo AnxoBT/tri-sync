@@ -89,3 +89,103 @@ def load():
                       "episodes": sorted(eps_by.get(f["id"], []), key=lambda x: (x["season"], x["episode"])),
                       "url": f["url"]})
     return {"export": exp.name, "movies": movies, "shows": shows}
+
+
+def apply_live(data, progress=print):
+    """Actualiza lo leído del export con el estado ACTUAL de Dixmax (API oficial):
+    marcas, notas, fichas nuevas y episodios vistos nuevos de las series que sigues.
+    Lo nuevo que no está en el export no tiene fecha real: se usa la fecha de hoy (fecha_aproximada)."""
+    from .dixmax_api import Dixmax
+    api = Dixmax()
+    hoy = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    mf = api.my_fichas()
+    secs = mf.get("sections", mf)
+    r = rules().get("dixmax", {})
+    ign = set(r.get("fichas_ignoradas", []))
+    tmdb_ov = {int(k): v for k, v in r.get("tmdb_override", {}).items()}
+    live = {}  # id -> (tipo, marca, nota, ficha_api)
+    for tipo, grupos in secs.items():
+        if tipo == "episode" or not isinstance(grupos, dict):
+            continue
+        for mark, lst in grupos.items():
+            for f in lst:
+                if f.get("isFolder"):
+                    continue
+                live[f["id"]] = (tipo, mark, (f.get("user") or {}).get("rating") or None, f)
+
+    movies = {m["id"]: m for m in data["movies"]}
+    shows = {s["id"]: s for s in data["shows"]}
+    status_show = {"viewed": "finished", "favorite": "finished", "following": "watching",
+                   "pending": "watchlist", "abandoned": "dropped"}
+    nuevos = cambios = 0
+
+    def tmdb_de(fid, info=None):
+        if fid in tmdb_ov:
+            return int(tmdb_ov[fid].split("/")[1])
+        info = info or api.ficha(fid)["info"]
+        for x in info.get("externalLinks", []):
+            if x["name"] == "TheMovieDB" and str(x.get("externalId", "")).isdigit():
+                return int(x["externalId"])
+        return None
+
+    for fid, (tipo, mark, nota, f) in live.items():
+        if fid in ign:
+            continue
+        es_serie = f.get("isSerie") or tipo == "series"
+        if not es_serie:
+            st = "watched" if mark in ("viewed", "favorite") else "watchlist" if mark == "pending" else None
+            if not st:
+                continue
+            m = movies.get(fid)
+            if m is None:
+                movies[fid] = {"id": fid, "title": f["title"], "year": f.get("year"), "tmdb": tmdb_de(fid), "imdb": None,
+                               "status": st, "date": hoy, "rating10": nota, "favorite": mark == "favorite",
+                               "url": f"https://playmax.mx/x-f{fid}", "fecha_aproximada": True}
+                nuevos += 1
+            else:
+                if m["status"] != st:
+                    if st == "watched":  # vista desde el export: no sabemos la fecha exacta
+                        m["date"], m["fecha_aproximada"] = hoy, True
+                    m["status"], cambios = st, cambios + 1
+                if nota != m["rating10"]:
+                    m["rating10"], cambios = nota, cambios + 1
+                m["favorite"] = mark == "favorite"
+        else:
+            s = shows.get(fid)
+            st = status_show.get(mark)
+            if s is None:
+                tm = tmdb_de(fid)
+                if not tm:
+                    continue
+                s = shows[fid] = {"id": fid, "title": f["title"], "year": f.get("year"), "tmdb": tm, "status": st,
+                                  "rating10": nota, "favorite": mark == "favorite", "mark_date": hoy, "rating_date": hoy,
+                                  "episodes": [], "url": f"https://playmax.mx/x-f{fid}"}
+                nuevos += 1
+            else:
+                if s["status"] != st or s["rating10"] != nota:
+                    cambios += 1
+                s["status"], s["rating10"], s["favorite"] = st, nota, mark == "favorite"
+    # Nota: las fichas del export que no salen en la API no se tocan (p. ej. películas que tienes en
+    # tus listas sin marca). Para reflejar marcas QUITADAS, descarga un export nuevo.
+
+    # episodios nuevos de las series que sigues (y de las nuevas)
+    revisar = [s for s in shows.values() if s["status"] == "watching" or not s["episodes"] and s["status"] == "finished"]
+    for i, s in enumerate(revisar, 1):
+        if i % 10 == 0:
+            progress(f"Dixmax: episodios {i}/{len(revisar)}")
+        try:
+            fi = api.ficha(s["id"])
+        except Exception:
+            continue
+        have = {(e["season"], e["episode"]) for e in s["episodes"]}
+        for season in fi.get("episodes") or []:
+            for e in season.get("episodesList", []):
+                if (e.get("user") or {}).get("viewed") and (e["season"], e["episode"]) not in have:
+                    s["episodes"].append({"season": e["season"], "episode": e["episode"], "title": e.get("name", ""),
+                                          "date": hoy, "fecha_aproximada": True, "dx_episode_id": e["id"]})
+                    nuevos += 1
+        s["episodes"].sort(key=lambda x: (x["season"], x["episode"]))
+    progress(f"Dixmax en directo: {nuevos} novedades y {cambios} cambios respecto al export")
+    data["movies"], data["shows"] = list(movies.values()), list(shows.values())
+    data["live"] = True
+    return data

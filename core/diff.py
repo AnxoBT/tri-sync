@@ -170,7 +170,13 @@ def series(dx, sz, progress=print):
 def compute(progress=print, solo=None):
     progress("Leyendo export de Dixmax…")
     dx = dixmax.load()
-    res = {"fuentes": {"dixmax": dx["export"]}, "diferencias": []}
+    fuente_dx = dx["export"]
+    from .config import env
+    if env("DIXMAX_API_KEY") and env("DIXMAX_AUTH_KEY"):
+        progress("Dixmax: leyendo estado actual por la API…")
+        dx = dixmax.apply_live(dx, progress)
+        fuente_dx += " + API en directo"
+    res = {"fuentes": {"dixmax": fuente_dx}, "diferencias": []}
     if solo in (None, "peliculas"):
         progress("Leyendo export de Letterboxd…")
         lb = letterboxd.load()

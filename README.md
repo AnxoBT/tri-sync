@@ -29,7 +29,8 @@ El `.env`, los exports y las cachés **nunca** se suben al repo (ver `.gitignore
 
 ## Uso
 
-1. Descarga los exports y descomprímelos en `DATA_DIR`:
+1. Descarga los exports (desde la web, botón «Importar desde Descargas»). Con la API de Dixmax configurada,
+   Dixmax se lee en directo y su export solo hace falta de vez en cuando para tener las fechas exactas:
    - **Dixmax**: perfil → exportar datos → carpeta `playmax-userdata-*`
    - **Letterboxd**: Settings → Data → Export your data → carpeta `letterboxd-*`
    (se usa siempre el más reciente)

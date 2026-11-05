@@ -98,14 +98,14 @@
 <!-- ============ REVISIÓN ============ -->
 <div id="vRev" class="wrap">
   <div class="cards">
-    <div class="card dx"><h3>Dixmax</h3><div class="v" id="cDx">—</div><div class="s">export descargado</div></div>
+    <div class="card dx"><h3>Dixmax</h3><div class="v">En directo (API)</div><div class="s">fechas del export: <span id="cDx">—</span></div></div>
     <div class="card lb"><h3>Letterboxd</h3><div class="v" id="cLb">—</div><div class="s">export descargado</div></div>
     <div class="card sz"><h3>Serializd</h3><div class="v">En directo</div><div class="s">se lee al revisar</div></div>
   </div>
 
   <div class="steps">
     <div class="step"><span class="num">1</span>
-      <button onclick="window.open('https://playmax.mx/settings.php?module=profile&mode=my_data')">Export Dixmax ↗</button>
+      <button title="Solo de vez en cuando, para tener las fechas exactas" onclick="window.open('https://playmax.mx/settings.php?module=profile&mode=my_data')">Export Dixmax (opcional) ↗</button>
       <button onclick="window.open('https://letterboxd.com/settings/data/')">Export Letterboxd ↗</button></div>
     <span class="sep">›</span>
     <div class="step"><span class="num">2</span><button onclick="importar()">Importar desde Descargas</button></div>
