@@ -16,7 +16,10 @@ LOGS = ROOT / "logs"
 JOB = {"activo": False, "mensajes": [], "error": None, "fin": None}
 
 
-def _revisar(solo):
+HIST = "historial.json"
+
+
+def _revisar(solo, rapida=False):
     from core import diff
     from core.imports import estado_exports
     JOB.update(activo=True, mensajes=[], error=None, fin=None)
@@ -25,9 +28,17 @@ def _revisar(solo):
         for k in ("dixmax", "letterboxd"):
             e = ex[k]
             JOB["mensajes"].append(f"{k}: {e['carpeta']} ({e['edad']})" if e["carpeta"] else f"{k}: sin export")
-        res = diff.compute(progress=lambda m: JOB["mensajes"].append(m), solo=solo)
+        t0 = datetime.now()
+        res = diff.compute(progress=lambda m: JOB["mensajes"].append(m), solo=solo, rapida=rapida)
         res["calculado"] = datetime.now().strftime("%d/%m/%Y %H:%M")
         config.save_cache("diff.json", res)
+        from collections import Counter
+        hist = config.cache_json(HIST, [])
+        hist.append({"fecha": res["calculado"], "modo": res["modo"], "segundos": round((datetime.now() - t0).total_seconds()),
+                     "diferencias": len(res["diferencias"]),
+                     "categorias": dict(Counter(d["categoria"] for d in res["diferencias"])),
+                     "fuentes": res["fuentes"], "stats": res.get("stats", {})})
+        config.save_cache(HIST, hist[-100:])
     except Exception as e:  # token caducado, export que falta…
         JOB["error"] = str(e)
     finally:
@@ -96,6 +107,10 @@ class Handler(BaseHTTPRequestHandler):
             calc = json.loads(p.read_text(encoding="utf-8")).get("calculado") if p.exists() else None
             return self._send(200, {"exports": estado_exports(), "calculado": calc,
                                     "letterboxd_user": config.env("LETTERBOXD_USER"), "trabajo": JOB})
+        if self.path == "/logo.svg":
+            return self._send(200, (WEB / "logo.svg").read_bytes(), "image/svg+xml")
+        if self.path == "/api/historial":
+            return self._send(200, list(reversed(config.cache_json(HIST, []))))
         if self.path == "/api/progreso":
             return self._send(200, JOB)
         if self.path == "/api/config":
@@ -105,7 +120,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/revisar":
             if not JOB["activo"]:
-                threading.Thread(target=_revisar, args=(self._body().get("solo"),), daemon=True).start()
+                b = self._body()
+                threading.Thread(target=_revisar, args=(b.get("solo"), b.get("modo") == "rapida"), daemon=True).start()
             return self._send(200, {"ok": True})
         if self.path == "/api/config":
             config.guardar_config(self._body())

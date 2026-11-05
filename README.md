@@ -36,7 +36,7 @@ Para apagarlo, cierra la ventana negra.
    - **Letterboxd**: cada vez que revises (1 clic).
    - **Dixmax**: opcional; con la API configurada se lee en directo. Descárgalo cuando quieras **fechas exactas**
      (lo detectado solo por la API se registra con la fecha del día de la revisión).
-2. **Revisar ahora**: lee directamente el zip (o carpeta) más reciente de cada web en las carpetas de
+2. **Revisión rápida / Completa**: lee directamente el zip (o carpeta) más reciente de cada web en las carpetas de
    `DATA_DIR` (por defecto Descargas; varias separadas por `;`). Busca nombres que empiecen por
    `playmax-userdata-` y `letterboxd-`, ignora los incompletos y compara todo (~2-3 min).
 3. Elige qué hacer con cada diferencia → **Simular** → **Aplicar**:

@@ -91,7 +91,7 @@ def load():
     return {"export": exp.name, "export_mtime": exp.mtime, "movies": movies, "shows": shows}
 
 
-def apply_live(data, progress=print):
+def apply_live(data, progress=print, rapida=False):
     """Actualiza lo leído del export con el estado ACTUAL de Dixmax (API oficial):
     marcas, notas, fichas nuevas y episodios vistos nuevos de las series que sigues.
     Lo nuevo que no está en el export no tiene fecha real: se usa la fecha de hoy (fecha_aproximada)."""
@@ -171,7 +171,10 @@ def apply_live(data, progress=print):
     # episodios nuevos de las series que sigues (y de las nuevas)
     revisar = [s for s in shows.values() if s["status"] == "watching" or not s["episodes"] and s["status"] == "finished"]
     import time
-    if time.time() - data.get("export_mtime", 0) < 3600:  # export de hace menos de 1 h: ya trae los episodios
+    if rapida:
+        progress("Dixmax: revisión rápida, episodios del export (la completa los mira por la API)")
+        revisar = [s for s in revisar if not s["episodes"]]
+    elif time.time() - data.get("export_mtime", 0) < 3600:  # export de hace menos de 1 h: ya trae los episodios
         progress("Dixmax: export reciente, no hace falta revisar episodios por la API")
         revisar = [s for s in revisar if not s["episodes"]]
     for i, s in enumerate(revisar, 1):
@@ -192,4 +195,5 @@ def apply_live(data, progress=print):
     progress(f"Dixmax en directo: {nuevos} novedades y {cambios} cambios respecto al export")
     data["movies"], data["shows"] = list(movies.values()), list(shows.values())
     data["live"] = True
+    data["novedades"], data["cambios"] = nuevos, cambios
     return data

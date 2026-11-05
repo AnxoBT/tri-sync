@@ -2,10 +2,11 @@
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-from .config import cache_json, env, save_cache
+from .config import CACHE, cache_json, env, save_cache
 from .http import call
 
 API = "https://serializddesktop.onrender.com/api"
+DIARY_CACHE = "sz_diary.json"
 LISTS = {"watched": "watchedpage_v2", "watchlist": "watchlistpage_v2",
          "watching": "currently_watching_page", "dropped": "dropped_shows_page"}
 
@@ -35,15 +36,43 @@ class Serializd:
         return self.user
 
     # ---------- lectura ----------
-    def diary(self):
-        s, d = self._call("GET", f"/user/{self.user}/diary?page=1")
-        pages = d["totalPages"]
-        out = list(d["reviews"])
-        with ThreadPoolExecutor(10) as ex:
-            for lst in ex.map(lambda p: self._call("GET", f"/user/{self.user}/diary?page={p}")[1]["reviews"],
-                              range(2, pages + 1)):
-                out += lst
+    def _diary_page(self, p):
+        return self._call("GET", f"/user/{self.user}/diary?page={p}")[1]
+
+    def diary(self, rapida=False):
+        """Diario completo. rapida=True: solo baja las páginas nuevas y reutiliza la caché
+        (no detecta entradas borradas ni con fecha antigua añadidas desde fuera de la herramienta)."""
+        cache = cache_json(DIARY_CACHE)
+        if rapida and cache.get("user") == self.user and cache.get("entries"):
+            known = {e["id"]: e for e in cache["entries"]}
+            p, pages, nuevas = 1, None, 0
+            while True:
+                d = self._diary_page(p)
+                pages = d["totalPages"]
+                fresh = [e for e in d["reviews"] if e["id"] not in known]
+                for e in d["reviews"]:
+                    known[e["id"]] = e
+                nuevas += len(fresh)
+                if (not fresh and p >= 2) or p >= pages:
+                    break
+                p += 1
+            out = list(known.values())
+        else:
+            d = self._diary_page(1)
+            pages = d["totalPages"]
+            out = list(d["reviews"])
+            with ThreadPoolExecutor(10) as ex:
+                for dd in ex.map(self._diary_page, range(2, pages + 1)):
+                    out += dd["reviews"]
+        save_cache(DIARY_CACHE, {"user": self.user, "entries": out})
         return out
+
+    @staticmethod
+    def invalidar_diario():
+        """Tras escribir en Serializd: la siguiente revisión rápida vuelve a bajar el diario entero."""
+        p = CACHE / DIARY_CACHE
+        if p.exists():
+            p.unlink()
 
     def list_items(self, name):
         items, p = {}, 1
@@ -61,7 +90,8 @@ class Serializd:
         Se piden filtrando por cada nota (1-10): la paginación general de Serializd se salta entradas."""
         from urllib.parse import quote
         out = {}
-        for rating in range(1, 11):
+
+        def bucket(rating):
             cur = cur2 = None
             for _ in range(200):
                 q = (f"/user/{self.user}/reviewspage_v3?sort_by=date_added_desc&include_ratings=true"
@@ -78,6 +108,9 @@ class Serializd:
                 if not items or nxt == (None, None) or nxt == (cur, cur2):
                     break
                 cur, cur2 = nxt
+
+        with ThreadPoolExecutor(10) as ex:
+            list(ex.map(bucket, range(1, 11)))
         return [x for x in out.values() if x.get("seasonId") is None and x.get("episodeNumber") is None]
 
     # Caché en memoria (thread-safe); se guarda en disco con flush()

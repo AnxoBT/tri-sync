@@ -32,12 +32,13 @@ def execute(acciones, dry=True):
         por[a["accion"]].append(a)
 
     sz = dx = None
-    sz_acc = {"sz_subir_eps", "sz_estado", "sz_terminar", "sz_nota"}
-    dx_acc = {"dx_vista", "nota_lb_a_dx", "dx_nota"}
+    sz_acc = {"sz_subir_eps", "sz_estado", "sz_terminar", "sz_nota", "sz_like"}
+    dx_acc = {"dx_vista", "nota_lb_a_dx", "dx_nota", "dx_favorita"}
     if not dry and sz_acc & set(por):
         from .serializd import Serializd
         sz = Serializd()
         sz.check()
+        Serializd.invalidar_diario()  # la próxima revisión rápida rehace el diario
     if not dry and dx_acc & set(por):
         from .dixmax_api import Dixmax
         dx = Dixmax()
@@ -97,7 +98,21 @@ def execute(acciones, dry=True):
         if s not in (200, 201):
             out(f"   ERROR {s}: {str(r)[:80]}")
 
+    for a in por["sz_like"]:
+        sh = a["datos"]["show"]
+        logs = [x for x in sh.get("sz_reviews", []) if x.get("isLog")]
+        out(f"[Serializd] {a['titulo']}: ♥ en el registro de serie")
+        if not dry and logs:
+            s, r = sz.update_review(logs[0], like=True)
+            if s not in (200, 201):
+                out(f"   ERROR {s}: {str(r)[:80]}")
+
     # ---------------- Dixmax ----------------
+    for a in por["dx_favorita"]:
+        d = a["datos"].get("dx") or a["datos"].get("show")
+        out(f"[Dixmax] {a['titulo']}: marcar como favorita")
+        if not dry:
+            out(f"   {dx.set_mark(d['id'], 'favorite')}")
     for a in por["dx_vista"]:
         m, f = a["datos"]["dx"], a["datos"]["lb"]
         out(f"[Dixmax] {m['title']}: marcar como vista")

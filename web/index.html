@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>seriesypelis-sync</title>
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
 <style>
   :root {
     --bg:#0f1317; --panel:#171d23; --panel2:#1d252c; --line:#28323c; --text:#e3e8ed; --muted:#8994a0;
     --acc:#3fb0ff; --ok:#2fbf71; --warn:#f0a020; --bad:#ef5350;
-    --dx:#ff7a00; --lb:#40bcf4; --sz:#9b7bff; --r:10px;
+    --dx:#ff8000; --lb:#40bcf4; --sz:#00e054; --r:10px;
   }
   * { box-sizing:border-box; }
   body { margin:0; font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
@@ -23,7 +24,10 @@
 
   header { background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
   header .wrap { display:flex; align-items:center; gap:20px; height:54px; }
-  .logo { font-weight:750; letter-spacing:.2px; }
+  .logo { font-weight:750; letter-spacing:.2px; display:flex; align-items:center; gap:9px; }
+  .logo img { width:26px; height:26px; }
+  table.hist { width:100%; border-collapse:collapse; font-size:13px; } table.hist td, table.hist th { padding:8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  table.hist th { color:var(--muted); font-weight:500; } .delta { color:var(--acc); }
   .logo span { color:var(--muted); font-weight:500; }
   nav { display:flex; gap:4px; }
   nav button { background:none; border:0; color:var(--muted); padding:8px 12px; }
@@ -90,8 +94,8 @@
 </head>
 <body>
 <header><div class="wrap">
-  <div class="logo">seriesypelis<span>-sync</span></div>
-  <nav><button id="tRev" class="on" onclick="vista('rev')">Revisión</button><button id="tCfg" onclick="vista('cfg')">Configuración</button></nav>
+  <div class="logo"><img src="/logo.svg" alt="">seriesypelis<span>-sync</span></div>
+  <nav><button id="tRev" class="on" onclick="vista('rev')">Revisión</button><button id="tHist" onclick="vista('hist')">Historial</button><button id="tCfg" onclick="vista('cfg')">Configuración</button></nav>
   <div class="hstat" id="hstat"></div>
 </div></header>
 
@@ -108,8 +112,9 @@
       <button title="Solo de vez en cuando, para tener las fechas exactas" onclick="window.open('https://playmax.mx/settings.php?module=profile&mode=my_data')">Export Dixmax (opcional) ↗</button>
       <button onclick="window.open('https://letterboxd.com/settings/data/')">Export Letterboxd ↗</button></div>
     <span class="sep">›</span>
-    <div class="step"><span class="num">2</span><button class="pri" id="bRev" onclick="revisar()">Revisar ahora</button>
-      <span class="s" style="color:var(--muted);font-size:12px">usa el zip más reciente de cada web (sin descomprimir)</span></div>
+    <div class="step"><span class="num">2</span>
+      <button class="pri" id="bRev" onclick="revisar('rapida')" title="~20 s: solo lo nuevo del diario de Serializd; episodios de Dixmax según el export">Revisión rápida</button>
+      <button id="bRevC" onclick="revisar('completa')" title="~2 min: todo desde cero (detecta borrados y episodios nuevos de Dixmax por la API)">Completa</button></div>
     <div style="flex-basis:100%"><div id="prog"></div><div class="bar" id="bar"><i></i></div></div>
   </div>
 
@@ -119,6 +124,9 @@
   </div>
   <div id="lista"></div>
 </div>
+
+<!-- ============ HISTORIAL ============ -->
+<div id="vHist" class="wrap hidden" style="padding-top:16px"><div id="histT"></div></div>
 
 <!-- ============ CONFIGURACIÓN ============ -->
 <div id="vCfg" class="wrap hidden">
@@ -149,10 +157,12 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 let DATA = {diferencias: []}, sel = {}, filtroCat = null, poll = null;
 
 function vista(v) {
-  $('vRev').classList.toggle('hidden', v !== 'rev'); $('vCfg').classList.toggle('hidden', v !== 'cfg');
+  for (const [k, id] of [['rev', 'Rev'], ['hist', 'Hist'], ['cfg', 'Cfg']]) {
+    $('v' + id).classList.toggle('hidden', v !== k); $('t' + id).classList.toggle('on', v === k);
+  }
   $('abar').classList.toggle('hidden', v !== 'rev');
-  $('tRev').classList.toggle('on', v === 'rev'); $('tCfg').classList.toggle('on', v === 'cfg');
   if (v === 'cfg') cargarCfg();
+  if (v === 'hist') historial();
 }
 
 async function estado() {
@@ -167,14 +177,32 @@ async function estado() {
 }
 async function cargarDiff() { DATA = await (await fetch('/api/diff')).json(); sel = {}; pintar(); }
 
-async function revisar() {
-  $('bRev').disabled = true; $('bar').style.display = 'block';
-  await fetch('/api/revisar', {method: 'POST', body: '{}'});
+const STAT_TXT = {dx_pelis_vistas: 'pelis vistas Dixmax', dx_pelis_pendientes: 'pelis pendientes Dixmax', dx_pelis_favoritas: 'pelis favoritas Dixmax',
+  dx_series_terminadas: 'series terminadas', dx_series_siguiendo: 'series siguiendo', dx_series_pendientes: 'series pendientes',
+  dx_series_favoritas: 'series favoritas', dx_episodios: 'episodios vistos', lb_vistas: 'vistas Letterboxd', lb_watchlist: 'watchlist Letterboxd',
+  lb_me_gusta: 'me gusta Letterboxd', lb_diario: 'diario Letterboxd', sz_diario: 'diario Serializd', sz_vistas: 'series vistas Serializd', sz_favoritas: '♥ Serializd'};
+async function historial() {
+  const h = await (await fetch('/api/historial')).json();
+  if (!h.length) { $('histT').innerHTML = '<div class="empty"><b>Sin revisiones todavía</b></div>'; return; }
+  $('histT').innerHTML = `<table class="hist"><tr><th>Fecha</th><th>Modo</th><th>Duración</th><th>Diferencias</th><th>Cambios desde la anterior</th></tr>` +
+    h.map((r, i) => {
+      const prev = h[i + 1], s = r.stats || {};
+      const deltas = prev ? Object.keys(STAT_TXT).filter(k => s[k] != null && prev.stats?.[k] != null && s[k] !== prev.stats[k])
+        .map(k => `<span class="delta">${s[k] > prev.stats[k] ? '+' : ''}${s[k] - prev.stats[k]}</span> ${STAT_TXT[k]}`).join(' · ') : '';
+      const cats = Object.entries(r.categorias || {}).map(([c, n]) => `${n} ${esc(c)}`).join('<br>');
+      return `<tr><td>${esc(r.fecha)}</td><td>${esc(r.modo)}</td><td>${r.segundos} s</td><td>${r.diferencias ? cats : '✓ todo cuadra'}</td>
+        <td>${deltas || (prev ? 'sin cambios' : '—')}</td></tr>`;
+    }).join('') + '</table>';
+}
+
+async function revisar(modo) {
+  $('bRev').disabled = $('bRevC').disabled = true; $('bar').style.display = 'block';
+  await fetch('/api/revisar', {method: 'POST', body: JSON.stringify({modo})});
   poll = setInterval(async () => {
     const j = await (await fetch('/api/progreso')).json();
     $('prog').textContent = j.mensajes.slice(-1)[0] || 'Empezando…';
     if (!j.activo) {
-      clearInterval(poll); $('bRev').disabled = false; $('bar').style.display = 'none';
+      clearInterval(poll); $('bRev').disabled = $('bRevC').disabled = false; $('bar').style.display = 'none';
       if (j.error) { $('prog').innerHTML = `<span class="bad">Error: ${esc(j.error)}</span>`; return; }
       $('prog').innerHTML = `<span class="ok">Revisión terminada (${j.fin})</span>`;
       await estado(); await cargarDiff();
@@ -191,7 +219,7 @@ function pintar() {
   $('chips').innerHTML = `<span class="chip ${!filtroCat ? 'on' : ''}" onclick="filtroCat=null;pintar()">Todas<b>${all.length}</b></span>` +
     Object.entries(cats).map(([c, n]) => `<span class="chip ${filtroCat === c ? 'on' : ''}" onclick='filtroCat=${JSON.stringify(c)};pintar()'>${esc(c)}<b>${n}</b></span>`).join('');
   const items = all.filter(d => (!filtroCat || d.categoria === filtroCat) && (!q || d.titulo.toLowerCase().includes(q)));
-  if (!DATA.calculado && !all.length) { $('lista').innerHTML = `<div class="empty"><b>Aún no has revisado</b>Pulsa «Revisar ahora».</div>`; return contar(); }
+  if (!DATA.calculado && !all.length) { $('lista').innerHTML = `<div class="empty"><b>Aún no has revisado</b>Pulsa «Revisión rápida» (o «Completa» la primera vez).</div>`; return contar(); }
   if (!all.length) { $('lista').innerHTML = `<div class="empty"><b>✓ Todo cuadra</b>Dixmax, Letterboxd y Serializd están sincronizados.</div>`; return contar(); }
   const g = {};
   items.forEach(d => (g[d.seccion + '|' + d.categoria] ??= []).push(d));
@@ -236,7 +264,7 @@ async function ejecutar(simulacion) {
   $('mL').textContent = (r.log || []).join('\n');
   $('mF').innerHTML = (r.archivos || []).map(f => `<div class="file">📄 ${esc(f.texto)}<br><small>${esc(f.archivo)}</small><br>
       <button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button> <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
-  if (!simulacion && r.ok) $('mF').innerHTML += `<p class="ok">Cuando termines, pulsa «Revisar ahora» para comprobar.</p>`;
+  if (!simulacion && r.ok) $('mF').innerHTML += `<p class="ok">Cuando termines, pulsa «Revisión rápida» para comprobar.</p>`;
 }
 function abrir(archivo) { fetch('/api/abrir', {method: 'POST', body: JSON.stringify({archivo})}); }
 

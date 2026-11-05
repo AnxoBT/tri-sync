@@ -52,6 +52,12 @@ def peliculas(dx, lb):
             elif not m["rating10"] and f["rating"]:
                 add("Nota solo en Letterboxd", name, f"Letterboxd {f['rating']}★",
                     [{"clave": "nota_lb_a_dx", "texto": "Poner la nota de Letterboxd en Dixmax", "fase": 2}], datos, links)
+            if f["like"] and not m["favorite"]:
+                add("Me gusta en Letterboxd, no favorita en Dixmax", name, "En Dixmax «Favorita» sustituye a «Vista» (sigue en tu lista de vistas)",
+                    [{"clave": "dx_favorita", "texto": "Marcar como favorita en Dixmax", "fase": 2}], datos, links)
+            elif m["favorite"] and not f["like"]:
+                add("Favorita en Dixmax, sin me gusta en Letterboxd", name, "Letterboxd no permite importar «me gusta»: ponlo con el enlace",
+                    [], datos, links)
             if not f["diary"]:
                 add("Sin entrada en el diario de Letterboxd", name, f"Fecha Dixmax {(m['date'] or '')[:10]}",
                     [log_lb], datos, links)
@@ -70,19 +76,24 @@ def peliculas(dx, lb):
     return out
 
 
-def series(dx, sz, progress=print):
+def series(dx, sz, progress=print, rapida=False):
     r = rules().get("series", {})
     excl = set(r.get("excluir_tmdb", []))
     extra = defaultdict(set)
     for x in r.get("extra_serializd", []):
         for e in x["episodios"]:
             extra[x["tmdb"]].add((x["temporada"], e))
-    progress("Serializd: leyendo diario…")
-    diary = sz.diary()
-    progress("Serializd: leyendo listas y notas…")
-    lists = {k: sz.list_items(k) for k in ("watched", "watchlist", "watching", "dropped")}
+    progress("Serializd: leyendo diario, listas y notas a la vez…")
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(6) as ex:
+        f_diary = ex.submit(sz.diary, rapida)
+        f_lists = {k: ex.submit(sz.list_items, k) for k in ("watched", "watchlist", "watching", "dropped")}
+        f_rat = ex.submit(sz.ratings)
+        diary = f_diary.result()
+        lists = {k: f.result() for k, f in f_lists.items()}
+        ratings = f_rat.result()
     show_reviews = defaultdict(dict)
-    for x in sz.ratings():
+    for x in ratings:
         show_reviews[x["showId"]][x["id"]] = x
     sz_eps = defaultdict(set)
     season_num = {}
@@ -141,6 +152,14 @@ def series(dx, sz, progress=print):
         if esperado and esperado not in en:
             add("Estado distinto", show, f"Dixmax: {st} · Serializd: {', '.join(sorted(en)) or 'nada'}",
                 [{"clave": "sz_estado", "texto": f"Poner en Serializd como '{st}'", "fase": 2}], {"tmdb": tid, "estado": st})
+        if st == "finished" and logs:
+            liked = any(x.get("like") for x in logs)
+            if show.get("favorite") and not liked:
+                add("Favorita en Dixmax, sin ♥ en Serializd", show, "",
+                    [{"clave": "sz_like", "texto": "Poner ♥ al registro de serie en Serializd", "fase": 2}], {"tmdb": tid})
+            elif liked and not show.get("favorite"):
+                add("♥ en Serializd, no favorita en Dixmax", show, "En Dixmax «Favorita» sustituye a «Vista»",
+                    [{"clave": "dx_favorita", "texto": "Marcar como favorita en Dixmax", "fase": 2}], {"tmdb": tid})
         if st == "finished" and not logs:
             add("Terminada en Dixmax sin registro de serie en Serializd", show, "",
                 [{"clave": "sz_terminar", "texto": "Marcar terminada en Serializd (temporadas + registro + nota)", "fase": 2}],
@@ -157,6 +176,9 @@ def series(dx, sz, progress=print):
                 add("Nota de serie sin subir a Serializd", show, f"Dixmax {show['rating10']} → {esperada}",
                     [{"clave": "sz_nota", "texto": "Subir la nota a Serializd", "fase": 2}], {"tmdb": tid})
     sz.flush()
+    STATS["sz_diario"] = len(diary)
+    STATS["sz_vistas"] = len(lists["watched"])
+    STATS["sz_favoritas"] = sum(1 for v in show_reviews.values() for x in v.values() if x.get("isLog") and x.get("like"))
     dx_ids = {s["tmdb"] for s in dx["shows"]} | excl
     for k, v in lists.items():
         for tid, it in v.items():
@@ -169,24 +191,43 @@ def series(dx, sz, progress=print):
     return out
 
 
-def compute(progress=print, solo=None):
+STATS = {}
+
+
+def _stats_dx(dx):
+    from collections import Counter
+    pm = Counter(m["status"] for m in dx["movies"])
+    ps = Counter(s["status"] for s in dx["shows"])
+    return {"dx_pelis_vistas": pm["watched"], "dx_pelis_pendientes": pm["watchlist"],
+            "dx_pelis_favoritas": sum(1 for m in dx["movies"] if m["favorite"]),
+            "dx_series_terminadas": ps["finished"], "dx_series_siguiendo": ps["watching"],
+            "dx_series_pendientes": ps["watchlist"], "dx_series_favoritas": sum(1 for s in dx["shows"] if s["favorite"]),
+            "dx_episodios": sum(len(s["episodes"]) for s in dx["shows"])}
+
+
+def compute(progress=print, solo=None, rapida=False):
     progress("Leyendo export de Dixmax…")
     dx = dixmax.load()
     fuente_dx = dx["export"]
     from .config import env
     if env("DIXMAX_API_KEY") and env("DIXMAX_AUTH_KEY"):
         progress("Dixmax: leyendo estado actual por la API…")
-        dx = dixmax.apply_live(dx, progress)
+        dx = dixmax.apply_live(dx, progress, rapida=rapida)
         fuente_dx += " + API en directo"
-    res = {"fuentes": {"dixmax": fuente_dx}, "diferencias": []}
+    STATS.clear()
+    STATS.update(_stats_dx(dx))
+    res = {"fuentes": {"dixmax": fuente_dx}, "diferencias": [], "modo": "rápida" if rapida else "completa"}
     if solo in (None, "peliculas"):
         progress("Leyendo export de Letterboxd…")
         lb = letterboxd.load()
         res["fuentes"]["letterboxd"] = lb["export"]
         progress("Cruzando películas…")
         res["diferencias"] += peliculas(dx, lb)
+        STATS.update(lb_vistas=sum(1 for f in lb["films"] if f["watched"]), lb_watchlist=sum(1 for f in lb["films"] if f["watchlist"]),
+                     lb_me_gusta=sum(1 for f in lb["films"] if f["like"]), lb_diario=sum(len(f["diary"]) for f in lb["films"]))
     if solo in (None, "series"):
         sz = Serializd()
         res["fuentes"]["serializd"] = sz.check()
-        res["diferencias"] += series(dx, sz, progress)
+        res["diferencias"] += series(dx, sz, progress, rapida=rapida)
+    res["stats"] = dict(STATS)
     return res
