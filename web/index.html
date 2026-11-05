@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>seriesypelis-sync</title>
+<style>
+  :root { --bg:#14181c; --panel:#1c2228; --line:#2c3440; --text:#d8dee4; --muted:#8a96a3; --acc:#40bcf4; --ok:#00c030; --warn:#ff8000; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); padding:12px 16px; z-index:2; }
+  h1 { margin:0 0 6px; font-size:18px; }
+  .fuentes { color:var(--muted); font-size:12px; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center; }
+  input[type=search], select { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; }
+  button { background:var(--acc); color:#000; border:0; border-radius:6px; padding:7px 12px; font-weight:600; cursor:pointer; }
+  button.sec { background:var(--line); color:var(--text); }
+  main { padding:12px 16px 80px; max-width:1100px; margin:0 auto; }
+  details { background:var(--panel); border:1px solid var(--line); border-radius:8px; margin:10px 0; }
+  summary { padding:10px 12px; cursor:pointer; font-weight:600; }
+  summary .n { color:var(--muted); font-weight:400; }
+  .item { border-top:1px solid var(--line); padding:8px 12px; display:grid; grid-template-columns:1fr auto; gap:6px 16px; }
+  .item .t { font-weight:600; }
+  .item .d { color:var(--muted); font-size:13px; }
+  .item a { color:var(--acc); margin-right:10px; font-size:12px; }
+  .ops { display:flex; flex-direction:column; gap:2px; min-width:280px; }
+  .ops label { font-size:13px; cursor:pointer; }
+  .fase { font-size:11px; color:var(--warn); margin-left:4px; }
+  .vacio { color:var(--muted); padding:40px; text-align:center; }
+  #msg { color:var(--ok); margin-left:8px; }
+  @media (max-width:700px) { .item { grid-template-columns:1fr; } .ops { min-width:0; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>seriesypelis-sync</h1>
+  <div class="fuentes" id="fuentes"></div>
+  <div class="bar">
+    <input type="search" id="q" placeholder="Buscar título…">
+    <select id="sec"><option value="">Todo</option><option>Películas</option><option>Series</option></select>
+    <button class="sec" onclick="todas('ignorar')">Marcar todo como ignorar</button>
+    <button onclick="guardar()">Guardar plan</button><span id="msg"></span>
+  </div>
+</header>
+<main id="main"><div class="vacio">Cargando…</div></main>
+<script>
+let DATA = {diferencias: []};
+const sel = {};
+const FASE = {1: "", 2: "fase 2", 3: "fase 3"};
+fetch('/api/diff').then(r => r.json()).then(d => { DATA = d; pintar(); });
+document.getElementById('q').oninput = pintar;
+document.getElementById('sec').onchange = pintar;
+
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function pintar() {
+  const q = document.getElementById('q').value.toLowerCase();
+  const sec = document.getElementById('sec').value;
+  document.getElementById('fuentes').textContent = Object.entries(DATA.fuentes || {}).map(([k, v]) => `${k}: ${v}`).join(' · ');
+  const items = DATA.diferencias.filter(d => (!sec || d.seccion === sec) && (!q || d.titulo.toLowerCase().includes(q)));
+  if (!items.length) { document.getElementById('main').innerHTML = '<div class="vacio">Sin diferencias 🎉</div>'; return; }
+  const grupos = {};
+  items.forEach(d => (grupos[d.seccion + ' · ' + d.categoria] ??= []).push(d));
+  document.getElementById('main').innerHTML = Object.entries(grupos).map(([g, lst]) => `
+    <details ${lst.length <= 30 ? 'open' : ''}><summary>${esc(g)} <span class="n">(${lst.length})</span></summary>
+    ${lst.map(d => `<div class="item"><div>
+        <div class="t">${esc(d.titulo)}</div><div class="d">${esc(d.detalle)}</div>
+        <div>${Object.entries(d.enlaces || {}).filter(([, u]) => u).map(([k, u]) => `<a href="${esc(u)}" target="_blank">${esc(k)}</a>`).join('')}</div>
+      </div><div class="ops">${d.opciones.map(o => `<label><input type="radio" name="${d.id}" value="${o.clave}"
+        ${(sel[d.id] ?? 'ignorar') === o.clave ? 'checked' : ''} onchange="sel['${d.id}']=this.value">
+        ${esc(o.texto)}<span class="fase">${FASE[o.fase] || ''}</span></label>`).join('')}</div></div>`).join('')}
+    </details>`).join('');
+}
+function todas(v) { DATA.diferencias.forEach(d => sel[d.id] = v); pintar(); }
+function guardar() {
+  const acciones = DATA.diferencias.filter(d => (sel[d.id] ?? 'ignorar') !== 'ignorar')
+    .map(d => ({id: d.id, categoria: d.categoria, titulo: d.titulo, accion: sel[d.id], datos: d.datos}));
+  fetch('/api/plan', {method: 'POST', body: JSON.stringify({acciones})}).then(r => r.json())
+    .then(r => document.getElementById('msg').textContent = `Plan guardado (${r.acciones} acciones): ${r.archivo}`);
+}
+</script>
+</body>
+</html>

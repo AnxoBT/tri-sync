@@ -1,0 +1,129 @@
+"""Cliente de la API interna (no oficial) de Serializd."""
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
+from .config import cache_json, env, save_cache
+from .http import call
+
+API = "https://serializddesktop.onrender.com/api"
+LISTS = {"watched": "watchedpage_v2", "watchlist": "watchlistpage_v2",
+         "watching": "currently_watching_page", "dropped": "dropped_shows_page"}
+
+
+class TokenError(Exception):
+    pass
+
+
+class Serializd:
+    def __init__(self, token=None, user=None):
+        self.token = token or env("SERIALIZD_TOKEN")
+        self.user = user or env("SERIALIZD_USER")
+        self.headers = {"Origin": "https://www.serializd.com", "Referer": "https://www.serializd.com/",
+                        "X-Requested-With": "serializd_vercel",
+                        "Cookie": f"tvproject_credentials={self.token}"}
+
+    def _call(self, method, path, body=None):
+        return call(method, API + path, body, self.headers)
+
+    def check(self):
+        if not self.token:
+            raise TokenError("Falta SERIALIZD_TOKEN en .env")
+        s, d = self._call("POST", "/validateauthtoken", {"token": self.token})
+        if s != 200 or not isinstance(d, dict) or not d.get("isValid"):
+            raise TokenError("El token de Serializd ha caducado: copia de nuevo la cookie tvproject_credentials al .env")
+        self.user = self.user or d.get("username")
+        return self.user
+
+    # ---------- lectura ----------
+    def diary(self):
+        s, d = self._call("GET", f"/user/{self.user}/diary?page=1")
+        pages = d["totalPages"]
+        out = list(d["reviews"])
+        with ThreadPoolExecutor(6) as ex:
+            for lst in ex.map(lambda p: self._call("GET", f"/user/{self.user}/diary?page={p}")[1]["reviews"],
+                              range(2, pages + 1)):
+                out += lst
+        return out
+
+    def list_items(self, name):
+        items, p = {}, 1
+        while True:
+            s, d = self._call("GET", f"/user/{self.user}/{LISTS[name]}/{p}?sort_by=date_added_desc&filters=%7B%7D")
+            for it in d.get("items", []):
+                items[it["showId"]] = {"name": it.get("showName"), "seasons": it.get("seasonIds") or [],
+                                       "added": it.get("dateAdded")}
+            if p >= d.get("totalPages", 1):
+                return items
+            p += 1
+
+    def ratings(self):
+        """Notas de serie (registros de serie y valoraciones sueltas).
+        Se piden filtrando por cada nota (1-10): la paginación general de Serializd se salta entradas."""
+        from urllib.parse import quote
+        out = {}
+        for rating in range(1, 11):
+            cur = cur2 = None
+            for _ in range(200):
+                q = (f"/user/{self.user}/reviewspage_v3?sort_by=date_added_desc&include_ratings=true"
+                     f"&include_target=shows&rating={rating}")
+                if cur:
+                    q += f"&cursor={quote(str(cur))}"
+                if cur2:
+                    q += f"&secondary_cursor={quote(str(cur2))}"
+                s, d = self._call("GET", q)
+                items = d.get("items", []) if isinstance(d, dict) else []
+                for x in items:
+                    out[x["id"]] = x
+                nxt = (d.get("nextCursor"), d.get("secondaryNextCursor")) if isinstance(d, dict) else (None, None)
+                if not items or nxt == (None, None) or nxt == (cur, cur2):
+                    break
+                cur, cur2 = nxt
+        return [x for x in out.values() if x.get("seasonId") is None and x.get("episodeNumber") is None]
+
+    # Caché en memoria (thread-safe); se guarda en disco con flush()
+    _lock = threading.Lock()
+    _shows = None
+    _seasons = None
+
+    def _load_caches(self):
+        with self._lock:
+            if Serializd._shows is None:
+                Serializd._shows = cache_json("sz_shows.json")
+                Serializd._seasons = cache_json("sz_seasons.json")
+
+    def flush(self):
+        with self._lock:
+            if Serializd._shows is not None:
+                save_cache("sz_shows.json", Serializd._shows)
+                save_cache("sz_seasons.json", Serializd._seasons)
+
+    def show(self, tmdb):
+        self._load_caches()
+        k = str(tmdb)
+        if k not in Serializd._shows:
+            s, d = self._call("GET", f"/show/{tmdb}")
+            Serializd._shows[k] = ({"name": d.get("name"), "seasons": {str(x["seasonNumber"]): x["id"] for x in d.get("seasons", [])}}
+                                   if s == 200 and isinstance(d, dict) else None)
+        return Serializd._shows[k]
+
+    def season(self, tmdb, number):
+        self._load_caches()
+        k = f"{tmdb}-{number}"
+        if k not in Serializd._seasons:
+            s, d = self._call("GET", f"/show/{tmdb}/season/{number}")
+            Serializd._seasons[k] = ({"id": d.get("seasonId"), "episodes": {str(e["episodeNumber"]): e.get("name") for e in d.get("episodes", [])}}
+                                     if s == 200 and isinstance(d, dict) else None)
+        return Serializd._seasons[k]
+
+    # ---------- escritura (fase 2) ----------
+    def add_diary(self, show, season_id, episode, backdate, rating=0, is_log=True, like=False):
+        body = {"show_id": show, "season_id": season_id, "backdate": backdate, "review_text": "", "rating": rating,
+                "contains_spoiler": False, "is_log": is_log, "is_rewatch": False, "tags": [],
+                "allows_comments": True, "like": like}
+        if episode is not None:
+            body["episode_number"] = episode
+        return self._call("POST", "/show/reviews/add", body)
+
+    def mark_episodes(self, show, season_id, episodes):
+        return self._call("POST", "/episode_log/add", {"show_id": show, "season_id": season_id,
+                                                        "episode_numbers": episodes, "should_get_next_episode": False})

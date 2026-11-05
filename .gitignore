@@ -1,0 +1,12 @@
+# Credenciales y datos personales: NUNCA al repo
+.env
+data/
+cache/
+salida/
+logs/
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/
