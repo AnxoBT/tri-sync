@@ -29,26 +29,18 @@ El `.env`, los exports y las cachés **nunca** se suben al repo (ver `.gitignore
 
 ## Uso
 
-1. Descarga los exports (desde la web, botón «Importar desde Descargas»). Con la API de Dixmax configurada,
-   Dixmax se lee en directo y su export solo hace falta de vez en cuando para tener las fechas exactas:
-   - **Dixmax**: perfil → exportar datos → carpeta `playmax-userdata-*`
-   - **Letterboxd**: Settings → Data → Export your data → carpeta `letterboxd-*`
-   (se usa siempre el más reciente)
-2. Ejecuta:
+**Abrir:** doble clic en `Abrir sync.bat` (o `python sync.py`). Se abre la web en http://127.0.0.1:8765.
+Para apagarlo, cierra la ventana negra.
 
-```bash
-python sync.py                  # calcula diferencias y abre la web local
-python sync.py --solo series    # o --solo peliculas
-python sync.py --sin-calcular   # reabre la web con el último cálculo
-```
-
-3. En la web (http://127.0.0.1:8765) eliges para cada diferencia qué hacer y pulsas:
-   - **Simular**: te dice qué haría, sin tocar nada.
-   - **Aplicar**: lo hace de verdad (pide confirmación).
-     - Serializd y Dixmax: se cambian directamente con tu sesión.
-     - Letterboxd: genera el CSV en `logs/` con botones para abrir la carpeta y el importador
-       (registros/notas → `letterboxd.com/import/`; watchlist → tu watchlist > Import).
-   - **Guardar plan**: guarda lo elegido en `logs/` sin ejecutar.
+1. **Descarga los exports** con los botones de la web (quedan como zip en Descargas, no hace falta descomprimir):
+   - **Letterboxd**: cada vez que revises (1 clic).
+   - **Dixmax**: opcional; con la API configurada se lee en directo. Descárgalo cuando quieras **fechas exactas**
+     (lo detectado solo por la API se registra con la fecha del día de la revisión).
+2. **Revisar ahora**: importa los zips nuevos (busca `playmax-userdata-*.zip` y `letterboxd-*.zip` en Descargas
+   y en la carpeta de datos, coge el más reciente de cada uno) y compara todo (~3 min).
+3. Elige qué hacer con cada diferencia → **Simular** → **Aplicar**:
+   - Serializd y Dixmax: se cambian directamente.
+   - Letterboxd: genera el CSV en `logs/` con botones para abrir la carpeta y el importador.
 
 Todo lo aplicado queda registrado en `logs/ejecucion_*.log`.
 

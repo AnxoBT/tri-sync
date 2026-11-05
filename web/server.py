@@ -18,8 +18,11 @@ JOB = {"activo": False, "mensajes": [], "error": None, "fin": None}
 
 def _revisar(solo):
     from core import diff
+    from core.imports import importar_desde_descargas
     JOB.update(activo=True, mensajes=[], error=None, fin=None)
     try:
+        for m in importar_desde_descargas():  # importa solo los zips nuevos antes de revisar
+            JOB["mensajes"].append(m)
         res = diff.compute(progress=lambda m: JOB["mensajes"].append(m), solo=solo)
         res["calculado"] = datetime.now().strftime("%d/%m/%Y %H:%M")
         config.save_cache("diff.json", res)
