@@ -38,7 +38,7 @@ def peliculas(dx, lb):
         name = f"{m['title']} ({m['year']}) = {_lbname(f)}"
         datos = {"dx": m, "lb": f}
         if m["status"] == "watched" and not f["watched"]:
-            add("Vista en Dixmax, no en Letterboxd", name, f"Vista el {(m['date'] or '')[:10]}" + (" (fecha aproximada: descarga el export de Dixmax para la exacta)" if m.get("fecha_aproximada") else ""), [log_lb], datos, links)
+            add("Vista en Dixmax, no en Letterboxd", name, f"Vista el {(m['date'] or '')[:10]}" + (" (fecha aproximada: Dixmax no la dio)" if m.get("fecha_aproximada") else ""), [log_lb], datos, links)
         elif m["status"] == "watchlist" and f["watched"] and _lbname(f) not in revisionar:
             add("Vista en Letterboxd, pendiente en Dixmax", name, f"Letterboxd: {f['rating']}★" if f["rating"] else "",
                 [{"clave": "dx_vista", "texto": "Marcar como vista en Dixmax", "fase": 2}], datos, links)
@@ -137,7 +137,7 @@ def series(dx, sz, progress=print, rapida=False):
                 aprox = sum(1 for e in show["episodes"] if e.get("fecha_aproximada"))
                 add("Episodios sin subir a Serializd", show,
                     f"{len(falta)} episodios (p. ej. {', '.join('S%02dE%02d' % (e['sz_season'], e['sz_episode']) for e in falta[:5])})"
-                    + (f" · {aprox} con fecha aproximada (descarga el export de Dixmax para la exacta)" if aprox else ""),
+                    + (f" · {aprox} con fecha aproximada (Dixmax no la dio)" if aprox else ""),
                     [{"clave": "sz_subir_eps", "texto": "Subir a Serializd con fecha de Dixmax", "fase": 2}],
                     {"tmdb": tid, "episodios": falta})
             want = {(e["sz_season_id"], e["sz_episode"]) for e in mapped}

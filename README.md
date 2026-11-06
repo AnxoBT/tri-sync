@@ -36,8 +36,8 @@ Para apagarlo, cierra la ventana negra.
 
 1. **Descarga los exports** con los botones de la web (quedan como zip en Descargas, no hace falta descomprimir):
    - **Letterboxd**: cada vez que revises (1 clic).
-   - **Dixmax**: opcional; con la API configurada se lee en directo. Descárgalo cuando quieras **fechas exactas**
-     (lo detectado solo por la API se registra con la fecha del día de la revisión).
+   - **Dixmax**: casi nunca. Con la API configurada se lee en directo, con las fechas exactas de lo nuevo
+     (marcas y episodios). Solo hace falta para detectar marcas que **quites** en Dixmax o tras mucho tiempo sin revisar.
 2. **Revisión rápida / Completa**: lee directamente el zip (o carpeta) más reciente de cada web en las carpetas de
    `DATA_DIR` (por defecto Descargas; varias separadas por `;`). Busca nombres que empiecen por
    `playmax-userdata-` y `letterboxd-`, ignora los incompletos y compara todo (~2-3 min).

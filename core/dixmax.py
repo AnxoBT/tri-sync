@@ -93,6 +93,19 @@ def load():
     return {"export": exp.name, "export_mtime": exp.mtime, "movies": movies, "shows": shows}
 
 
+def fecha_real(api, ficha_id=None, episode_id=None):
+    """Fecha exacta (ISO UTC) de tu marca de una ficha o de cuándo viste un episodio, por la API oficial."""
+    try:
+        if episode_id:
+            d = api._api("get", "ficha_user_dates", "v1", {"episodeId": episode_id})
+            u = (d.get("viewedDate") or {}).get("unix")
+        else:
+            u = (api.dates(ficha_id).get("markedDate") or {}).get("unix")
+        return iso_utc(u) if u else None
+    except Exception:
+        return None
+
+
 def episodios_api(api, s):
     """Añade a la serie los episodios vistos en Dixmax que no trae el export (fecha aproximada: hoy)."""
     if s.get("_api"):
@@ -108,8 +121,10 @@ def episodios_api(api, s):
     for season in fi.get("episodes") or []:
         for e in season.get("episodesList", []):
             if (e.get("user") or {}).get("viewed") and (e["season"], e["episode"]) not in have:
+                real = fecha_real(api, episode_id=e["id"])
+                fecha, aprox = (real, False) if real else (hoy, True)
                 s["episodes"].append({"season": e["season"], "episode": e["episode"], "title": e.get("name", ""),
-                                      "date": hoy, "fecha_aproximada": True, "dx_episode_id": e["id"]})
+                                      "date": fecha, "fecha_aproximada": aprox, "dx_episode_id": e["id"]})
                 n += 1
     s["episodes"].sort(key=lambda x: (x["season"], x["episode"]))
     return n
@@ -163,13 +178,15 @@ def apply_live(data, progress=print, rapida=False):
             m = movies.get(fid)
             if m is None:
                 movies[fid] = {"id": fid, "title": f["title"], "year": f.get("year"), "tmdb": tmdb_de(fid), "imdb": None,
-                               "status": st, "date": hoy, "rating10": nota, "favorite": mark == "favorite",
-                               "url": f"https://playmax.mx/x-f{fid}", "fecha_aproximada": True}
+                               "status": st, "date": fecha_real(api, ficha_id=fid) or hoy, "rating10": nota,
+                               "favorite": mark == "favorite", "url": f"https://playmax.mx/x-f{fid}"}
+                movies[fid]["fecha_aproximada"] = movies[fid]["date"] == hoy
                 nuevos += 1
             else:
                 if m["status"] != st:
-                    if st == "watched":  # vista desde el export: no sabemos la fecha exacta
-                        m["date"], m["fecha_aproximada"] = hoy, True
+                    if st == "watched":  # vista desde el export: fecha real de la marca por la API
+                        m["date"] = fecha_real(api, ficha_id=fid) or hoy
+                        m["fecha_aproximada"] = m["date"] == hoy
                     m["status"], cambios = st, cambios + 1
                 if nota != m["rating10"]:
                     m["rating10"], cambios = nota, cambios + 1
@@ -184,7 +201,8 @@ def apply_live(data, progress=print, rapida=False):
                 if not tm:
                     continue
                 s = shows[fid] = {"id": fid, "title": f["title"], "year": f.get("year"), "tmdb": tm, "status": st,
-                                  "rating10": nota, "favorite": mark == "favorite", "mark_date": hoy, "rating_date": hoy,
+                                  "rating10": nota, "favorite": mark == "favorite",
+                                  "mark_date": fecha_real(api, ficha_id=fid) or hoy, "rating_date": hoy,
                                   "episodes": [], "url": f"https://playmax.mx/x-f{fid}"}
                 nuevos += 1
             else:
