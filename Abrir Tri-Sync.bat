@@ -1,5 +1,5 @@
 @echo off
-title Tri-Sync (cierra esta ventana para apagarlo)
+title Tri-Sync
 cd /d "%~dp0"
 
 where python >nul 2>nul
@@ -17,10 +17,11 @@ if errorlevel 1 (
   python -m pip install --quiet -r requirements.txt
 )
 
-rem Primera vez: crea el acceso directo "Tri-Sync" en el escritorio (con su icono)
-powershell -NoProfile -Command "$d=[Environment]::GetFolderPath('Desktop'); $l=Join-Path $d 'Tri-Sync.lnk'; if (-not (Test-Path $l)) { $s=(New-Object -ComObject WScript.Shell).CreateShortcut($l); $s.TargetPath='%~f0'; $s.WorkingDirectory='%~dp0'; $s.IconLocation='%~dp0web\logo.ico,0'; $s.Description='Revisar Dixmax, Letterboxd y Serializd'; $s.Save(); Write-Host 'Acceso directo Tri-Sync creado en el escritorio.' }"
+rem Python sin consola (pythonw) para abrir Tri-Sync sin la ventana negra
+for /f "delims=" %%P in ('python -c "import sys,os;print(os.path.join(os.path.dirname(sys.executable),'pythonw.exe'))"') do set "PYW=%%P"
 
-echo Abriendo Tri-Sync en el navegador...
-echo Cierra esta ventana cuando termines.
-python sync.py
-if errorlevel 1 pause
+rem Acceso directo "Tri-Sync" en el escritorio (se crea o actualiza): abre la web sin ventana negra
+powershell -NoProfile -Command "$l=Join-Path ([Environment]::GetFolderPath('Desktop')) 'Tri-Sync.lnk'; $s=(New-Object -ComObject WScript.Shell).CreateShortcut($l); $s.TargetPath=$env:PYW; $s.Arguments='\"%~dp0sync.py\"'; $s.WorkingDirectory='%~dp0'; $s.IconLocation='%~dp0web\logo.ico,0'; $s.Description='Revisar Dixmax, Letterboxd y Serializd'; $s.Save()"
+
+start "" "%PYW%" sync.py
+exit /b 0

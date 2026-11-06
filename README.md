@@ -32,7 +32,8 @@ El `.env`, los exports y las cachés **nunca** se suben al repo (ver `.gitignore
 ## Uso
 
 **Abrir:** doble clic en `Abrir Tri-Sync.bat` (o `python sync.py`). Se abre la web en http://127.0.0.1:8765.
-Para apagarlo, cierra la ventana negra.
+Se abre **sin ventana negra**. Para apagarlo: botón **⏻ Apagar** de la web, o cierra la pestaña y se apaga solo
+a los 5 minutos (nunca en mitad de una revisión o aplicación). Si lo abres estando ya abierto, solo abre la pestaña.
 
 1. **Descarga los exports** con los botones de la web (quedan como zip en Descargas, no hace falta descomprimir):
    - **Letterboxd**: cada vez que revises (1 clic).

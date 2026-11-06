@@ -2,6 +2,7 @@
 import json
 import os
 import threading
+import time
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -116,6 +117,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         self.path = self.path.split("?", 1)[0]  # ignora ?v=… (evita caché del navegador)
+        LATIDO["t"] = time.time()  # cualquier petición de la página cuenta como "sigue abierta"
+        if self.path == "/api/latido":
+            return self._send(200, {"ok": True})
         if self.path in ("/", "/index.html"):
             return self._send(200, INDEX, "text/html; charset=utf-8")
         if self.path == "/api/diff":
@@ -164,6 +168,11 @@ class Handler(BaseHTTPRequestHandler):
                 threading.Thread(target=_aplicar, args=(body.get("acciones", []), bool(body.get("simulacion", True))),
                                  daemon=True).start()
             return self._send(200, {"ok": True})
+        if self.path == "/api/apagar":
+            if JOB["activo"] or RUN["activo"]:
+                return self._send(200, {"ok": False, "texto": "Hay una revisión o aplicación en marcha"})
+            self._send(200, {"ok": True})
+            return apagar()
         if self.path == "/api/cancelar":
             RUN["cancelar"] = True
             return self._send(200, {"ok": True})
@@ -175,7 +184,28 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "no existe"})
 
 
+LATIDO = {"t": time.time()}
+SIN_PAGINA_MIN = 5  # sin ninguna pestaña abierta durante 5 min (y sin trabajo en marcha) -> se apaga solo
+SRV = {}
+
+
+def apagar():
+    threading.Thread(target=SRV["srv"].shutdown, daemon=True).start()
+
+
+def _vigilante():
+    while True:
+        time.sleep(30)
+        ocupado = JOB["activo"] or RUN["activo"]
+        if not ocupado and time.time() - LATIDO["t"] > SIN_PAGINA_MIN * 60:
+            print("Sin pestañas abiertas: apagando Tri-Sync")
+            apagar()
+            return
+
+
 def serve(port=8765):
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"Web local en http://127.0.0.1:{port}  (Ctrl+C para salir)")
+    SRV["srv"] = srv
+    threading.Thread(target=_vigilante, daemon=True).start()
+    print(f"Web local en http://127.0.0.1:{port}")
     srv.serve_forever()

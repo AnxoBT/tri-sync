@@ -14,7 +14,18 @@ from threading import Timer
 from core.config import save_cache
 
 
+def _sin_consola():
+    """Con pythonw no hay consola: lo que se imprimiría va a logs/servidor.log."""
+    if sys.stdout is None or sys.stderr is None:
+        from core.config import ROOT
+        (ROOT / "logs").mkdir(exist_ok=True)
+        f = open(ROOT / "logs" / "servidor.log", "a", encoding="utf-8", buffering=1)
+        sys.stdout = sys.stdout or f
+        sys.stderr = sys.stderr or f
+
+
 def main():
+    _sin_consola()
     ap = argparse.ArgumentParser()
     ap.add_argument("--revisar", action="store_true")
     ap.add_argument("--solo", choices=["peliculas", "series"])
@@ -32,9 +43,18 @@ def main():
         save_cache("diff.json", res)
         print(f"{len(res['diferencias'])} diferencias")
 
+    url = f"http://127.0.0.1:{args.puerto}"
+    import socket
+    with socket.socket() as s:
+        ya_abierto = s.connect_ex(("127.0.0.1", args.puerto)) == 0
+    if ya_abierto:  # Tri-Sync ya está en marcha: solo abre la página
+        if not args.no_navegador:
+            webbrowser.open(url)
+        return
+
     from web.server import serve
     if not args.no_navegador:
-        Timer(1.0, lambda: webbrowser.open(f"http://127.0.0.1:{args.puerto}")).start()
+        Timer(1.0, lambda: webbrowser.open(url)).start()
     serve(args.puerto)
 
 
