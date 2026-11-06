@@ -17,6 +17,9 @@ if errorlevel 1 (
   python -m pip install --quiet -r requirements.txt
 )
 
+rem Primera vez: crea el acceso directo "Tri-Sync" en el escritorio (con su icono)
+powershell -NoProfile -Command "$d=[Environment]::GetFolderPath('Desktop'); $l=Join-Path $d 'Tri-Sync.lnk'; if (-not (Test-Path $l)) { $s=(New-Object -ComObject WScript.Shell).CreateShortcut($l); $s.TargetPath='%~f0'; $s.WorkingDirectory='%~dp0'; $s.IconLocation='%~dp0web\logo.ico,0'; $s.Description='Revisar Dixmax, Letterboxd y Serializd'; $s.Save(); Write-Host 'Acceso directo Tri-Sync creado en el escritorio.' }"
+
 echo Abriendo Tri-Sync en el navegador...
 echo Cierra esta ventana cuando termines.
 python sync.py

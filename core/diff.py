@@ -122,9 +122,16 @@ def series(dx, sz, progress=print, rapida=False):
         if i % 25 == 0:
             progress(f"Series: {i}/{len(dshows)}")
         tid = show["tmdb"]
+        have = sz_eps.get(tid, set())
+        if have and dx.get("api") and not show.get("_api"):
+            # ¿Serializd tiene episodios que el export de Dixmax no? Puede que el export sea antiguo:
+            # se pregunta a la API de Dixmax solo por esta serie antes de dar la diferencia.
+            want0 = {(e["sz_season_id"], e["sz_episode"]) for e in shows.map_show(sz, show)[0]} if show["episodes"] else set()
+            if any((season_num.get(s), e) not in extra.get(tid, set()) for s, e in have - want0):
+                progress(f"Dixmax: comprobando por la API {show['title']}…")
+                dixmax.episodios_api(dx["api"], show)
         if show["episodes"]:
             mapped, modo, sin = shows.map_show(sz, show)
-            have = sz_eps.get(tid, set())
             falta = [e for e in mapped if (e["sz_season_id"], e["sz_episode"]) not in have]
             if falta:
                 aprox = sum(1 for e in show["episodes"] if e.get("fecha_aproximada"))

@@ -93,6 +93,28 @@ def load():
     return {"export": exp.name, "export_mtime": exp.mtime, "movies": movies, "shows": shows}
 
 
+def episodios_api(api, s):
+    """Añade a la serie los episodios vistos en Dixmax que no trae el export (fecha aproximada: hoy)."""
+    if s.get("_api"):
+        return 0
+    s["_api"] = True
+    try:
+        fi = api.ficha(s["id"])
+    except Exception:
+        return 0
+    hoy = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    have = {(e["season"], e["episode"]) for e in s["episodes"]}
+    n = 0
+    for season in fi.get("episodes") or []:
+        for e in season.get("episodesList", []):
+            if (e.get("user") or {}).get("viewed") and (e["season"], e["episode"]) not in have:
+                s["episodes"].append({"season": e["season"], "episode": e["episode"], "title": e.get("name", ""),
+                                      "date": hoy, "fecha_aproximada": True, "dx_episode_id": e["id"]})
+                n += 1
+    s["episodes"].sort(key=lambda x: (x["season"], x["episode"]))
+    return n
+
+
 def apply_live(data, progress=print, rapida=False):
     """Actualiza lo leído del export con el estado ACTUAL de Dixmax (API oficial):
     marcas, notas, fichas nuevas y episodios vistos nuevos de las series que sigues.
@@ -178,7 +200,7 @@ def apply_live(data, progress=print, rapida=False):
     revisar = [s for s in shows.values() if s["status"] == "watching" or not s["episodes"] and s["status"] == "finished"]
     import time
     if rapida:
-        progress("Dixmax: revisión rápida, episodios del export (la completa los mira por la API)")
+        progress("Dixmax: revisión rápida (por la API solo se miran las series que no cuadren)")
         revisar = [s for s in revisar if not s["episodes"]]
     elif time.time() - data.get("export_mtime", 0) < 3600:  # export de hace menos de 1 h: ya trae los episodios
         progress("Dixmax: export reciente, no hace falta revisar episodios por la API")
@@ -186,20 +208,10 @@ def apply_live(data, progress=print, rapida=False):
     for i, s in enumerate(revisar, 1):
         if i % 10 == 0:
             progress(f"Dixmax: episodios {i}/{len(revisar)}")
-        try:
-            fi = api.ficha(s["id"])
-        except Exception:
-            continue
-        have = {(e["season"], e["episode"]) for e in s["episodes"]}
-        for season in fi.get("episodes") or []:
-            for e in season.get("episodesList", []):
-                if (e.get("user") or {}).get("viewed") and (e["season"], e["episode"]) not in have:
-                    s["episodes"].append({"season": e["season"], "episode": e["episode"], "title": e.get("name", ""),
-                                          "date": hoy, "fecha_aproximada": True, "dx_episode_id": e["id"]})
-                    nuevos += 1
-        s["episodes"].sort(key=lambda x: (x["season"], x["episode"]))
+        nuevos += episodios_api(api, s)
     progress(f"Dixmax en directo: {nuevos} novedades y {cambios} cambios respecto al export")
     data["movies"], data["shows"] = list(movies.values()), list(shows.values())
     data["live"] = True
+    data["api"] = api  # para comprobar por la API, al revisar, las series que no cuadren
     data["novedades"], data["cambios"] = nuevos, cambios
     return data

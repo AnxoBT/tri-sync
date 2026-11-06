@@ -11,7 +11,8 @@ muestra las diferencias en una web local y me deja elegir qué hacer con cada un
 1. Instala **Python 3.10+** desde python.org (marca *Add python.exe to PATH*).
 2. Descarga la última versión desde **Releases** (zip *Source code*) y descomprímela donde quieras.
    (O `git clone https://github.com/AnxoBT/tri-sync.git`.)
-3. Doble clic en **`Abrir Tri-Sync.bat`**. La primera vez instala lo necesario (`tzdata`) y abre la web.
+3. Doble clic en **`Abrir Tri-Sync.bat`**. La primera vez instala lo necesario (`tzdata`), crea el acceso directo
+   **Tri-Sync** en el escritorio y abre la web. Después ya puedes abrirlo desde el acceso directo.
 4. Pestaña **Configuración**: rellena los datos (o copia tu `.env` de otro PC a esta carpeta) → **Probar conexiones**.
 5. La primera revisión en un PC nuevo, mejor **Completa** (crea la caché).
 
