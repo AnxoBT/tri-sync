@@ -117,9 +117,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         self.path = self.path.split("?", 1)[0]  # ignora ?v=… (evita caché del navegador)
-        LATIDO["t"] = time.time()  # cualquier petición de la página cuenta como "sigue abierta"
-        if self.path == "/api/latido":
-            return self._send(200, {"ok": True})
+        LATIDO["t"] = time.time()  # cualquier petición de la página cuenta como actividad
         if self.path in ("/", "/index.html"):
             return self._send(200, INDEX, "text/html; charset=utf-8")
         if self.path == "/api/diff":
@@ -146,6 +144,13 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "no existe"})
 
     def do_POST(self):
+        LATIDO["t"] = time.time()
+        if self.path == "/api/latido":  # la pestaña sigue abierta
+            PESTANAS[str(self._body().get("id"))] = time.time()
+            return self._send(200, {"ok": True})
+        if self.path == "/api/cerrar":  # la pestaña se ha cerrado (o recargado)
+            PESTANAS.pop(str(self._body().get("id")), None)
+            return self._send(200, {"ok": True})
         if self.path == "/api/revisar":
             if not JOB["activo"]:
                 b = self._body()
@@ -184,8 +189,10 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "no existe"})
 
 
-LATIDO = {"t": time.time()}
-SIN_PAGINA_MIN = 5  # sin ninguna pestaña abierta durante 5 min (y sin trabajo en marcha) -> se apaga solo
+LATIDO = {"t": time.time() + 50}  # al arrancar da tiempo a que el navegador abra la página
+PESTANAS = {}  # id de pestaña -> último latido
+GRACIA_S = 10  # tras cerrar la última pestaña espera esto (por si era una recarga) y se apaga
+PERDIDA_S = 150  # pestaña sin latidos tanto tiempo (navegador cerrado de golpe, PC suspendido…) = cerrada
 SRV = {}
 
 
@@ -194,11 +201,16 @@ def apagar():
 
 
 def _vigilante():
+    """Se apaga solo al cerrar la pestaña. Nunca a mitad de una revisión o aplicación: espera a que acabe."""
     while True:
-        time.sleep(30)
+        time.sleep(2)
+        ahora = time.time()
+        for k, t in list(PESTANAS.items()):
+            if ahora - t > PERDIDA_S:
+                PESTANAS.pop(k, None)
         ocupado = JOB["activo"] or RUN["activo"]
-        if not ocupado and time.time() - LATIDO["t"] > SIN_PAGINA_MIN * 60:
-            print("Sin pestañas abiertas: apagando Tri-Sync")
+        if not PESTANAS and not ocupado and ahora - LATIDO["t"] > GRACIA_S:
+            print("Pestaña cerrada: apagando Tri-Sync")
             apagar()
             return
 

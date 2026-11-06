@@ -99,11 +99,13 @@
 </style>
 </head>
 <body>
+<div id="cerrado" style="display:none;position:fixed;inset:0 0 auto 0;z-index:99;padding:10px;text-align:center;background:#7a1f1f;color:#fff">
+  Tri-Sync está cerrado (se apaga al cerrar la pestaña). Ábrelo otra vez con el acceso directo <b>Tri-Sync</b>.</div>
 <header><div class="wrap">
   <div class="logo"><img src="/logo.svg?v=2" alt="">Tri<span>-Sync</span></div>
   <nav><button id="tRev" class="on" onclick="vista('rev')">Revisión</button><button id="tHist" onclick="vista('hist')">Historial</button><button id="tCfg" onclick="vista('cfg')">Configuración</button></nav>
   <div class="hstat" id="hstat"></div>
-  <button id="bOff" onclick="apagarApp()" title="Cierra Tri-Sync (también se apaga solo a los 5 min de cerrar la pestaña)">⏻ Apagar</button>
+  <button id="bOff" onclick="apagarApp()" title="Cierra Tri-Sync ya (también se apaga solo al cerrar la pestaña)">⏻ Apagar</button>
 </div></header>
 
 <!-- ============ REVISIÓN ============ -->
@@ -356,7 +358,16 @@ async function probar() {
 }
 
 estado().then(e => { if (e.trabajo && e.trabajo.activo) revisar(); });
-setInterval(() => fetch('/api/latido').catch(() => {}), 20000);  // "la pestaña sigue abierta"
+// Tri-Sync se apaga solo al cerrar esta pestaña (el servidor espera unos segundos por si es una recarga)
+const PESTANA = Math.random().toString(36).slice(2);
+function latido() {
+  fetch('/api/latido', {method: 'POST', body: JSON.stringify({id: PESTANA})})
+    .then(() => $('cerrado').style.display = 'none')
+    .catch(() => $('cerrado').style.display = 'block');
+}
+latido(); setInterval(latido, 20000);
+addEventListener('pageshow', e => { if (e.persisted) latido(); });
+addEventListener('pagehide', () => navigator.sendBeacon('/api/cerrar', JSON.stringify({id: PESTANA})));
 async function apagarApp() {
   const r = await (await fetch('/api/apagar', {method: 'POST'})).json();
   if (!r.ok) { alert(r.texto); return; }
