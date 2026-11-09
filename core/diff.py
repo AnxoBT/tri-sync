@@ -204,6 +204,7 @@ def series(dx, sz, progress=print, rapida=False):
     STATS["sz_vistas"] = len(lists["watched"])
     STATS["sz_favoritas"] = sum(1 for v in show_reviews.values() for x in v.values() if x.get("isLog") and x.get("like"))
     dx_ids = {s["tmdb"] for s in dx["shows"]} | excl
+    dx["sz_en_listas"] = {tid for v in lists.values() for tid in v}  # para cruzar AniList con Serializd
     import time
     hoy = time.strftime("%Y-%m-%d")
     for k, v in lists.items():

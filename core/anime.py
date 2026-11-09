@@ -219,19 +219,35 @@ def diferencias(dx, progress=print):
     conocidos = ids | {e["mediaId"] for x in out for e in x["datos"]["entradas"]}
     solo = [i for i in cur if i not in conocidos]
     info = anilist.medios(solo, progress)
+    inverso = {al: int(tm) for tm, v in mp["tv"].items() for al, _ in v}
+    al_sz = {"PLANNING": "watchlist", "CURRENT": "watching", "DROPPED": "dropped", "PAUSED": "watching",
+             "COMPLETED": "watched", "REPEATING": "watching"}
     for i in solo:
         m = info.get(str(i)) or {}
-        if m.get("estado") == "NOT_YET_RELEASED":
-            continue  # aún no se ha estrenado: Dixmax no suele tener ficha; se ignora hasta el estreno
         if any(r in conocidos for r in anilist.relacionados(i)):
             continue  # temporada, OVA o especial de algo que ya tienes en Dixmax
-        out.append({"id": f"a{len(out)}", "seccion": "Anime", "categoria": "Solo en AniList",
-                    "titulo": m.get("titulo") or str(i),
-                    "detalle": f"AniList: {ESTADO_TXT.get(cur[i]['status'], cur[i]['status'])}"
-                               + (f", {cur[i]['progress']} ep." if cur[i].get("progress") else ""),
-                    "enlaces": {"AniList": f"https://anilist.co/anime/{i}"},
-                    "opciones": [{"clave": "dx_buscar", "texto": "Añadir en Dixmax (a mano, con el enlace)", "fase": 2},
-                                 IGNORAR],
-                    "datos": {"anilist": i}})
+        e = cur[i]
+        estado = f"AniList: {ESTADO_TXT.get(e['status'], e['status'])}" + (f", {e['progress']} ep." if e.get("progress") else "")
+        estrenado = m.get("estado") != "NOT_YET_RELEASED"
+        tmdb = inverso.get(i)
+        if not tmdb and m.get("formato") in FMT_SERIE:
+            from .enlaces import tmdb_de_anilist
+            tmdb = tmdb_de_anilist(i).get("tv")
+        enl = {"AniList": f"https://anilist.co/anime/{i}"}
+        # Serializd: aunque no se haya estrenado (ahí sí se puede tener en pendientes)
+        if tmdb and "sz_en_listas" in dx and tmdb not in dx["sz_en_listas"] and al_sz.get(e["status"]):
+            st = al_sz[e["status"]]
+            out.append({"id": f"a{len(out)}", "seccion": "Anime", "categoria": "En AniList, no en Serializd",
+                        "titulo": m.get("titulo") or str(i), "detalle": estado + ("" if estrenado else " · aún no estrenado"),
+                        "enlaces": {**enl, "Serializd": f"https://www.serializd.com/show/{tmdb}"},
+                        "opciones": [{"clave": "sz_estado", "texto": f"Poner en Serializd como '{st}'", "fase": 2}, IGNORAR],
+                        "datos": {"tmdb": tmdb, "estado": st}})
+        # Dixmax: solo cuando ya se ha estrenado (antes no suele tener ficha)
+        if estrenado:
+            out.append({"id": f"a{len(out)}", "seccion": "Anime", "categoria": "Solo en AniList",
+                        "titulo": m.get("titulo") or str(i), "detalle": estado, "enlaces": enl,
+                        "opciones": [{"clave": "dx_buscar", "texto": "Añadir en Dixmax (a mano, con el enlace)", "fase": 2},
+                                     IGNORAR],
+                        "datos": {"anilist": i}})
     stats = {"al_anime": len(cur), "al_series_cruzadas": len(shows), "al_pelis_cruzadas": len(pelis)}
     return out, stats
