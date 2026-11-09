@@ -115,7 +115,7 @@ def _deseado_peli(m, ids, med):
     al = sorted(pelis, key=lambda a: (med.get(str(a)) or {}).get("inicio", [9999]))[0]
     if m["status"] == "watched":
         d = _dia(m.get("date"))
-        return [{"mediaId": al, "status": "COMPLETED", "progress": 1,
+        return [{"mediaId": al, "status": "COMPLETED", "progress": 1, "favorito": bool(m.get("favorite")),
                  "scoreRaw": round(m["rating10"] * 10) if m.get("rating10") else None, "startedAt": d, "completedAt": d}]
     if m["status"] == "watchlist":
         return [{"mediaId": al, "status": "PLANNING", "progress": 0}]
@@ -151,12 +151,15 @@ def diferencias(dx, progress=print):
     med = anilist.medios(ids, progress)
     progress("AniList: leyendo tu lista de anime…")
     cur = anilist.lista(usuario)
+    favs = anilist.favoritos() if env("ANILIST_TOKEN") else set()
     out = []
 
     def add(item, des, enlaces, aviso=""):
         lineas, entradas = [], []
         for d in des:
             c = _cambios(d, cur.get(d["mediaId"]))
+            if d.get("favorito") and d["mediaId"] not in favs:
+                c.append("♥ favorito")
             if c:
                 entradas.append(d)
                 lineas.append(f"{med[str(d['mediaId'])]['titulo']}: {', '.join(c)}")

@@ -114,3 +114,45 @@ def guardar(entradas):
                 args.append(f"{k}: {_fecha(e[k])}")
         partes.append(f"e{i}: SaveMediaListEntry({', '.join(args)}) {{ id }}")
     return gql("mutation { " + " ".join(partes) + " }")
+
+
+# ---------------- favoritos y actividad ----------------
+def favoritos():
+    """ids de tus animes favoritos en AniList."""
+    ids, pag = set(), 1
+    while True:
+        d = gql("query($p:Int){ Viewer{ favourites{ anime(page:$p, perPage:50){ pageInfo{hasNextPage} nodes{id} } } } }",
+                {"p": pag})["Viewer"]["favourites"]["anime"]
+        ids |= {n["id"] for n in d["nodes"]}
+        if not d["pageInfo"]["hasNextPage"]:
+            return ids
+        pag += 1
+
+
+def marcar_favorito(media_id):
+    """ToggleFavourite quita si ya está: solo se llama tras comprobar que NO es favorito."""
+    gql(f"mutation {{ ToggleFavourite(animeId: {int(media_id)}) {{ anime {{ pageInfo {{ total }} }} }} }}")
+
+
+def actividad_listas():
+    return gql("{ Viewer { options { disabledListActivity { type disabled } } } }")["Viewer"]["options"]["disabledListActivity"]
+
+
+def poner_actividad_listas(estados):
+    """estados: [{type, disabled}] (lo que devuelve actividad_listas)."""
+    lst = ", ".join(f"{{type: {x['type']}, disabled: {'true' if x['disabled'] else 'false'}}}" for x in estados)
+    gql(f"mutation {{ UpdateUser(disabledListActivity: [{lst}]) {{ id }} }}")
+
+
+def borrar_actividad(media_ids, desde_unix):
+    """Borra TUS actividades de lista de esos animes creadas desde esa fecha. Devuelve cuántas."""
+    yo = viewer()["id"]
+    n = 0
+    for mid in media_ids:
+        d = gql("""query($u:Int,$m:Int,$t:Int){ Page(perPage:50){ activities(userId:$u, mediaId:$m, type:ANIME_LIST,
+                   createdAt_greater:$t){ ... on ListActivity { id } } } }""", {"u": yo, "m": int(mid), "t": int(desde_unix)})
+        for a in d["Page"]["activities"]:
+            if a.get("id"):
+                gql(f"mutation {{ DeleteActivity(id: {a['id']}) {{ deleted }} }}")
+                n += 1
+    return n

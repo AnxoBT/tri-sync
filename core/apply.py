@@ -95,6 +95,54 @@ def execute(acciones, dry=True, ctl=None):
     return {"log": log, "archivos": archivos, "hechas": hechas}
 
 
+AL_ACTIVIDAD = LOGS / "anilist_actividad.json"
+
+
+def restaurar_actividad_anilist(out=print):
+    """Si una subida a AniList se cortó con la actividad apagada, la deja como estaba."""
+    if not AL_ACTIVIDAD.exists():
+        return
+    from . import anilist
+    anilist.poner_actividad_listas(json.loads(AL_ACTIVIDAD.read_text(encoding="utf-8")))
+    AL_ACTIVIDAD.unlink()
+    out("[AniList] actividad de listas restaurada como estaba")
+
+
+def _al_subir(acciones, dry, out, tick, ctl, anilist):
+    lote = []
+    for a in acciones + [None]:  # varias series por petición (límite de 30/min)
+        if a is not None:
+            lote.append(a)
+        if lote and (a is None or sum(len(x["datos"]["entradas"]) for x in lote) >= 12):
+            err = None
+            if not dry:
+                if ctl.get("cancelar"):
+                    raise Cancelado()
+                try:
+                    anilist.guardar([e for x in lote for e in x["datos"]["entradas"]])
+                except Exception as ex:
+                    err = str(ex)
+            cancel = ctl.pop("cancelar", False)  # lo ya enviado se cuenta entero
+            for x in lote:
+                tick(x)
+                out(f"[AniList] {x['titulo']}: {len(x['datos']['entradas'])} entradas")
+                if err:
+                    out(f"   ERROR: {err[:150]}")
+            if cancel:
+                ctl["cancelar"] = True
+            lote = []
+    favs = [e for a in acciones for e in a["datos"]["entradas"] if e.get("favorito")]
+    if favs and not dry:
+        ya = anilist.favoritos()
+        for e in favs:
+            if e["mediaId"] not in ya:
+                try:
+                    anilist.marcar_favorito(e["mediaId"])
+                    out(f"[AniList] ♥ favorito: {e['mediaId']}")
+                except Exception as ex:
+                    out(f"[AniList] ♥ favorito {e['mediaId']}: no se pudo ({str(ex)[:120]})")
+
+
 def _execute(por, dry, out, tick, archivos, ctl):
 
     sz = dx = None
@@ -266,28 +314,16 @@ def _execute(por, dry, out, tick, archivos, ctl):
     if por["al_subir"]:
         from . import anilist
         out(f"[Comprobación] AniList conectado como {anilist.check() or 'NADIE: Configuración → Conectar con AniList'}")
-        lote = []
-        for a in por["al_subir"] + [None]:  # varias series por petición (límite de 30/min)
-            if a is not None:
-                lote.append(a)
-            if lote and (a is None or sum(len(x["datos"]["entradas"]) for x in lote) >= 12):
-                err = None
-                if not dry:
-                    if ctl.get("cancelar"):
-                        raise Cancelado()
-                    try:
-                        anilist.guardar([e for x in lote for e in x["datos"]["entradas"]])
-                    except Exception as ex:
-                        err = str(ex)
-                cancel = ctl.pop("cancelar", False)  # lo ya enviado se cuenta entero
-                for x in lote:
-                    tick(x)
-                    out(f"[AniList] {x['titulo']}: {len(x['datos']['entradas'])} entradas")
-                    if err:
-                        out(f"   ERROR: {err[:150]}")
-                if cancel:
-                    ctl["cancelar"] = True
-                lote = []
+        out("[AniList] la actividad de listas se apaga mientras se sube (para no llenar tu feed) y luego se deja como estaba")
+        if not dry:
+            antes = anilist.actividad_listas()
+            AL_ACTIVIDAD.write_text(json.dumps(antes), encoding="utf-8")  # por si se corta: se restaura al revisar
+            anilist.poner_actividad_listas([{**x, "disabled": True} for x in antes])
+        try:
+            _al_subir(por["al_subir"], dry, out, tick, ctl, anilist)
+        finally:
+            if not dry:
+                restaurar_actividad_anilist(out)
 
     # ---------------- Letterboxd (CSV) ----------------
     logs_rows, wl_rows = [], []

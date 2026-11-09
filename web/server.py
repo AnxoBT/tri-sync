@@ -74,6 +74,9 @@ def _revisar(solo, rapida=False):
             from core.apply import restaurar_pendientes
             from core.dixmax_api import Dixmax
             restaurar_pendientes(Dixmax(), JOB["mensajes"].append)
+        if config.env("ANILIST_TOKEN"):
+            from core.apply import restaurar_actividad_anilist
+            restaurar_actividad_anilist(JOB["mensajes"].append)
         ex = estado_exports()
         for k in ("dixmax", "letterboxd"):
             e = ex[k]
