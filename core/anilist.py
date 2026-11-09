@@ -156,3 +156,17 @@ def borrar_actividad(media_ids, desde_unix):
                 gql(f"mutation {{ DeleteActivity(id: {a['id']}) {{ deleted }} }}")
                 n += 1
     return n
+
+
+def secuela(media_id):
+    """Siguiente parte (relación SEQUEL) de un anime, en caché. None si no hay."""
+    c = cache_json("anilist_secuelas.json", {})
+    k = str(media_id)
+    if k not in c:
+        d = gql("query($i:Int){ Media(id:$i){ relations{ edges{ relationType node{ id type } } } } }", {"i": int(media_id)},
+                con_token=False)
+        sig = [e["node"]["id"] for e in d["Media"]["relations"]["edges"]
+               if e["relationType"] == "SEQUEL" and e["node"]["type"] == "ANIME"]
+        c[k] = sig[0] if sig else None
+        save_cache("anilist_secuelas.json", c)
+    return c[k]

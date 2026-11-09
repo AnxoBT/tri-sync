@@ -69,13 +69,33 @@ def _partes_serie(show, ents, med):
         por_temp = defaultdict(list)
         for p in partes:
             por_temp[p[1]].append(p)
+        conocidos = {al for al, _ in partes}
         for se, ps in sorted(por_temp.items()):
             vistos = [e for e in eps if e["season"] == se]
+            ps = sorted(ps, key=inicio)
             off = 0
-            for al, _ in sorted(ps, key=inicio):
+            for al, _ in ps:
                 n = med[str(al)]["eps"]
                 out.append((al, [e for e in vistos if off < e["episode"] <= off + (n or 10 ** 6)], n))
                 off += n or 10 ** 6
+            # ¿has visto más episodios de esta temporada que los que cubren las partes conocidas? (p. ej. el final
+            # de Shingeki en dos especiales y la lista de equivalencias solo trae el primero): se sigue la secuela
+            ultimo = ps[-1][0]
+            for _ in range(3):
+                if not any(e["episode"] > off for e in vistos):
+                    break
+                sig = anilist.secuela(ultimo)
+                if not sig or sig in conocidos:
+                    break
+                info = anilist.medios([sig], progress=lambda m: None).get(str(sig)) or {}
+                med[str(sig)] = info
+                if info.get("formato") not in FMT_SERIE | {"SPECIAL"} or not info.get("eps"):
+                    break
+                n = info["eps"]
+                out.append((sig, [e for e in vistos if off < e["episode"] <= off + n], n))
+                off += n
+                conocidos.add(sig)
+                ultimo = sig
     else:  # numeración seguida (p. ej. One Piece, Naruto): se reparten por orden
         off = 0
         for al, _ in sorted(partes, key=inicio):
