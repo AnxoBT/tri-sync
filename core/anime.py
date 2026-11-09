@@ -115,7 +115,8 @@ def _deseado_peli(m, ids, med):
     al = sorted(pelis, key=lambda a: (med.get(str(a)) or {}).get("inicio", [9999]))[0]
     if m["status"] == "watched":
         d = _dia(m.get("date"))
-        return [{"mediaId": al, "status": "COMPLETED", "progress": 1, "favorito": bool(m.get("favorite")),
+        n = (med.get(str(al)) or {}).get("eps") or 1  # algunas «pelis» son antologías de varios episodios
+        return [{"mediaId": al, "status": "COMPLETED", "progress": n, "favorito": bool(m.get("favorite")),
                  "scoreRaw": round(m["rating10"] * 10) if m.get("rating10") else None, "startedAt": d, "completedAt": d}]
     if m["status"] == "watchlist":
         return [{"mediaId": al, "status": "PLANNING", "progress": 0}]
