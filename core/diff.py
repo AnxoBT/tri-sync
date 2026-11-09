@@ -16,9 +16,14 @@ STARS = lambda r10: r10 / 2 if r10 else None  # noqa: E731
 
 
 def lb_url(m):
-    """Enlace a la peli en Letterboxd sin API: por id de TMDB (Letterboxd redirige a la ficha) o búsqueda."""
+    """Enlace a la ficha de la peli en Letterboxd sin API: por TMDB o IMDb (Letterboxd redirige a la ficha),
+    por la ficha que da Wikidata, o como último recurso una búsqueda."""
     if m.get("tmdb"):
         return f"https://letterboxd.com/tmdb/{m['tmdb']}/"
+    if m.get("lb_slug"):
+        return f"https://letterboxd.com/film/{m['lb_slug']}/"
+    if str(m.get("imdb") or "").startswith("tt"):
+        return f"https://letterboxd.com/imdb/{m['imdb']}/"
     from urllib.parse import quote
     q = f"{m['title']} {m.get('year') or ''}".strip()
     return f"https://letterboxd.com/search/films/{quote(q)}/"

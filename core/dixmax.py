@@ -222,8 +222,15 @@ def apply_live(data, progress=print, rapida=False):
                 continue
             m = movies.get(fid)
             if m is None:
-                movies[fid] = {"id": fid, "title": f["title"], "year": f.get("year"), "tmdb": tmdb_de(fid), "imdb": None,
-                               "status": st, "date": fecha_real(api, ficha_id=fid) or hoy, "rating10": nota,
+                info = api.ficha(fid)["info"]
+                ext = {x["name"]: str(x.get("externalId") or "") for x in info.get("externalLinks", [])}
+                tmdb, imdb, lb = tmdb_de(fid, info), ext.get("IMDb") or None, None
+                if not tmdb:  # Dixmax no da TMDB (p. ej. solo FilmAffinity): se cruza con Wikidata
+                    from .enlaces import buscar
+                    w = buscar({"FilmAffinity": ext.get("FilmAffinity"), "IMDb": imdb})
+                    tmdb, imdb, lb = w.get("tmdb"), imdb or w.get("imdb"), w.get("lb")
+                movies[fid] = {"id": fid, "title": f["title"], "year": f.get("year"), "tmdb": tmdb, "imdb": imdb,
+                               "lb_slug": lb, "status": st, "date": fecha_real(api, ficha_id=fid) or hoy, "rating10": nota,
                                "favorite": mark == "favorite", "url": f"https://playmax.mx/x-f{fid}"}
                 movies[fid]["fecha_aproximada"] = movies[fid]["date"] == hoy
                 nuevos += 1
