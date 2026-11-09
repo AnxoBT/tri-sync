@@ -139,6 +139,18 @@ class Serializd:
                                    if s == 200 and isinstance(d, dict) else None)
         return Serializd._shows[k]
 
+    def estreno(self, tmdb):
+        """Fecha de estreno (AAAA-MM-DD) o None si aún no tiene. En caché; lo no estrenado se vuelve a mirar cada día."""
+        import time
+        c = cache_json("sz_estrenos.json", {})
+        k, hoy = str(tmdb), time.strftime("%Y-%m-%d")
+        e = c.get(k)
+        if not e or (not e.get("fecha") or e["fecha"] > hoy) and time.time() - e.get("t", 0) > 86400:
+            s, d = self._call("GET", f"/show/{tmdb}")
+            e = c[k] = {"fecha": d.get("premiereDate") if s == 200 and isinstance(d, dict) else None, "t": int(time.time())}
+            save_cache("sz_estrenos.json", c)
+        return e.get("fecha")
+
     def season(self, tmdb, number):
         self._load_caches()
         k = f"{tmdb}-{number}"

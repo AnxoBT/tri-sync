@@ -80,7 +80,8 @@ def medios(ids, progress=print):
     c = cache_json(MEDIA_CACHE, {})
     ahora = time.time()
     faltan = [i for i in set(ids) if str(i) not in c or
-              c[str(i)].get("estado") in ("RELEASING", "NOT_YET_RELEASED") and ahora - c[str(i)].get("t", 0) > 7 * 86400]
+              c[str(i)].get("estado") == "RELEASING" and ahora - c[str(i)].get("t", 0) > 7 * 86400 or
+              c[str(i)].get("estado") == "NOT_YET_RELEASED" and ahora - c[str(i)].get("t", 0) > 86400]
     if faltan:
         progress(f"AniList: leyendo {len(faltan)} animes (solo la primera vez)…")
     q = """query($ids:[Int]){ Page(perPage:50){ media(id_in:$ids, type:ANIME){
@@ -156,6 +157,17 @@ def borrar_actividad(media_ids, desde_unix):
                 gql(f"mutation {{ DeleteActivity(id: {a['id']}) {{ deleted }} }}")
                 n += 1
     return n
+
+
+def relacionados(media_id):
+    """ids de animes relacionados (secuela, precuela, OVA, especial…) en caché."""
+    c = cache_json("anilist_relaciones.json", {})
+    k = str(media_id)
+    if k not in c:
+        d = gql("query($i:Int){ Media(id:$i){ relations{ nodes{ id type } } } }", {"i": int(media_id)}, con_token=False)
+        c[k] = [n["id"] for n in d["Media"]["relations"]["nodes"] if n["type"] == "ANIME"]
+        save_cache("anilist_relaciones.json", c)
+    return c[k]
 
 
 def secuela(media_id):

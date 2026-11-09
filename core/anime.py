@@ -215,5 +215,23 @@ def diferencias(dx, progress=print):
         add(s, des, {"Dixmax": s.get("url")}, aviso)
     for m in pelis:
         add(m, _deseado_peli(m, mp["mv"][str(m["tmdb"])], med), {"Dixmax": m.get("url")})
+    # lo que tienes en AniList y no en Dixmax (ni es parte, OVA o secuela de algo que sí está)
+    conocidos = ids | {e["mediaId"] for x in out for e in x["datos"]["entradas"]}
+    solo = [i for i in cur if i not in conocidos]
+    info = anilist.medios(solo, progress)
+    for i in solo:
+        m = info.get(str(i)) or {}
+        if m.get("estado") == "NOT_YET_RELEASED":
+            continue  # aún no se ha estrenado: Dixmax no suele tener ficha; se ignora hasta el estreno
+        if any(r in conocidos for r in anilist.relacionados(i)):
+            continue  # temporada, OVA o especial de algo que ya tienes en Dixmax
+        out.append({"id": f"a{len(out)}", "seccion": "Anime", "categoria": "Solo en AniList",
+                    "titulo": m.get("titulo") or str(i),
+                    "detalle": f"AniList: {ESTADO_TXT.get(cur[i]['status'], cur[i]['status'])}"
+                               + (f", {cur[i]['progress']} ep." if cur[i].get("progress") else ""),
+                    "enlaces": {"AniList": f"https://anilist.co/anime/{i}"},
+                    "opciones": [{"clave": "dx_buscar", "texto": "Añadir en Dixmax (a mano, con el enlace)", "fase": 2},
+                                 IGNORAR],
+                    "datos": {"anilist": i}})
     stats = {"al_anime": len(cur), "al_series_cruzadas": len(shows), "al_pelis_cruzadas": len(pelis)}
     return out, stats

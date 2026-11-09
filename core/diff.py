@@ -204,9 +204,14 @@ def series(dx, sz, progress=print, rapida=False):
     STATS["sz_vistas"] = len(lists["watched"])
     STATS["sz_favoritas"] = sum(1 for v in show_reviews.values() for x in v.values() if x.get("isLog") and x.get("like"))
     dx_ids = {s["tmdb"] for s in dx["shows"]} | excl
+    import time
+    hoy = time.strftime("%Y-%m-%d")
     for k, v in lists.items():
         for tid, it in v.items():
             if tid not in dx_ids:
+                est = sz.estreno(tid)
+                if not est or est > hoy:  # aún no se ha estrenado: Dixmax no suele tener ficha; se ignora hasta entonces
+                    continue
                 out.append({"id": f"s{len(out)}", "seccion": "Series", "categoria": "Solo en Serializd",
                             "titulo": it["name"], "detalle": f"lista: {k}",
                             "enlaces": {"Serializd": f"https://www.serializd.com/show/{tid}"},
