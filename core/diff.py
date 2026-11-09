@@ -15,6 +15,15 @@ IGNORAR = {"clave": "ignorar", "texto": "Ignorar", "fase": 1}
 STARS = lambda r10: r10 / 2 if r10 else None  # noqa: E731
 
 
+def lb_url(m):
+    """Enlace a la peli en Letterboxd sin API: por id de TMDB (Letterboxd redirige a la ficha) o búsqueda."""
+    if m.get("tmdb"):
+        return f"https://letterboxd.com/tmdb/{m['tmdb']}/"
+    from urllib.parse import quote
+    q = f"{m['title']} {m.get('year') or ''}".strip()
+    return f"https://letterboxd.com/search/films/{quote(q)}/"
+
+
 def _lbname(f):
     return f"{f['name']} ({f['year']})" if f["year"] else f["name"]
 
@@ -34,7 +43,7 @@ def peliculas(dx, lb):
     log_lb = {"clave": "lb_log", "texto": "Registrar en Letterboxd (diario con fecha y nota de Dixmax)", "fase": 3}
     wl_lb = {"clave": "lb_watchlist", "texto": "Añadir a la watchlist de Letterboxd", "fase": 3}
     for m, f in pairs:
-        links = {"Dixmax": m["url"], "Letterboxd": f.get("uri")}
+        links = {"Dixmax": m["url"], "Letterboxd": f.get("uri") or lb_url(m)}
         name = f"{m['title']} ({m['year']}) = {_lbname(f)}"
         datos = {"dx": m, "lb": f}
         if m["status"] == "watched" and not f["watched"]:
@@ -66,7 +75,7 @@ def peliculas(dx, lb):
         if name in ign_dx:
             continue
         add("Solo en Dixmax", name, "vista" if m["status"] == "watched" else "pendiente",
-            [log_lb if m["status"] == "watched" else wl_lb], {"dx": m}, {"Dixmax": m["url"]})
+            [log_lb if m["status"] == "watched" else wl_lb], {"dx": m}, {"Dixmax": m["url"], "Letterboxd": lb_url(m)})
     for f in solo_lb:
         if _lbname(f) in ign_lb:
             continue
@@ -184,6 +193,7 @@ def series(dx, sz, progress=print, rapida=False):
                 add("Nota de serie sin subir a Serializd", show, f"Dixmax {show['rating10']} → {esperada}",
                     [{"clave": "sz_nota", "texto": "Subir la nota a Serializd", "fase": 2}], {"tmdb": tid})
     sz.flush()
+    dixmax.guardar_eps_api()
     STATS["sz_diario"] = len(diary)
     STATS["sz_vistas"] = len(lists["watched"])
     STATS["sz_favoritas"] = sum(1 for v in show_reviews.values() for x in v.values() if x.get("isLog") and x.get("like"))

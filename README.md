@@ -54,6 +54,17 @@ Todo lo aplicado queda registrado en `logs/ejecucion_*.log`.
 - Borrar entradas o notas, quitar de la watchlist y "me gusta" en Letterboxd (su importador no lo permite).
 - Añadir en Dixmax algo que solo está en otra web (hay que buscar la ficha).
 
+## Actualizar a una versión nueva
+
+Tri-Sync avisa solo con una barra verde arriba cuando hay una release nueva: **Actualizar ahora** la descarga,
+guarda una copia de la versión actual en `logs/copia_v…`, instala y se reinicia (la página se recarga sola).
+Tu `.env`, la caché y el historial no se tocan. También: Configuración → **Buscar actualizaciones**.
+
+Como el repo es privado, necesita un **token de GitHub** de solo lectura (Configuración → Token de GitHub):
+github.com/settings/personal-access-tokens/new → *Repository access*: Only select → `tri-sync` ·
+*Permissions* → *Contents*: Read-only. (Si tienes GitHub CLI con sesión iniciada, no hace falta.)
+En una carpeta clonada con git, actualiza con `git pull`.
+
 ## Qué compara
 
 **Películas (Dixmax ↔ Letterboxd)**: vistas, watchlist, notas (Dixmax 0-10 = estrellas × 2),

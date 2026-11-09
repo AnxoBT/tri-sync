@@ -31,6 +31,7 @@ def main():
     ap.add_argument("--solo", choices=["peliculas", "series"])
     ap.add_argument("--no-navegador", action="store_true")
     ap.add_argument("--puerto", type=int, default=8765)
+    ap.add_argument("--esperar", action="store_true", help="tras actualizar: espera a que se cierre la versión anterior")
     args = ap.parse_args()
 
     if args.revisar:
@@ -45,8 +46,16 @@ def main():
 
     url = f"http://127.0.0.1:{args.puerto}"
     import socket
-    with socket.socket() as s:
-        ya_abierto = s.connect_ex(("127.0.0.1", args.puerto)) == 0
+    import time
+
+    def abierto():
+        with socket.socket() as s:
+            return s.connect_ex(("127.0.0.1", args.puerto)) == 0
+    for _ in range(40 if args.esperar else 0):
+        if not abierto():
+            break
+        time.sleep(0.5)
+    ya_abierto = abierto()
     if ya_abierto:  # Tri-Sync ya está en marcha: solo abre la página
         if not args.no_navegador:
             webbrowser.open(url)

@@ -30,9 +30,26 @@ def _aplicar(acciones, simulacion):
     try:
         RUN["resultado"] = {"ok": True, **execute(acciones, dry=simulacion, ctl=RUN)}
     except Exception as e:
-        RUN["resultado"] = {"ok": False, "log": RUN.get("log", []) + [f"ERROR: {e}"], "archivos": []}
+        RUN["resultado"] = {"ok": False, "log": RUN.get("log", []) + [f"ERROR: {e}"], "archivos": [],
+                            "hechas": list(RUN.get("hechas") or [])}
     finally:
-        RUN["activo"] = False
+        try:
+            _quitar_aplicadas(acciones, RUN["resultado"] or {})
+        finally:
+            RUN["activo"] = False
+
+
+def _quitar_aplicadas(acciones, res):
+    """Lo aplicado deja de salir en la lista sin tener que volver a revisar."""
+    tit = {a.get("id"): a.get("titulo") for a in acciones}
+    hechas = {i for i in res.get("hechas") or [] if i in tit}
+    if not hechas:
+        return
+    p = CACHE / "diff.json"
+    if p.exists():
+        d = json.loads(p.read_text(encoding="utf-8"))
+        d["diferencias"] = [x for x in d.get("diferencias", []) if not (x["id"] in hechas and x["titulo"] == tit[x["id"]])]
+        config.save_cache("diff.json", d)
 
 
 def _revisar(solo, rapida=False):
@@ -141,6 +158,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, JOB)
         if self.path == "/api/config":
             return self._send(200, config.config_publica())
+        if self.path == "/api/version":
+            from core.actualizar import comprobar
+            return self._send(200, comprobar())
         self._send(404, {"error": "no existe"})
 
     def do_POST(self):
@@ -178,6 +198,17 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": False, "texto": "Hay una revisión o aplicación en marcha"})
             self._send(200, {"ok": True})
             return apagar()
+        if self.path == "/api/version":
+            from core.actualizar import comprobar
+            return self._send(200, comprobar(forzar=True))
+        if self.path == "/api/actualizar":
+            if JOB["activo"] or RUN["activo"] or UPD["activo"]:
+                return self._send(200, {"ok": False, "texto": "Espera a que termine la revisión o la aplicación en marcha"})
+            UPD.update(activo=True, mensajes=[], error=None)
+            threading.Thread(target=_actualizar, daemon=True).start()
+            return self._send(200, {"ok": True})
+        if self.path == "/api/actualizando":
+            return self._send(200, UPD)
         if self.path == "/api/cancelar":
             RUN["cancelar"] = True
             return self._send(200, {"ok": True})
@@ -187,6 +218,19 @@ class Handler(BaseHTTPRequestHandler):
                 os.startfile(p.parent)
             return self._send(200, {"ok": True})
         self._send(404, {"error": "no existe"})
+
+
+UPD = {"activo": False, "mensajes": [], "error": None}
+
+
+def _actualizar():
+    from core.actualizar import instalar, reiniciar
+    try:
+        instalar(UPD["mensajes"].append)
+        reiniciar(SRV["srv"].server_address[1])
+        apagar()
+    except Exception as e:
+        UPD.update(activo=False, error=str(e))
 
 
 LATIDO = {"t": time.time() + 50}  # al arrancar da tiempo a que el navegador abra la página

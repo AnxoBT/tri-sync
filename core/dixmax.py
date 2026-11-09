@@ -1,9 +1,10 @@
 """Lectura del export de Dixmax/PlayMax (carpeta playmax-userdata-*)."""
 import json
+import time
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from .config import latest_export, rules
+from .config import cache_json, latest_export, rules, save_cache
 
 TZ = ZoneInfo("Europe/Madrid")
 LISTA_PELIS_VISTAS = "Peliculas vistas"
@@ -106,8 +107,28 @@ def fecha_real(api, ficha_id=None, episode_id=None):
         return None
 
 
+# Episodios leídos por la API en revisiones anteriores (con su fecha real). Clave: id de ficha.
+# "pend" = siguiente episodio pendiente que daba Dixmax entonces: si no ha cambiado, no has visto nada nuevo
+# de esa serie y la revisión rápida reutiliza lo guardado sin preguntar a la API.
+EPS_API = "dx_episodios_api.json"
+_EPS = {}
+
+
+def guardar_eps_api():
+    if _EPS:
+        save_cache(EPS_API, _EPS)
+
+
+def _de_cache(s, c):
+    have = {(e["season"], e["episode"]) for e in s["episodes"]}
+    nuevos = [e for e in c["eps"] if (e["season"], e["episode"]) not in have]
+    s["episodes"] = sorted(s["episodes"] + nuevos, key=lambda x: (x["season"], x["episode"]))
+    s["_api"] = True
+    return len(nuevos)
+
+
 def episodios_api(api, s):
-    """Añade a la serie los episodios vistos en Dixmax que no trae el export (fecha aproximada: hoy)."""
+    """Añade a la serie los episodios vistos en Dixmax que no trae el export (con su fecha real si la API la da)."""
     if s.get("_api"):
         return 0
     s["_api"] = True
@@ -127,7 +148,26 @@ def episodios_api(api, s):
                                       "date": fecha, "fecha_aproximada": aprox, "dx_episode_id": e["id"]})
                 n += 1
     s["episodes"].sort(key=lambda x: (x["season"], x["episode"]))
+    futuros = [e["date"]["unix"] for t in fi.get("episodes") or [] for e in t.get("episodesList", [])
+               if (e.get("date") or {}).get("unix") and not e["date"].get("reached")]
+    _EPS[str(s["id"])] = {"pend": s.get("_pend"), "estado": s.get("status"), "t": int(time.time()),
+                          "prox": min(futuros) if futuros else None,  # próximo episodio por emitir
+                          "fin": (fi.get("info") or {}).get("status") == "finalized",
+                          "eps": [e for e in s["episodes"] if e.get("dx_episode_id")]}
     return n
+
+
+def _sin_novedades(s, c):
+    """¿Se puede reutilizar lo guardado de esta serie sin preguntar a la API?"""
+    if not c or c.get("pend") != s["_pend"] or c.get("estado") != s["status"]:
+        return False  # has visto algo (cambió el siguiente pendiente) o cambió la marca
+    if s["_pend"] is None:  # estabas al día: ¿ha salido un episodio nuevo desde entonces?
+        ahora = time.time()
+        if c.get("prox") and c["prox"] <= ahora:
+            return False
+        if not c.get("prox") and not c.get("fin") and ahora - c.get("t", 0) > 7 * 86400:
+            return False  # en emisión sin fecha conocida: se mira como mucho una vez por semana
+    return True
 
 
 def apply_live(data, progress=print, rapida=False):
@@ -139,6 +179,11 @@ def apply_live(data, progress=print, rapida=False):
     hoy = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     mf = api.my_fichas()
     secs = mf.get("sections", mf)
+    # siguiente episodio pendiente de cada serie que sigues (cambia en cuanto ves uno)
+    pend = {f["id"]: (f.get("episode") or {}).get("id")
+            for f in ((secs.get("episode") or {}).get("pending") or []) if isinstance(f, dict)}
+    _EPS.clear()
+    _EPS.update(cache_json(EPS_API, {}))
     r = rules().get("dixmax", {})
     ign = set(r.get("fichas_ignoradas", []))
     tmdb_ov = {int(k): v for k, v in r.get("tmdb_override", {}).items()}
@@ -206,6 +251,8 @@ def apply_live(data, progress=print, rapida=False):
                                   "episodes": [], "url": f"https://playmax.mx/x-f{fid}"}
                 nuevos += 1
             else:
+                if s["status"] != st:
+                    s["_cambio"] = True  # p. ej. la terminaste desde el export: faltan los últimos episodios
                 if s["status"] != st or s["rating10"] != nota:
                     cambios += 1
                 if s.get("mark") != mark:
@@ -215,18 +262,29 @@ def apply_live(data, progress=print, rapida=False):
     # tus listas sin marca). Para reflejar marcas QUITADAS, descarga un export nuevo.
 
     # episodios nuevos de las series que sigues (y de las nuevas)
-    revisar = [s for s in shows.values() if s["status"] == "watching" or not s["episodes"] and s["status"] == "finished"]
-    import time
-    if rapida:
-        progress("Dixmax: revisión rápida (por la API solo se miran las series que no cuadren)")
-        revisar = [s for s in revisar if not s["episodes"]]
-    elif time.time() - data.get("export_mtime", 0) < 3600:  # export de hace menos de 1 h: ya trae los episodios
+    for s in shows.values():
+        s["_pend"] = pend.get(s["id"])
+    revisar = [s for s in shows.values()
+               if s["status"] == "watching" or s.get("_cambio") or not s["episodes"] and s["status"] == "finished"]
+    if time.time() - data.get("export_mtime", 0) < 3600:  # export de hace menos de 1 h: ya trae los episodios
         progress("Dixmax: export reciente, no hace falta revisar episodios por la API")
-        revisar = [s for s in revisar if not s["episodes"]]
+        revisar = [s for s in revisar if not s["episodes"] or s.get("_cambio")]
+    elif rapida:
+        # solo se pregunta a la API por las series en las que has visto algo desde la última vez
+        reusar = []
+        for s in revisar:
+            c = _EPS.get(str(s["id"]))
+            if _sin_novedades(s, c):
+                nuevos += _de_cache(s, c)
+                reusar.append(s)
+        revisar = [s for s in revisar if s not in reusar]
+        progress(f"Dixmax: revisión rápida, {len(revisar)} series con novedades se miran por la API "
+                 f"({len(reusar)} sin cambios)")
     for i, s in enumerate(revisar, 1):
         if i % 10 == 0:
             progress(f"Dixmax: episodios {i}/{len(revisar)}")
         nuevos += episodios_api(api, s)
+    guardar_eps_api()
     progress(f"Dixmax en directo: {nuevos} novedades y {cambios} cambios respecto al export")
     data["movies"], data["shows"] = list(movies.values()), list(shows.values())
     data["live"] = True

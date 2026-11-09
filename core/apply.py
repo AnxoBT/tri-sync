@@ -60,26 +60,39 @@ def execute(acciones, dry=True, ctl=None):
     for a in acciones:
         por[a["accion"]].append(a)
     ctl = ctl if ctl is not None else {}
-    ctl.update(total=len(acciones), hechos=0, actual="Conectando…", log=log)
+    hechas = []  # ids de las diferencias aplicadas sin error (la web las quita de la lista)
+    ctl.update(total=len(acciones), hechos=0, actual="Conectando…", log=log, hechas=hechas)
+    cur = {"a": None, "err": 0}
+    errores = [0]
 
     def out(msg):
         log.append(msg)
+        if "ERROR" in msg:
+            errores[0] += 1
+
+    def cerrar():  # la acción anterior terminó: si no dio error, cuenta como aplicada
+        if cur["a"] is not None and not dry and errores[0] == cur["err"] and cur["a"].get("id"):
+            hechas.append(cur["a"]["id"])
+        cur["a"] = None
 
     def tick(a):
+        cerrar()
         if ctl.get("cancelar"):
             raise Cancelado()
         ctl["actual"] = a.get("titulo", "")
         ctl["hechos"] += 1
+        cur.update(a=a, err=errores[0])
 
     try:
         _execute(por, dry, out, tick, archivos, ctl)
+        cerrar()
     except Cancelado:
         out(f"⛔ CANCELADO: se hicieron {ctl['hechos']} de {ctl['total']}; el resto no se ha tocado. "
             f"Haz una revisión rápida para ver lo que falta.")
     if not dry:
         LOGS.mkdir(exist_ok=True)
         (LOGS / f"ejecucion_{datetime.now():%Y%m%d_%H%M%S}.log").write_text("\n".join(log), encoding="utf-8")
-    return {"log": log, "archivos": archivos}
+    return {"log": log, "archivos": archivos, "hechas": hechas}
 
 
 def _execute(por, dry, out, tick, archivos, ctl):

@@ -101,6 +101,12 @@
 <body>
 <div id="cerrado" style="display:none;position:fixed;inset:0 0 auto 0;z-index:99;padding:10px;text-align:center;background:#7a1f1f;color:#fff">
   Tri-Sync está cerrado (se apaga al cerrar la pestaña). Ábrelo otra vez con el acceso directo <b>Tri-Sync</b>.</div>
+<div id="upd" class="hidden" style="background:#1d3a24;color:#dff5e4;padding:10px 16px;text-align:center;font-size:14px">
+  <b>Nueva versión <span id="updV"></span> disponible</b> (tienes la <span id="updA"></span>) ·
+  <a id="updN" href="#" target="_blank" style="color:#9fe0b0">ver cambios</a> ·
+  <button class="pri" onclick="actualizar()">Actualizar ahora</button>
+  <button onclick="$('upd').classList.add('hidden')">Luego</button>
+  <div id="updM" style="margin-top:6px"></div></div>
 <header><div class="wrap">
   <div class="logo"><img src="/logo.svg?v=2" alt="">Tri<span>-Sync</span></div>
   <nav><button id="tRev" class="on" onclick="vista('rev')">Revisión</button><button id="tHist" onclick="vista('hist')">Historial</button><button id="tCfg" onclick="vista('cfg')">Configuración</button></nav>
@@ -122,7 +128,7 @@
       <button onclick="window.open('https://letterboxd.com/settings/data/')">Export Letterboxd ↗</button></div>
     <span class="sep">›</span>
     <div class="step"><span class="num">2</span>
-      <button class="pri" id="bRev" onclick="revisar('rapida')" title="~20 s: solo lo nuevo del diario de Serializd; episodios de Dixmax según el export">Revisión rápida</button>
+      <button class="pri" id="bRev" onclick="revisar('rapida')" title="~15 s: solo lo nuevo (diario de Serializd y series de Dixmax en las que has visto algo o ha salido un episodio)">Revisión rápida</button>
       <button id="bRevC" onclick="revisar('completa')" title="~2 min: todo desde cero (detecta borrados y episodios nuevos de Dixmax por la API)">Completa</button></div>
     <div style="flex-basis:100%"><div id="prog"></div><div class="bar" id="bar"><i></i></div></div>
   </div>
@@ -147,6 +153,8 @@
     <span id="cfgMsg" style="align-self:center"></span>
   </div>
   <div id="probar"></div>
+  <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <span id="verInfo">Versión…</span><button onclick="version(true)">Buscar actualizaciones</button></div>
 </div>
 
 <div class="actionbar" id="abar"><div class="wrap">
@@ -320,7 +328,15 @@ function fin(r) {
   $('mL').textContent = (res.log || []).join('\n');
   $('mF').innerHTML = (res.archivos || []).map(f => `<div class="file">📄 ${esc(f.texto)}<br><small>${esc(f.archivo)}</small><br>
       <button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button> <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
-  if (!simulacion && res.ok) $('mF').innerHTML += `<p class="ok">Cuando termines, pulsa «Revisión rápida» para comprobar.</p>`;
+  const n = (res.hechas || []).length;
+  if (!simulacion && n) {
+    const csv = (res.archivos || []).length ? ' Lo de Letterboxd sale de la lista al generar el CSV: si no lo importas, volverá a salir en la próxima revisión.' : '';
+    $('mF').innerHTML += `<p class="ok">${n} ${n === 1 ? 'cambio aplicado y quitado' : 'cambios aplicados y quitados'} de la lista.${csv}</p>`;
+    const ids = new Set(res.hechas);
+    DATA.diferencias = (DATA.diferencias || []).filter(d => !ids.has(d.id));
+    ids.forEach(i => delete sel[i]);
+    pintar();
+  }
 }
 async function cancelar() {
   if (!confirm('¿Cancelar? Se termina la acción en curso y no se hace nada más. Lo ya aplicado se queda (con sus fechas correctas).')) return;
@@ -338,6 +354,7 @@ const CAMPOS = [
   ['SERIALIZD_TOKEN', 'Token de Serializd', 'serializd.com → F12 → Application → Cookies → tvproject_credentials. Caduca de vez en cuando.', 1],
   ['DIXMAX_API_KEY', 'apiKey de Dixmax', 'playmax.mx/tusapps.php → Añadir App → copia la apiKey de tu app.', 1],
   ['DIXMAX_AUTH_KEY', 'authKey de Dixmax', 'Panel de Control → Aplicaciones autorizadas → autoriza tu app y copia la authKey.', 1],
+  ['GITHUB_TOKEN', 'Token de GitHub', 'Solo para avisar de versiones nuevas (el repo es privado). github.com/settings/personal-access-tokens/new → Repository access: Only select → tri-sync · Permissions → Contents: Read-only.', 1],
 ];
 async function cargarCfg() {
   const c = await (await fetch('/api/config')).json();
@@ -349,7 +366,7 @@ async function cargarCfg() {
 async function guardarCfg() {
   const body = {}; CAMPOS.forEach(([k]) => body[k] = $('f_' + k).value);
   await fetch('/api/config', {method: 'POST', body: JSON.stringify(body)});
-  $('cfgMsg').innerHTML = '<span class="ok">Guardado</span>'; cargarCfg(); estado();
+  $('cfgMsg').innerHTML = '<span class="ok">Guardado</span>'; cargarCfg(); estado(); version(true);
 }
 async function probar() {
   $('probar').innerHTML = 'Probando…';
@@ -374,6 +391,30 @@ async function apagarApp() {
   document.body.innerHTML = `<div class="empty" style="margin-top:20vh"><b>Tri-Sync apagado</b>Ya puedes cerrar esta pestaña.
     Para volver a usarlo, abre el acceso directo Tri-Sync.</div>`;
 }
+// ---------- actualizaciones ----------
+async function version(forzar) {
+  const v = await (await fetch('/api/version', forzar ? {method: 'POST'} : {})).json();
+  if ($('verInfo')) $('verInfo').innerHTML = `Versión instalada: <b>${esc(v.actual)}</b> · ` + (v.nueva ? `<span class="warn">hay una nueva: ${esc(v.nueva)}</span>`
+    : v.error ? `<span class="bad">${esc(v.error)}</span>` : '<span class="ok">es la última</span>');
+  if (v.nueva && !v.git) {
+    $('updV').textContent = v.nueva; $('updA').textContent = v.actual; $('updN').href = v.url || '#';
+    $('upd').classList.remove('hidden');
+  }
+  return v;
+}
+async function actualizar() {
+  if (!confirm('¿Actualizar Tri-Sync ahora?\n\nSe descarga la versión nueva, se guarda una copia de la actual en la carpeta logs y se reinicia solo en unos segundos. Tu configuración, claves e historial no se tocan.')) return;
+  const r = await (await fetch('/api/actualizar', {method: 'POST'})).json();
+  if (!r.ok) { $('updM').textContent = r.texto; return; }
+  const t = setInterval(async () => {
+    let u; try { u = await (await fetch('/api/actualizando', {method: 'POST'})).json(); } catch (e) { u = null; }
+    if (u && u.error) { clearInterval(t); $('updM').innerHTML = `<span class="bad">No se pudo actualizar: ${esc(u.error)}</span>`; return; }
+    if (u && u.activo) { $('updM').textContent = u.mensajes.slice(-1)[0] || 'Empezando…'; return; }
+    $('updM').textContent = 'Reiniciando con la versión nueva…';  // espera a que arranque la nueva y recarga
+    try { const v = await (await fetch('/api/version')).json(); if (v.actual && !v.nueva) { clearInterval(t); location.reload(); } } catch (e) {}
+  }, 1000);
+}
+version();
 cargarDiff();
 </script>
 </body>
