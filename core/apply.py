@@ -141,6 +141,11 @@ def _al_subir(acciones, dry, out, tick, ctl, anilist):
                     out(f"[AniList] ♥ favorito: {e['mediaId']}")
                 except Exception as ex:
                     out(f"[AniList] ♥ favorito {e['mediaId']}: no se pudo ({str(ex)[:120]})")
+        try:  # en tu perfil, los favoritos quedan ordenados por tu nota
+            anilist.ordenar_favoritos()
+            out("[AniList] favoritos ordenados por tu nota")
+        except Exception as ex:
+            out(f"[AniList] no se pudieron ordenar los favoritos ({str(ex)[:120]})")
 
 
 def _execute(por, dry, out, tick, archivos, ctl):

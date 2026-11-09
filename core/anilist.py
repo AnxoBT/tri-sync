@@ -170,3 +170,19 @@ def secuela(media_id):
         c[k] = sig[0] if sig else None
         save_cache("anilist_secuelas.json", c)
     return c[k]
+
+
+def ordenar_favoritos(out=print):
+    """Ordena tus animes favoritos por tu nota (mayor primero; a igual nota, el visto más recientemente)."""
+    favs = list(favoritos())
+    if len(favs) < 2:
+        return []
+    l = lista(viewer()["name"])
+    clave = lambda i: (-(l.get(i, {}).get("score") or 0),  # noqa: E731
+                       -int("%04d%02d%02d" % tuple((l.get(i, {}).get("completedAt") or {}).get(k) or 0
+                                                   for k in ("year", "month", "day"))))
+    orden = sorted(favs, key=clave)
+    ids = ", ".join(map(str, orden))
+    pos = ", ".join(str(i + 1) for i in range(len(orden)))
+    gql(f"mutation {{ UpdateFavouriteOrder(animeIds: [{ids}], animeOrder: [{pos}]) {{ anime {{ pageInfo {{ total }} }} }} }}")
+    return [(i, l.get(i, {}).get("score")) for i in orden]
