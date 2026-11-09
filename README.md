@@ -54,6 +54,14 @@ Todo lo aplicado queda registrado en `logs/ejecucion_*.log`.
 - Borrar entradas o notas, quitar de la watchlist y "me gusta" en Letterboxd (su importador no lo permite).
 - Añadir en Dixmax algo que solo está en otra web (hay que buscar la ficha).
 
+## AniList (anime, opcional)
+
+Sube a tu lista de **anime** de AniList lo que ves en Dixmax: estado, episodios, nota y fechas de inicio/fin.
+La lista de manga (Mihon) no se toca. Configuración → **Conectar con AniList** → *Authorize* (el permiso dura 1 año).
+AniList separa cada temporada (y cada parte) como un anime distinto: se cruza con la lista pública
+[Fribb/anime-lists](https://github.com/Fribb/anime-lists) y tus episodios se reparten entre las partes por orden de estreno.
+Si Dixmax y AniList cuentan distinto número de episodios, la diferencia sale con ⚠.
+
 ## Actualizar a una versión nueva
 
 Tri-Sync avisa solo con una barra verde arriba cuando hay una release nueva: **Actualizar ahora** la descarga,

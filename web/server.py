@@ -13,6 +13,19 @@ from core.config import CACHE, ROOT
 WEB = Path(__file__).resolve().parent
 INDEX = (WEB / "index.html").read_bytes()  # se fija al arrancar: página y servidor siempre de la misma versión
 LOGS = ROOT / "logs"
+ANILIST_HTML = """<!doctype html><meta charset="utf-8"><title>Tri-Sync · AniList</title>
+<body style="font:16px system-ui;background:#0f1218;color:#e6e6e6;display:grid;place-items:center;height:90vh">
+<div id="m">Guardando el permiso de AniList…</div>
+<script>
+const p = new URLSearchParams(location.hash.slice(1));
+if (!p.get('access_token')) document.getElementById('m').textContent = 'AniList no ha dado permiso. Cierra esta pestaña y vuelve a probar.';
+else fetch('/api/anilist_token', {method: 'POST', body: JSON.stringify({access_token: p.get('access_token'), expires_in: p.get('expires_in')})})
+  .then(r => r.json()).then(r => {
+    history.replaceState(null, '', '/anilist');
+    document.getElementById('m').innerHTML = r.ok ? '✓ Conectado con AniList como <b>' + r.usuario + '</b>. Ya puedes cerrar esta pestaña.' : 'Error: ' + r.texto;
+    if (r.ok) setTimeout(() => window.close(), 1500);
+  });
+</script>""".encode()
 
 # estado de la revisión en segundo plano
 JOB = {"activo": False, "mensajes": [], "error": None, "fin": None}
@@ -106,6 +119,14 @@ def _probar():
         out["serializd"] = {"ok": True, "texto": f"Conectado como {Serializd().check()}"}
     except Exception as e:
         out["serializd"] = {"ok": False, "texto": str(e)}
+    if config.env("ANILIST_USER"):
+        try:
+            from core import anilist
+            u = anilist.check()
+            out["anilist"] = ({"ok": True, "texto": f"Conectado como {u} (permiso hasta el {config.env('ANILIST_EXPIRA') or '?'})"}
+                              if u else {"ok": False, "texto": "Falta el permiso: pulsa «Conectar con AniList»"})
+        except Exception as e:
+            out["anilist"] = {"ok": False, "texto": str(e)}
     try:
         from core.dixmax_api import Dixmax
         Dixmax().check()
@@ -135,6 +156,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.path = self.path.split("?", 1)[0]  # ignora ?v=… (evita caché del navegador)
         LATIDO["t"] = time.time()  # cualquier petición de la página cuenta como actividad
+        if self.path == "/anilist":  # vuelta de la autorización de AniList (el permiso viene tras el #)
+            return self._send(200, ANILIST_HTML, "text/html; charset=utf-8")
         if self.path in ("/", "/index.html"):
             return self._send(200, INDEX, "text/html; charset=utf-8")
         if self.path == "/api/diff":
@@ -145,7 +168,8 @@ class Handler(BaseHTTPRequestHandler):
             p = CACHE / "diff.json"
             calc = json.loads(p.read_text(encoding="utf-8")).get("calculado") if p.exists() else None
             return self._send(200, {"exports": estado_exports(), "calculado": calc,
-                                    "letterboxd_user": config.env("LETTERBOXD_USER"), "trabajo": JOB})
+                                    "letterboxd_user": config.env("LETTERBOXD_USER"),
+                                    "anilist_user": config.env("ANILIST_USER"), "trabajo": JOB})
         if self.path in ("/favicon.ico", "/logo.ico"):
             return self._send(200, (WEB / "logo.ico").read_bytes(), "image/x-icon")
         if self.path == "/logo.svg":
@@ -209,6 +233,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True})
         if self.path == "/api/actualizando":
             return self._send(200, UPD)
+        if self.path == "/api/anilist_token":
+            from core import anilist
+            b = self._body()
+            try:
+                yo = anilist.viewer(token=b.get("access_token"))
+            except Exception as e:
+                return self._send(200, {"ok": False, "texto": str(e)})
+            from datetime import timedelta
+            caduca = datetime.now() + timedelta(seconds=int(b.get("expires_in") or 31536000))
+            config.guardar_config({"ANILIST_TOKEN": b["access_token"], "ANILIST_USER": yo["name"],
+                                   "ANILIST_EXPIRA": caduca.strftime("%d/%m/%Y")})
+            return self._send(200, {"ok": True, "usuario": yo["name"]})
         if self.path == "/api/cancelar":
             RUN["cancelar"] = True
             return self._send(200, {"ok": True})

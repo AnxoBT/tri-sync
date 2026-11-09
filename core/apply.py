@@ -262,6 +262,33 @@ def _execute(por, dry, out, tick, archivos, ctl):
         if not dry:
             out(f"   {dx.rate(sh['id'], notas[0])}")
 
+    # ---------------- AniList ----------------
+    if por["al_subir"]:
+        from . import anilist
+        out(f"[Comprobación] AniList conectado como {anilist.check() or 'NADIE: Configuración → Conectar con AniList'}")
+        lote = []
+        for a in por["al_subir"] + [None]:  # varias series por petición (límite de 30/min)
+            if a is not None:
+                lote.append(a)
+            if lote and (a is None or sum(len(x["datos"]["entradas"]) for x in lote) >= 12):
+                err = None
+                if not dry:
+                    if ctl.get("cancelar"):
+                        raise Cancelado()
+                    try:
+                        anilist.guardar([e for x in lote for e in x["datos"]["entradas"]])
+                    except Exception as ex:
+                        err = str(ex)
+                cancel = ctl.pop("cancelar", False)  # lo ya enviado se cuenta entero
+                for x in lote:
+                    tick(x)
+                    out(f"[AniList] {x['titulo']}: {len(x['datos']['entradas'])} entradas")
+                    if err:
+                        out(f"   ERROR: {err[:150]}")
+                if cancel:
+                    ctl["cancelar"] = True
+                lote = []
+
     # ---------------- Letterboxd (CSV) ----------------
     logs_rows, wl_rows = [], []
     for a in por["lb_log"] + por["nota_dx_a_lb"]:

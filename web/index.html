@@ -10,7 +10,7 @@
   :root {
     --bg:#0f1317; --panel:#171d23; --panel2:#1d252c; --line:#28323c; --text:#e3e8ed; --muted:#8994a0;
     --acc:#3fb0ff; --ok:#2fbf71; --warn:#f0a020; --bad:#ef5350;
-    --dx:#ff8000; --lb:#40bcf4; --sz:#00e054; --r:10px;
+    --dx:#ff8000; --lb:#40bcf4; --sz:#00e054; --al:#02a9ff; --r:10px;
   }
   * { box-sizing:border-box; }
   body { margin:0; font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
@@ -36,9 +36,9 @@
   .hstat { margin-left:auto; color:var(--muted); font-size:12px; }
   #bOff { padding:6px 10px; font-size:12px; }
 
-  .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:18px 0; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin:18px 0; }
   .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; border-top:3px solid var(--line); }
-  .card.dx { border-top-color:var(--dx); } .card.lb { border-top-color:var(--lb); } .card.sz { border-top-color:var(--sz); }
+  .card.dx { border-top-color:var(--dx); } .card.lb { border-top-color:var(--lb); } .card.sz { border-top-color:var(--sz); } .card.al { border-top-color:var(--al); }
   .card h3 { margin:0 0 4px; font-size:13px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
   .card .v { font-size:15px; font-weight:600; } .card .s { color:var(--muted); font-size:12px; }
 
@@ -63,7 +63,7 @@
   .ghead .t { font-weight:650; } .ghead .n { color:var(--muted); }
   .ghead select { margin-left:auto; padding:5px 8px; font-size:13px; }
   .tag { font-size:11px; padding:2px 7px; border-radius:10px; border:1px solid var(--line); color:var(--muted); }
-  .tag.Películas { color:var(--lb); border-color:var(--lb); } .tag.Series { color:var(--sz); border-color:var(--sz); }
+  .tag.Películas { color:var(--lb); border-color:var(--lb); } .tag.Series { color:var(--sz); border-color:var(--sz); } .tag.Anime { color:var(--al); border-color:var(--al); }
   .row { display:grid; grid-template-columns:1fr auto; gap:6px 14px; padding:9px 12px; border-top:1px solid var(--line); align-items:center; }
   .row.sel { background:rgba(63,176,255,.06); }
   .row .t { font-weight:600; } .row .d { color:var(--muted); font-size:13px; } .row .l a { font-size:12px; margin-right:10px; }
@@ -120,6 +120,7 @@
     <div class="card dx"><h3>Dixmax</h3><div class="v">En directo (API)</div><div class="s">fechas del export: <span id="cDx">—</span></div></div>
     <div class="card lb"><h3>Letterboxd</h3><div class="v" id="cLb">—</div><div class="s">export más reciente</div></div>
     <div class="card sz"><h3>Serializd</h3><div class="v">En directo</div><div class="s">se lee al revisar</div></div>
+    <div class="card al hidden" id="cAl"><h3>AniList</h3><div class="v">En directo</div><div class="s">solo anime · <span id="cAlU"></span></div></div>
   </div>
 
   <div class="steps">
@@ -152,6 +153,8 @@
     <button onclick="probar()">Probar conexiones</button>
     <span id="cfgMsg" style="align-self:center"></span>
   </div>
+  <div style="display:flex;gap:10px;align-items:center;margin:4px 0 14px">
+    <button onclick="conectarAnilist()">Conectar con AniList</button><span id="alInfo" class="h"></span></div>
   <div id="probar"></div>
   <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <span id="verInfo">Versión…</span><button onclick="version(true)">Buscar actualizaciones</button></div>
@@ -194,6 +197,7 @@ async function estado() {
   $('cLb').textContent = lb.fecha ? `${lb.fecha}` : 'sin export';
   $('cLb').title = lb.carpeta ? `${lb.carpeta} (${lb.edad})` : '';
   $('cLb').style.color = lb.horas > 24 ? 'var(--warn)' : '';
+  $('cAl').classList.toggle('hidden', !e.anilist_user); $('cAlU').textContent = e.anilist_user || '';
   $('hstat').textContent = e.calculado ? `Última revisión: ${e.calculado}` : 'Sin revisar todavía';
   return e;
 }
@@ -202,7 +206,7 @@ async function cargarDiff() { DATA = await (await fetch('/api/diff')).json(); se
 const STAT_TXT = {dx_pelis_vistas: 'pelis vistas Dixmax', dx_pelis_pendientes: 'pelis pendientes Dixmax', dx_pelis_favoritas: 'pelis favoritas Dixmax',
   dx_series_terminadas: 'series terminadas', dx_series_siguiendo: 'series siguiendo', dx_series_pendientes: 'series pendientes',
   dx_series_favoritas: 'series favoritas', dx_episodios: 'episodios vistos', lb_vistas: 'vistas Letterboxd', lb_watchlist: 'watchlist Letterboxd',
-  lb_me_gusta: 'me gusta Letterboxd', lb_diario: 'diario Letterboxd', sz_diario: 'diario Serializd', sz_vistas: 'series vistas Serializd', sz_favoritas: '♥ Serializd'};
+  lb_me_gusta: 'me gusta Letterboxd', lb_diario: 'diario Letterboxd', sz_diario: 'diario Serializd', sz_vistas: 'series vistas Serializd', sz_favoritas: '♥ Serializd', al_anime: 'anime en AniList'};
 async function historial() {
   const h = await (await fetch('/api/historial')).json();
   if (!h.length) { $('histT').innerHTML = '<div class="empty"><b>Sin revisiones todavía</b></div>'; return; }
@@ -354,15 +358,23 @@ const CAMPOS = [
   ['SERIALIZD_TOKEN', 'Token de Serializd', 'serializd.com → F12 → Application → Cookies → tvproject_credentials. Caduca de vez en cuando.', 1],
   ['DIXMAX_API_KEY', 'apiKey de Dixmax', 'playmax.mx/tusapps.php → Añadir App → copia la apiKey de tu app.', 1],
   ['DIXMAX_AUTH_KEY', 'authKey de Dixmax', 'Panel de Control → Aplicaciones autorizadas → autoriza tu app y copia la authKey.', 1],
+  ['ANILIST_USER', 'Usuario de AniList', 'Se rellena solo al conectar. Solo se toca tu lista de anime (la de manga y Mihon no).'],
   ['GITHUB_TOKEN', 'Token de GitHub', 'Solo para avisar de versiones nuevas (el repo es privado). github.com/settings/personal-access-tokens/new → Repository access: Only select → tri-sync · Permissions → Contents: Read-only.', 1],
 ];
 async function cargarCfg() {
   const c = await (await fetch('/api/config')).json();
+  $('alInfo').innerHTML = c.ANILIST_TOKEN && c.ANILIST_TOKEN.puesto ? `<span class="ok">✓ Conectado como ${esc(c.ANILIST_USER)} (permiso hasta el ${esc(c.ANILIST_EXPIRA || '?')})</span>` : 'Sin conectar';
   $('cfgForm').innerHTML = CAMPOS.map(([k, t, h, sec]) => `<label for="f_${k}">${t}</label><div>
     <input id="f_${k}" ${sec ? 'type="password" autocomplete="off"' : ''} value="${sec ? '' : esc(c[k])}"
       placeholder="${sec ? (c[k].puesto ? '•••••• guardado (escribe para cambiarlo)' : 'no configurado') : ''}">
     ${h ? `<div class="h">${esc(h)}</div>` : ''}</div>`).join('');
 }
+function conectarAnilist() {
+  // en otra pestaña: esta sigue abierta (si no, Tri-Sync se apagaría mientras autorizas)
+  window.open('https://anilist.co/api/v2/oauth/authorize?client_id=56451&response_type=token', '_blank');
+  $('alInfo').textContent = 'Pulsa «Authorize» en AniList; al volver, esto se actualiza solo.';
+}
+addEventListener('focus', () => { if (!$('vCfg').classList.contains('hidden')) cargarCfg(); });
 async function guardarCfg() {
   const body = {}; CAMPOS.forEach(([k]) => body[k] = $('f_' + k).value);
   await fetch('/api/config', {method: 'POST', body: JSON.stringify(body)});

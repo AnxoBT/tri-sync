@@ -252,5 +252,15 @@ def compute(progress=print, solo=None, rapida=False):
         sz = Serializd()
         res["fuentes"]["serializd"] = sz.check()
         res["diferencias"] += series(dx, sz, progress, rapida=rapida)
+    if solo in (None, "anime") and env("ANILIST_USER"):
+        from . import anime
+        try:
+            difs, st = anime.diferencias(dx, progress)
+            res["diferencias"] += difs
+            STATS.update(st)
+            res["fuentes"]["anilist"] = env("ANILIST_USER")
+        except Exception as e:  # AniList caído no debe estropear el resto de la revisión
+            progress(f"AniList: no se pudo revisar ({e})")
+            res["fuentes"]["anilist"] = f"error: {e}"
     res["stats"] = dict(STATS)
     return res
