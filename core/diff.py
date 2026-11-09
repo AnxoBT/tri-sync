@@ -109,6 +109,7 @@ def series(dx, sz, progress=print, rapida=False):
     show_reviews = defaultdict(dict)
     for x in ratings:
         show_reviews[x["showId"]][x["id"]] = x
+    dx["sz_favs"] = {tid for tid, v in show_reviews.items() if any(x.get("like") for x in v.values())}
     sz_eps = defaultdict(set)
     season_num = {}
     for d in diary:

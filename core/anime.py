@@ -205,7 +205,14 @@ def diferencias(dx, progress=print):
         vistos = sum(1 for e in s["episodes"] if e["season"] > 0)
         if s["status"] == "finished" and all(n for _, _, n in partes) and vistos != total:
             aviso = f"⚠ revisa: en Dixmax hay {vistos} episodios y AniList cuenta {total}"
-        add(s, _deseado_serie(s, partes), {"Dixmax": s.get("url")}, aviso)
+        des = _deseado_serie(s, partes)
+        if s.get("favorite") or s["tmdb"] in dx.get("sz_favs", set()):
+            # favorita en Dixmax o ♥ en Serializd: en AniList se marca la primera temporada
+            primera = min(partes, key=lambda p: med[str(p[0])]["inicio"])[0]
+            for d in des:
+                if d["mediaId"] == primera:
+                    d["favorito"] = True
+        add(s, des, {"Dixmax": s.get("url")}, aviso)
     for m in pelis:
         add(m, _deseado_peli(m, mp["mv"][str(m["tmdb"])], med), {"Dixmax": m.get("url")})
     stats = {"al_anime": len(cur), "al_series_cruzadas": len(shows), "al_pelis_cruzadas": len(pelis)}
