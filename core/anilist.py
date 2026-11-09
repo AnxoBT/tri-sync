@@ -172,17 +172,26 @@ def secuela(media_id):
     return c[k]
 
 
-def ordenar_favoritos(out=print):
-    """Ordena tus animes favoritos por tu nota (mayor primero; a igual nota, el visto más recientemente)."""
-    favs = list(favoritos())
+def ordenar_favoritos(out=print, tipo="ANIME"):
+    """Ordena tus favoritos (ANIME o MANGA) por tu nota (mayor primero; a igual nota, el terminado más recientemente)."""
+    k = tipo.lower()
+    favs, pag = [], 1
+    while True:  # AniList da como mucho 25 favoritos por página
+        d = gql(f"query($p:Int){{ Viewer{{ favourites{{ {k}(page:$p, perPage:25){{ pageInfo{{hasNextPage}} nodes{{id}} }} }} }} }}",
+                {"p": pag})["Viewer"]["favourites"][k]
+        favs += [n["id"] for n in d["nodes"]]
+        if not d["pageInfo"]["hasNextPage"]:
+            break
+        pag += 1
     if len(favs) < 2:
         return []
-    l = lista(viewer()["name"])
-    clave = lambda i: (-(l.get(i, {}).get("score") or 0),  # noqa: E731
-                       -int("%04d%02d%02d" % tuple((l.get(i, {}).get("completedAt") or {}).get(k) or 0
-                                                   for k in ("year", "month", "day"))))
-    orden = sorted(favs, key=clave)
-    ids = ", ".join(map(str, orden))
-    pos = ", ".join(str(i + 1) for i in range(len(orden)))
-    gql(f"mutation {{ UpdateFavouriteOrder(animeIds: [{ids}], animeOrder: [{pos}]) {{ anime {{ pageInfo {{ total }} }} }} }}")
+    q = """query($u:String,$t:MediaType){ MediaListCollection(userName:$u, type:$t){ lists{ entries{
+          mediaId score(format:POINT_10_DECIMAL) completedAt{year month day} } } } }"""
+    l = {e["mediaId"]: e for x in gql(q, {"u": viewer()["name"], "t": tipo}, con_token=False)["MediaListCollection"]["lists"]
+         for e in x["entries"]}
+    fin = lambda i: int("%04d%02d%02d" % tuple((l.get(i, {}).get("completedAt") or {}).get(c) or 0  # noqa: E731
+                                                for c in ("year", "month", "day")))
+    orden = sorted(favs, key=lambda i: (-(l.get(i, {}).get("score") or 0), -fin(i)))
+    ids, pos = ", ".join(map(str, orden)), ", ".join(str(n + 1) for n in range(len(orden)))
+    gql(f"mutation {{ UpdateFavouriteOrder({k}Ids: [{ids}], {k}Order: [{pos}]) {{ {k} {{ pageInfo {{ total }} }} }} }}")
     return [(i, l.get(i, {}).get("score")) for i in orden]
