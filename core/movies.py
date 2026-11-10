@@ -47,6 +47,10 @@ def match(dx_movies, lb_films):
     # primero las vistas, para que no "roben" pareja las pendientes
     for m in sorted(dx_movies, key=lambda m: m["status"] != "watched"):
         names, years = [m["title"], manual.get(m["title"])], {m["year"]}
+        # Dixmax a veces añade una coletilla: "It's Such a Beautiful Day (Película)"
+        sin_coletilla = re.sub(r"\s*\([^)]*\)\s*$", "", m["title"])
+        if sin_coletilla and sin_coletilla != m["title"]:
+            names.append(sin_coletilla)
         info = cache.get(str(m["tmdb"])) if m["tmdb"] else None
         if isinstance(info, dict):
             names += [info["title"], info["orig"]] + info["alt"]

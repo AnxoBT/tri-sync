@@ -319,16 +319,7 @@ def _execute(por, dry, out, tick, archivos, ctl):
     if por["al_subir"]:
         from . import anilist
         out(f"[Comprobación] AniList conectado como {anilist.check() or 'NADIE: Configuración → Conectar con AniList'}")
-        out("[AniList] la actividad de listas se apaga mientras se sube (para no llenar tu feed) y luego se deja como estaba")
-        if not dry:
-            antes = anilist.actividad_listas()
-            AL_ACTIVIDAD.write_text(json.dumps(antes), encoding="utf-8")  # por si se corta: se restaura al revisar
-            anilist.poner_actividad_listas([{**x, "disabled": True} for x in antes])
-        try:
-            _al_subir(por["al_subir"], dry, out, tick, ctl, anilist)
-        finally:
-            if not dry:
-                restaurar_actividad_anilist(out)
+        _al_subir(por["al_subir"], dry, out, tick, ctl, anilist)  # sale en tu feed de actividad como cualquier cambio
 
     # ---------------- Letterboxd (CSV) ----------------
     logs_rows, wl_rows = [], []
