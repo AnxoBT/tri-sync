@@ -203,6 +203,16 @@ def apply_live(data, progress=print, rapida=False):
                    "pending": "watchlist", "abandoned": "dropped"}
     nuevos = cambios = 0
 
+    # fichas que no están en el export: su TMDB y la fecha de tu marca no cambian -> se guardan
+    nuevas = cache_json("dx_fichas_nuevas.json", {})
+    nuevas_antes = len(nuevas)
+
+    def fecha_marca(fid, mark):
+        k = f"{fid}:{mark}"
+        if k not in nuevas:
+            nuevas[k] = fecha_real(api, ficha_id=fid)
+        return nuevas[k] or hoy
+
     def tmdb_de(fid, info=None):
         if fid in tmdb_ov:
             return int(tmdb_ov[fid].split("/")[1])
@@ -222,22 +232,26 @@ def apply_live(data, progress=print, rapida=False):
                 continue
             m = movies.get(fid)
             if m is None:
-                info = api.ficha(fid)["info"]
-                ext = {x["name"]: str(x.get("externalId") or "") for x in info.get("externalLinks", [])}
-                tmdb, imdb, lb = tmdb_de(fid, info), ext.get("IMDb") or None, None
-                if not tmdb:  # Dixmax no da TMDB (p. ej. solo FilmAffinity): se cruza con Wikidata
-                    from .enlaces import buscar
-                    w = buscar({"FilmAffinity": ext.get("FilmAffinity"), "IMDb": imdb})
-                    tmdb, imdb, lb = w.get("tmdb"), imdb or w.get("imdb"), w.get("lb")
+                ids = nuevas.get(f"ids:{fid}")
+                if not ids:
+                    info = api.ficha(fid)["info"]
+                    ext = {x["name"]: str(x.get("externalId") or "") for x in info.get("externalLinks", [])}
+                    tmdb, imdb, lb = tmdb_de(fid, info), ext.get("IMDb") or None, None
+                    if not tmdb:  # Dixmax no da TMDB (p. ej. solo FilmAffinity): se cruza con Wikidata
+                        from .enlaces import buscar
+                        w = buscar({"FilmAffinity": ext.get("FilmAffinity"), "IMDb": imdb})
+                        tmdb, imdb, lb = w.get("tmdb"), imdb or w.get("imdb"), w.get("lb")
+                    ids = nuevas[f"ids:{fid}"] = {"tmdb": tmdb, "imdb": imdb, "lb": lb}
+                tmdb, imdb, lb = ids["tmdb"], ids["imdb"], ids["lb"]
                 movies[fid] = {"id": fid, "title": f["title"], "year": f.get("year"), "tmdb": tmdb, "imdb": imdb,
-                               "lb_slug": lb, "status": st, "date": fecha_real(api, ficha_id=fid) or hoy, "rating10": nota,
+                               "lb_slug": lb, "status": st, "date": fecha_marca(fid, mark), "rating10": nota,
                                "favorite": mark == "favorite", "url": f"https://playmax.mx/x-f{fid}"}
                 movies[fid]["fecha_aproximada"] = movies[fid]["date"] == hoy
                 nuevos += 1
             else:
                 if m["status"] != st:
                     if st == "watched":  # vista desde el export: fecha real de la marca por la API
-                        m["date"] = fecha_real(api, ficha_id=fid) or hoy
+                        m["date"] = fecha_marca(fid, mark)
                         m["fecha_aproximada"] = m["date"] == hoy
                     m["status"], cambios = st, cambios + 1
                 if nota != m["rating10"]:
@@ -249,12 +263,15 @@ def apply_live(data, progress=print, rapida=False):
             s = shows.get(fid)
             st = status_show.get(mark)
             if s is None:
-                tm = tmdb_de(fid)
+                k = f"ids:{fid}"
+                if k not in nuevas:
+                    nuevas[k] = {"tmdb": tmdb_de(fid)}
+                tm = nuevas[k]["tmdb"]
                 if not tm:
                     continue
                 s = shows[fid] = {"id": fid, "title": f["title"], "year": f.get("year"), "tmdb": tm, "status": st,
                                   "rating10": nota, "favorite": mark == "favorite",
-                                  "mark_date": fecha_real(api, ficha_id=fid) or hoy, "rating_date": hoy,
+                                  "mark_date": fecha_marca(fid, mark), "rating_date": hoy,
                                   "episodes": [], "url": f"https://playmax.mx/x-f{fid}"}
                 nuevos += 1
             else:
@@ -265,6 +282,8 @@ def apply_live(data, progress=print, rapida=False):
                 if s.get("mark") != mark:
                     s["mark"], s["mark_unix"] = mark, None
                 s["status"], s["rating10"], s["favorite"] = st, nota, mark == "favorite"
+    if len(nuevas) != nuevas_antes:
+        save_cache("dx_fichas_nuevas.json", nuevas)
     # Nota: las fichas del export que no salen en la API no se tocan (p. ej. películas que tienes en
     # tus listas sin marca). Para reflejar marcas QUITADAS, descarga un export nuevo.
 

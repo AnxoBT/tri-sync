@@ -90,7 +90,17 @@ def peliculas(dx, lb):
     return out
 
 
-def series(dx, sz, progress=print, rapida=False):
+def leer_serializd(sz, rapida=False):
+    """Lanza en segundo plano la lectura de Serializd (diario, listas, notas). Devuelve los futuros."""
+    from concurrent.futures import ThreadPoolExecutor
+    ex = ThreadPoolExecutor(6)
+    pre = {"diario": ex.submit(sz.diary, rapida), "notas": ex.submit(sz.ratings),
+           "listas": {k: ex.submit(sz.list_items, k) for k in ("watched", "watchlist", "watching", "dropped")}}
+    ex.shutdown(wait=False)
+    return pre
+
+
+def series(dx, sz, progress=print, rapida=False, pre=None):
     r = rules().get("series", {})
     excl = set(r.get("excluir_tmdb", []))
     extra = defaultdict(set)
@@ -98,14 +108,10 @@ def series(dx, sz, progress=print, rapida=False):
         for e in x["episodios"]:
             extra[x["tmdb"]].add((x["temporada"], e))
     progress("Serializd: leyendo diario, listas y notas a la vez…")
-    from concurrent.futures import ThreadPoolExecutor
-    with ThreadPoolExecutor(6) as ex:
-        f_diary = ex.submit(sz.diary, rapida)
-        f_lists = {k: ex.submit(sz.list_items, k) for k in ("watched", "watchlist", "watching", "dropped")}
-        f_rat = ex.submit(sz.ratings)
-        diary = f_diary.result()
-        lists = {k: f.result() for k, f in f_lists.items()}
-        ratings = f_rat.result()
+    pre = pre or leer_serializd(sz, rapida)
+    diary = pre["diario"].result()
+    lists = {k: f.result() for k, f in pre["listas"].items()}
+    ratings = pre["notas"].result()
     show_reviews = defaultdict(dict)
     for x in ratings:
         show_reviews[x["showId"]][x["id"]] = x
@@ -236,6 +242,11 @@ def _stats_dx(dx):
 
 
 def compute(progress=print, solo=None, rapida=False):
+    sz = pre = None
+    if solo in (None, "series"):  # Serializd se va leyendo mientras se lee Dixmax
+        sz = Serializd()
+        sz.check()
+        pre = leer_serializd(sz, rapida)
     progress("Leyendo export de Dixmax…")
     dx = dixmax.load()
     fuente_dx = dx["export"]
@@ -256,9 +267,8 @@ def compute(progress=print, solo=None, rapida=False):
         STATS.update(lb_vistas=sum(1 for f in lb["films"] if f["watched"]), lb_watchlist=sum(1 for f in lb["films"] if f["watchlist"]),
                      lb_me_gusta=sum(1 for f in lb["films"] if f["like"]), lb_diario=sum(len(f["diary"]) for f in lb["films"]))
     if solo in (None, "series"):
-        sz = Serializd()
-        res["fuentes"]["serializd"] = sz.check()
-        res["diferencias"] += series(dx, sz, progress, rapida=rapida)
+        res["fuentes"]["serializd"] = sz.user
+        res["diferencias"] += series(dx, sz, progress, rapida=rapida, pre=pre)
     if solo in (None, "anime") and env("ANILIST_USER"):
         from . import anime
         try:

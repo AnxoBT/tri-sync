@@ -75,15 +75,24 @@ class Serializd:
             p.unlink()
 
     def list_items(self, name):
-        items, p = {}, 1
-        while True:
+        def pagina(p):
             s, d = self._call("GET", f"/user/{self.user}/{LISTS[name]}/{p}?sort_by=date_added_desc&filters=%7B%7D")
+            if s != 200 or not isinstance(d, dict):
+                raise RuntimeError(f"Serializd ({name}, página {p}): {s}")
+            return d
+        primera = pagina(1)
+        paginas = [primera]
+        total = primera.get("totalPages", 1)
+        if total > 1:  # el resto de páginas a la vez
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(6) as ex:
+                paginas += list(ex.map(pagina, range(2, total + 1)))
+        items = {}
+        for d in paginas:
             for it in d.get("items", []):
                 items[it["showId"]] = {"name": it.get("showName"), "seasons": it.get("seasonIds") or [],
                                        "added": it.get("dateAdded")}
-            if p >= d.get("totalPages", 1):
-                return items
-            p += 1
+        return items
 
     def ratings(self):
         """Notas de serie (registros de serie y valoraciones sueltas).
