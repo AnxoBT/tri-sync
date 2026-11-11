@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from .config import cache_json, save_cache
+from .config import cache_json, rules, save_cache
 
 TZ = ZoneInfo("Europe/Madrid")
 DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
@@ -92,16 +92,33 @@ def guardar_base(dx, lb=None, sz_stats=None):
     save_cache(BASE, base)
 
 
-def _episodios_reales(series):
-    """Episodios con fecha y hora fiables: fuera los marcados en bloque (muchos en el mismo minuto) y los aproximados."""
-    por_minuto, eps = Counter(), []
+def _episodios_reales(series, dur=lambda s: RT_SERIE, reales=(), falsas=()):
+    """Episodios con fecha fiable para maratones, rachas y horarios.
+
+    Las marcas en tanda (más de 3 en el mismo minuto) son de dos tipos: importar de golpe lo que ya habías visto
+    (Friends entera en un minuto) o marcar al final de una sesión lo que acabas de ver. Una tanda cuenta como vista ese
+    día si es creíble: todo lo marcado en tanda ese día (de todas las series) cabe en 16 h. rules.json > estadisticas >
+    tandas_reales / tandas_falsas lo fuerza por serie (p. ej. One Piece, aunque sean 100 capítulos en un día)."""
+    eps, por_min = [], Counter()
     for s in series:
         for se, ep, f, aprox in s["eps"]:
             d = _local(f)
             if d and not aprox:
                 eps.append((s, se, ep, d))
-                por_minuto[(s["id"], d.strftime("%Y%m%d%H%M"))] += 1
-    return [x for x in eps if por_minuto[(x[0]["id"], x[3].strftime("%Y%m%d%H%M"))] <= 3]
+                por_min[(s["id"], d.strftime("%Y%m%d%H%M"))] += 1
+    tanda = lambda x: por_min[(x[0]["id"], x[3].strftime("%Y%m%d%H%M"))] > 3  # noqa: E731
+    carga = Counter()  # minutos marcados en tanda cada día (sin las series forzadas)
+    for x in eps:
+        if tanda(x) and x[0]["t"] not in reales and x[0]["t"] not in falsas:
+            carga[_dia(x[3])] += dur(x[0])
+
+    def vale(x):
+        if not tanda(x):
+            return True
+        if x[0]["t"] in reales:  # forzada, salvo en días de importación masiva (lo demás de ese día ya pasa de 16 h)
+            return carga[_dia(x[3])] <= 16 * 60
+        return x[0]["t"] not in falsas and carga[_dia(x[3])] <= 16 * 60
+    return [x for x in eps if vale(x)]
 
 
 def _es(counter):
@@ -356,14 +373,26 @@ def calcular(progress=print):
         c = "al" if es_an else "sz"
         todas = [s for s in series if es_anime(s) == es_an]
         favs = sorted([s for s in todas if s.get("fav")], key=lambda s: -(s.get("r") or 0))
-        rep, dire, gen, tem, red, ejs = Counter(), Counter(), Counter(), Counter(), Counter(), defaultdict(list)
+        rep, rep_eps, dire, gen, tem, red, ejs = Counter(), Counter(), Counter(), Counter(), Counter(), Counter(), defaultdict(list)
         for s in lista:
             d, x = D(s), (A(s) if es_an else S(s))
-            # anime: voces japonesas (AniList); series: reparto principal de TVmaze (Dixmax solo da 8 y deja fuera
-            # a gente como Giancarlo Esposito en Breaking Bad)
-            personas = (x.get("voces") or d.get("reparto", [])) if es_an else (TV(s).get("cast") or d.get("reparto", []))
-            for p in personas[:15]:
+            # anime: voces japonesas de los personajes principales y secundarios (AniList, sin los de fondo).
+            # series: reparto oficial de TVmaze + invitados acreditados (cameos incluidos) de los episodios que has visto.
+            # Si no hay datos, el reparto de la ficha de Dixmax.
+            vistos = {f"{se}-{ep}" for se, ep, _, _ in s["eps"]}
+            if es_an:
+                personas = {p: neps(s) for p in (x.get("voces") or d.get("reparto", []))}
+            elif TV(s).get("cast"):
+                personas = {p: neps(s) for p in TV(s)["cast"]}
+                for k, gs in (TV(s).get("inv") or {}).items():
+                    if k in vistos:
+                        for p in gs:
+                            personas[p] = personas.get(p, 0) + 1
+            else:
+                personas = {p: neps(s) for p in d.get("reparto", [])}
+            for p, n_ep in personas.items():
                 rep[p] += 1
+                rep_eps[p] += n_ep
                 ejs["r" + p].append(s["t"])
             for p in d.get("dir", [])[:2]:
                 dire[p] += 1
@@ -396,8 +425,11 @@ def calcular(progress=print):
                         {"t": "Horas", "v": _n(round(mins / 60))}, {"t": "Nota media", "v": f"{nota:.1f}" if nota else "—"},
                         {"t": "Favoritas", "v": _n(len(favs))}, {"t": "Pendientes", "v": _n(sum(1 for s in todas if s["st"] == "watchlist"))}],
             "bloques": [
-                _bloque("rep", "Actores de doblaje que más oyes" if es_an else "Reparto que más ves", "barras", _barras(rep, 12, sb("r")),
-                        ("voz japonesa de los personajes principales (AniList)" if es_an else f"{nombre} en las que sale (reparto principal, TVmaze)"), c, dest=True),
+                _bloque("rep", "Actores de doblaje que más oyes" if es_an else "Reparto que más ves", "barras",
+                        [{"k": p, "n": rep[p], "v": f"{rep[p]} {nombre if rep[p] > 1 else nombre[:-1]} · {_n(rep_eps[p])} eps", "e": sb("r").get(p, [])[:5]}
+                         for p in sorted(rep, key=lambda p: (-rep[p], -rep_eps[p]))[:12]],
+                        (f"{nombre} y episodios: voz japonesa de personajes principales y secundarios (AniList)" if es_an
+                         else f"{nombre} y episodios en los que sale: reparto oficial e invitados de lo que has visto (TVmaze)"), c, dest=True),
                 _bloque("red", "Estudios" if es_an else "Cadenas y plataformas", "barras", _barras(red, 10, sb("c")), "", c, dest=True),
                 _bloque("gen", "Géneros", "barras", _barras(gen, 10), "", c),
                 _bloque("mas_eps", f"{nombre.capitalize()} con más episodios", "barras",
@@ -432,7 +464,10 @@ def calcular(progress=print):
         t["bloques"] = [x for x in t["bloques"] if x["datos"] and any((d[1] if isinstance(d, (list, tuple)) else 1) for d in x["datos"])]
 
     # ---------- actividad (todo) ----------
-    reales = _episodios_reales(series)
+    reglas = (rules().get("estadisticas") or {})
+    reales = _episodios_reales(series, lambda s: (A(s).get("rt") if es_anime(s) else S(s).get("rt")) or D(s).get("dur")
+                               or (RT_ANIME if es_anime(s) else RT_SERIE),
+                               set(reglas.get("tandas_reales") or []), set(reglas.get("tandas_falsas") or []))
     semana = [[0] * 24 for _ in range(7)]
     for _, _, _, d in reales:
         semana[d.weekday()][d.hour] += 1

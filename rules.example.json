@@ -22,5 +22,10 @@
     "ignorar_solo_letterboxd": [],
     "ignorar_solo_dixmax": [],
     "vistas_pero_pendientes_en_dixmax": []
+  },
+  "estadisticas": {
+    "_info": "Marcas en tanda (muchos episodios en el mismo minuto): tandas_reales cuentan como vistas ese día (maratones y rachas); tandas_falsas no (las marcaste de golpe al acordarte). Por título tal cual sale en Dixmax.",
+    "tandas_reales": [],
+    "tandas_falsas": []
   }
 }

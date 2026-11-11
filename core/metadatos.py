@@ -17,8 +17,8 @@ from .http import call
 PELIS, PAISES, SERIES, ANIME = "meta_pelis.json", "meta_paises.json", "meta_series.json", "meta_anime.json"
 DINERO, DIXMAX, TVMAZE = "meta_dinero4.json", "meta_dixmax.json", "meta_tvmaze.json"
 V_DIXMAX = 2
-V_TVMAZE = 2
-V_PELI, V_ANIME = 2, 3  # al añadir campos se vuelven a pedir las fichas de esa versión
+V_TVMAZE = 3
+V_PELI, V_ANIME = 2, 4  # al añadir campos se vuelven a pedir las fichas de esa versión
 
 
 def _peli(tmdb):
@@ -120,21 +120,23 @@ def anime(ids, progress=print):
     faltan = [i for i in set(ids) if (c.get(str(i)) or {}).get("v") != V_ANIME]
     if faltan:
         progress(f"Estadísticas: fichas de {len(faltan)} animes…")
-    q = """query($ids:[Int]){ Page(perPage:25){ media(id_in:$ids, type:ANIME){ id genres countryOfOrigin duration
+    q = """query($ids:[Int]){ Page(perPage:10){ media(id_in:$ids, type:ANIME){ id genres countryOfOrigin duration
           popularity meanScore studios(isMain:true){ nodes{ name } }
-          characters(sort:[ROLE, RELEVANCE], perPage:6){ edges{ node{ id } voiceActors(language:JAPANESE){ name{ full } } } } } } }"""
-    for i in range(0, len(faltan), 25):
+          characters(sort:[ROLE, RELEVANCE], perPage:25){ edges{ role node{ id } voiceActors(language:JAPANESE){ name{ full } } } } } } }"""
+    for i in range(0, len(faltan), 10):
         try:
-            for m in anilist.gql(q, {"ids": faltan[i:i + 25]}, con_token=False)["Page"]["media"]:
+            for m in anilist.gql(q, {"ids": faltan[i:i + 10]}, con_token=False)["Page"]["media"]:
                 voces = []
                 for e in (m.get("characters") or {}).get("edges") or []:
+                    if e.get("role") == "BACKGROUND":  # personajes de fondo: fuera
+                        continue
                     va = (e.get("voiceActors") or [None])[0]  # la voz principal del personaje
                     if va and va["name"]["full"] not in voces:
                         voces.append(va["name"]["full"])
                 c[str(m["id"])] = {"v": V_ANIME, "g": m.get("genres") or [], "pais": m.get("countryOfOrigin"),
                                    "rt": m.get("duration"), "pop": m.get("popularity") or 0, "media": m.get("meanScore"),
                                    "st": [n["name"] for n in (m.get("studios") or {}).get("nodes") or []][:2],
-                                   "voces": voces[:6]}
+                                   "voces": voces}
         except Exception:
             break
     if faltan:
@@ -224,7 +226,7 @@ def tvmaze(tmdbs, progress=print):
     faltan = [str(t) for t in set(tmdbs) if t and (c.get(str(t)) or {}).get("v") != V_TVMAZE]
     if not faltan:
         return c
-    progress(f"Estadísticas: popularidad y reparto de {len(faltan)} series (TVmaze)…")
+    progress(f"Estadísticas: popularidad y reparto completo de {len(faltan)} series (TVmaze, solo la primera vez, ~10 min)…")
     imdb = {}
     for i in range(0, len(faltan), 100):
         q = ("SELECT ?t ?imdb WHERE { VALUES ?t {" + " ".join(f'"{t}"' for t in faltan[i:i + 100]) + "} "
@@ -240,22 +242,41 @@ def tvmaze(tmdbs, progress=print):
         except Exception:
             return c
 
+    def get(url):
+        time.sleep(1.0)  # TVmaze: 20 peticiones cada 10 s (2 hilos a 1 por segundo)
+        return call("GET", url, delay=0, retries=3, timeout=30)
+
     def uno(t):
         if t not in imdb:
             return t, {"v": V_TVMAZE}
-        time.sleep(1.2)  # TVmaze: 20 peticiones cada 10 s (aquí van 2 por serie)
-        s, d = call("GET", f"https://api.tvmaze.com/lookup/shows?imdb={imdb[t]}", delay=0, retries=2, timeout=30)
+        s, d = get(f"https://api.tvmaze.com/lookup/shows?imdb={imdb[t]}")
         if s != 200 or not isinstance(d, dict):
             return t, ({"v": V_TVMAZE} if s == 404 else None)
-        out = {"v": V_TVMAZE, "w": d.get("weight"), "r": (d.get("rating") or {}).get("average"), "cast": []}
-        s2, cast = call("GET", f"https://api.tvmaze.com/shows/{d['id']}/cast", delay=0, retries=2, timeout=30)
-        if s2 == 200 and isinstance(cast, list):
-            vistos = []
-            for x in cast:  # reparto principal, en orden; sin repetir (hay actores con varios personajes)
-                n = (x.get("person") or {}).get("name")
-                if n and n not in vistos:
-                    vistos.append(n)
-            out["cast"] = vistos
+        out = {"v": V_TVMAZE, "w": d.get("weight"), "r": (d.get("rating") or {}).get("average"), "cast": [], "inv": {}}
+        # reparto principal (el oficial de la serie), en orden y sin repetir actores con varios personajes
+        s2, cast = get(f"https://api.tvmaze.com/shows/{d['id']}/cast")
+        if s2 != 200 or not isinstance(cast, list):
+            return t, None
+        for x in cast:
+            n = (x.get("person") or {}).get("name")
+            if n and n not in out["cast"]:
+                out["cast"].append(n)
+        # invitados acreditados de cada episodio (cameos incluidos; los extras de fondo no van acreditados)
+        s3, temps = get(f"https://api.tvmaze.com/shows/{d['id']}/seasons")
+        if s3 != 200 or not isinstance(temps, list):
+            return t, None
+        for tp in temps:
+            s4, eps = get(f"https://api.tvmaze.com/seasons/{tp['id']}/episodes?embed=guestcast")
+            if s4 != 200 or not isinstance(eps, list):
+                return t, None
+            for e in eps:
+                g = []
+                for x in (e.get("_embedded") or {}).get("guestcast") or []:
+                    n = (x.get("person") or {}).get("name")
+                    if n and n not in g and n not in out["cast"]:
+                        g.append(n)
+                if g and e.get("season") is not None and e.get("number") is not None:
+                    out["inv"][f"{e['season']}-{e['number']}"] = g
         return t, out
     with ThreadPoolExecutor(2) as ex:
         for t, d in ex.map(uno, faltan):
