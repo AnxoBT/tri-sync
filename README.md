@@ -78,8 +78,11 @@ En una carpeta clonada con git, actualiza con `git pull`.
 
 - **Historial**: cada revisión y cada aplicación. Pulsa una fila para ver qué ha cambiado en tus webs desde la
   anterior (pelis, episodios, notas, favoritas), qué diferencias encontró o qué se aplicó.
-- **Estadísticas**: totales de todas las webs, gráficos (pelis por año, episodios por año, día y hora, décadas,
-  notas, series con más episodios) y curiosidades (maratón, racha, peli más antigua…). Se calculan al revisar.
+- **Estadísticas**: selector Todo / Películas / Series / Anime. Mapa del mundo, tu año, cuándo ves, personas
+  (directores, reparto, voces de anime), estudios, cadenas, sagas, géneros, lo más popular y las joyas ocultas,
+  tu nota frente a la de la gente, presupuesto y taquilla, y curiosidades. Se calculan en segundo plano tras
+  cada revisión (la primera vez descargan las fichas de cada título: unos minutos). Fuentes sin claves: Radarr,
+  Wikidata, Serializd, AniList y las fichas de Dixmax.
 
 ## Qué compara
 

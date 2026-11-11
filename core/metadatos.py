@@ -15,6 +15,8 @@ from .config import cache_json, save_cache
 from .http import call
 
 PELIS, PAISES, SERIES, ANIME = "meta_pelis.json", "meta_paises.json", "meta_series.json", "meta_anime.json"
+DINERO, DIXMAX = "meta_dinero.json", "meta_dixmax.json"
+V_PELI, V_ANIME = 2, 3  # al añadir campos se vuelven a pedir las fichas de esa versión
 
 
 def _peli(tmdb):
@@ -22,7 +24,10 @@ def _peli(tmdb):
     if s != 200 or not isinstance(d, dict):
         return tmdb, None if s == 404 else "error"
     cr = d.get("Credits") or {}
-    return tmdb, {"rt": d.get("Runtime") or None, "g": d.get("Genres") or [], "st": d.get("Studio") or None,
+    rt_ = d.get("MovieRatings") or {}
+    imdb, tm = rt_.get("Imdb") or {}, rt_.get("Tmdb") or {}
+    return tmdb, {"v": V_PELI, "imdb_n": imdb.get("Count") or 0, "imdb_r": imdb.get("Value") or None,
+                  "tmdb_n": tm.get("Count") or 0, "pop": d.get("Popularity"), "rt": d.get("Runtime") or None, "g": d.get("Genres") or [], "st": d.get("Studio") or None,
                   "col": (d.get("Collection") or {}).get("Name"), "lang": d.get("OriginalLanguage"),
                   "dir": [c["Name"] for c in cr.get("Crew") or [] if c.get("Job") == "Director"][:3],
                   "cast": [c["Name"] for c in sorted(cr.get("Cast") or [], key=lambda c: c.get("Order", 99))[:6]]}
@@ -30,7 +35,8 @@ def _peli(tmdb):
 
 def pelis(tmdbs, progress=print):
     c = cache_json(PELIS, {})
-    faltan = [t for t in set(tmdbs) if t and (str(t) not in c or c[str(t)] == "error")]
+    faltan = [t for t in set(tmdbs) if t and (not isinstance(c.get(str(t)), dict) and c.get(str(t), "x") is not None
+                                              or isinstance(c.get(str(t)), dict) and c[str(t)].get("v") != V_PELI)]
     if faltan:
         progress(f"Estadísticas: fichas de {len(faltan)} películas (solo la primera vez)…")
         with ThreadPoolExecutor(8) as ex:
@@ -109,18 +115,87 @@ def series(tmdbs, progress=print):
 def anime(ids, progress=print):
     from . import anilist
     c = cache_json(ANIME, {})
-    faltan = [i for i in set(ids) if str(i) not in c]
+    faltan = [i for i in set(ids) if (c.get(str(i)) or {}).get("v") != V_ANIME]
     if faltan:
         progress(f"Estadísticas: fichas de {len(faltan)} animes…")
-    q = """query($ids:[Int]){ Page(perPage:50){ media(id_in:$ids, type:ANIME){ id genres countryOfOrigin duration
-          studios(isMain:true){ nodes{ name } } } } }"""
-    for i in range(0, len(faltan), 50):
+    q = """query($ids:[Int]){ Page(perPage:25){ media(id_in:$ids, type:ANIME){ id genres countryOfOrigin duration
+          popularity meanScore studios(isMain:true){ nodes{ name } }
+          characters(sort:[ROLE, RELEVANCE], perPage:6){ edges{ node{ id } voiceActors(language:JAPANESE){ name{ full } } } } } } }"""
+    for i in range(0, len(faltan), 25):
         try:
-            for m in anilist.gql(q, {"ids": faltan[i:i + 50]}, con_token=False)["Page"]["media"]:
-                c[str(m["id"])] = {"g": m.get("genres") or [], "pais": m.get("countryOfOrigin"), "rt": m.get("duration"),
-                                   "st": [n["name"] for n in (m.get("studios") or {}).get("nodes") or []][:2]}
+            for m in anilist.gql(q, {"ids": faltan[i:i + 25]}, con_token=False)["Page"]["media"]:
+                voces = []
+                for e in (m.get("characters") or {}).get("edges") or []:
+                    va = (e.get("voiceActors") or [None])[0]  # la voz principal del personaje
+                    if va and va["name"]["full"] not in voces:
+                        voces.append(va["name"]["full"])
+                c[str(m["id"])] = {"v": V_ANIME, "g": m.get("genres") or [], "pais": m.get("countryOfOrigin"),
+                                   "rt": m.get("duration"), "pop": m.get("popularity") or 0, "media": m.get("meanScore"),
+                                   "st": [n["name"] for n in (m.get("studios") or {}).get("nodes") or []][:2],
+                                   "voces": voces[:6]}
         except Exception:
             break
     if faltan:
         save_cache(ANIME, c)
+    return c
+
+
+def dinero(tmdbs, progress=print):
+    """Presupuesto y taquilla mundial en dólares (Wikidata). {tmdb: [coste|None, taquilla|None]}"""
+    c = cache_json(DINERO, {})
+    faltan = [str(t) for t in set(tmdbs) if t and str(t) not in c]
+    if faltan:
+        progress(f"Estadísticas: presupuesto y taquilla de {len(faltan)} películas (Wikidata)…")
+    usd = "http://www.wikidata.org/entity/Q4917"
+
+    def lote(ids):
+        q = ("SELECT ?t ?coste ?uc ?taq ?ut WHERE { VALUES ?t {" + " ".join(f'"{t}"' for t in ids) + "} ?f wdt:P4947 ?t. "
+             "OPTIONAL { ?f p:P2130/psv:P2130 [wikibase:quantityAmount ?coste; wikibase:quantityUnit ?uc] } "
+             "OPTIONAL { ?f p:P2142/psv:P2142 [wikibase:quantityAmount ?taq; wikibase:quantityUnit ?ut] } }")
+        try:
+            req = urllib.request.Request("https://query.wikidata.org/sparql",
+                                         data=urllib.parse.urlencode({"format": "json", "query": q}).encode(),
+                                         headers={"User-Agent": "Tri-Sync (uso personal)",
+                                                  "Content-Type": "application/x-www-form-urlencoded"})
+            with urllib.request.urlopen(req, timeout=90) as r:
+                filas = json.load(r)["results"]["bindings"]
+        except Exception:
+            return {}
+        res = {t: [None, None] for t in ids}
+        for b in filas:
+            t = b["t"]["value"]
+            for i, (k, u) in enumerate((("coste", "uc"), ("taq", "ut"))):
+                if k in b and b.get(u, {}).get("value") == usd:  # solo dólares; con varias cifras, la mayor (mundial)
+                    res[t][i] = max(res[t][i] or 0, float(b[k]["value"]))
+        return res
+    lotes = [faltan[i:i + 100] for i in range(0, len(faltan), 100)]
+    with ThreadPoolExecutor(3) as ex:
+        for res in ex.map(lote, lotes):
+            c.update(res)
+            save_cache(DINERO, c)
+    return c
+
+
+def fichas_dixmax(ids, progress=print):
+    """Ficha de Dixmax de series y anime: reparto, dirección, géneros (en español), temas, nota y votos de la comunidad."""
+    from .dixmax_api import Dixmax
+    c = cache_json(DIXMAX, {})
+    faltan = [i for i in dict.fromkeys(ids) if str(i) not in c]
+    if not faltan:
+        return c
+    progress(f"Estadísticas: fichas de Dixmax de {len(faltan)} series (solo la primera vez)…")
+    api = Dixmax()
+    for n, fid in enumerate(faltan, 1):
+        try:
+            info = api.ficha(fid)["info"]
+        except Exception:
+            continue
+        grupos = {g["groupName"]: [p["name"] for p in g.get("persons") or []] for g in info.get("crew") or []}
+        c[str(fid)] = {"reparto": grupos.get("Reparto", [])[:8], "dir": grupos.get("Dirección", [])[:3],
+                       "g": [g["name"] for g in info.get("genres") or []], "temas": [x["name"] for x in info.get("topics") or []],
+                       "r": info.get("rating"), "votos": info.get("votes") or 0, "dur": info.get("duration")}
+        if n % 25 == 0:
+            progress(f"Estadísticas: fichas de Dixmax {n}/{len(faltan)}")
+            save_cache(DIXMAX, c)
+    save_cache(DIXMAX, c)
     return c

@@ -96,27 +96,44 @@
   table.hist tr.fila { cursor:pointer; } table.hist tr.fila:hover td { background:var(--panel2); }
   table.hist tr.det td { background:var(--panel); color:var(--muted); font-size:12.5px; }
   table.hist tr.det ul { margin:4px 0 10px; padding-left:18px; } table.hist tr.det b { color:var(--text); }
-  .stiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:18px; }
-  .stile { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; border-top:3px solid var(--line); }
-  .stile .t { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
-  .stile .v { font-size:28px; font-weight:700; margin:2px 0; font-variant-numeric:tabular-nums; } .stile .s { color:var(--muted); font-size:12px; }
+  .stiles { display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:10px; margin:14px 0 16px; }
+  .stiles.cuatro { grid-template-columns:repeat(4, minmax(0,1fr)); }
+  @media (max-width:900px) { .stiles { grid-template-columns:repeat(3, minmax(0,1fr)); } }
+  .stile { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:12px 14px; border-top:3px solid var(--line); }
+  .stile .v { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.15; }
+  .stile .t { color:var(--muted); font-size:12px; margin-top:2px; }
   .stile.dx { border-top-color:var(--dx); } .stile.lb { border-top-color:var(--lb); } .stile.sz { border-top-color:var(--sz); } .stile.al { border-top-color:var(--al); }
-  .charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; }
-  .chart { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; }
+  .stsel { display:inline-flex; gap:4px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:4px; }
+  .stsel button { border:0; background:none; color:var(--muted); padding:7px 16px; border-radius:7px; position:relative; }
+  .stsel button.on { background:var(--panel2); color:var(--text); box-shadow:inset 0 -2px 0 var(--c); }
+  .tres { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin-bottom:12px; }
+  .tres .col { display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .colhead { display:flex; align-items:baseline; gap:10px; padding:8px 2px 2px; border-bottom:2px solid var(--c); cursor:pointer; }
+  .colhead b { font-size:16px; } .colhead span { color:var(--muted); font-size:12.5px; } .colhead a { margin-left:auto; font-size:12px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; grid-auto-flow:dense; }
+  .grid3 .a2 { grid-column:span 2; } .grid3 .a3 { grid-column:1 / -1; }
+  @media (max-width:900px) { .tres, .grid3 { grid-template-columns:1fr; } .grid3 .a2, .grid3 .a3 { grid-column:auto; } }
+  .chart { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; min-width:0; }
   .chart h4 { margin:0; font-size:14px; } .chart .nota { color:var(--muted); font-size:12px; }
-  .vbars { display:flex; align-items:flex-end; gap:2px; height:150px; margin-top:12px; border-bottom:1px solid var(--line); }
-  .vbars .b { flex:1; display:flex; flex-direction:column; justify-content:flex-end; height:100%; position:relative; }
-  .vbars .b i { display:block; border-radius:4px 4px 0 0; min-height:1px; }
-  .vbars .b:hover i { filter:brightness(1.25); }
+  .vbars { display:flex; align-items:flex-end; gap:2px; height:140px; margin-top:12px; border-bottom:1px solid var(--line); }
+  .vbars .b { flex:1; display:flex; flex-direction:column; justify-content:flex-end; height:100%; }
+  .vbars .b i { display:block; border-radius:4px 4px 0 0; min-height:1px; } .vbars .b:hover i { filter:brightness(1.25); }
   .vlab { display:flex; gap:2px; font-size:10.5px; color:var(--muted); margin-top:4px; }
   .vlab span { flex:1; text-align:center; overflow:hidden; white-space:nowrap; }
-  .hbars { margin-top:10px; } .hbars .r { display:grid; grid-template-columns:minmax(0,40%) 1fr auto; gap:8px; align-items:center; font-size:12.5px; margin:5px 0; }
-  .hbars .r span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .hbars i { display:block; height:10px; border-radius:0 4px 4px 0; }
+  .hbars { margin-top:10px; } .hbars .r { display:grid; grid-template-columns:minmax(0,42%) 1fr auto; gap:8px; align-items:center; font-size:12.5px; margin:5px 0; }
+  .hbars .r span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .hbars i { display:block; height:9px; border-radius:0 4px 4px 0; }
   .hbars .r span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
-  .curios { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:6px 16px; margin:18px 0; }
-  .curios p { margin:10px 0; }
+  ol.mini { margin:10px 0 0; padding:0; list-style:none; counter-reset:n; font-size:12.5px; }
+  ol.mini li { display:flex; gap:10px; padding:5px 0; border-top:1px solid var(--line); counter-increment:n; }
+  ol.mini li:first-child { border-top:0; } ol.mini li::before { content:counter(n); color:var(--muted); width:14px; text-align:right; flex:none; }
+  ol.mini li span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } ol.mini li b { font-weight:500; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .sttit { margin:22px 0 10px; font-size:15px; }
+  .curiosg { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+  @media (max-width:900px) { .curiosg { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+  .curio { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--c); border-radius:8px; padding:11px 13px; }
+  .curio .k { color:var(--muted); font-size:12px; } .curio .v { font-weight:650; margin-top:3px; } .curio .d { color:var(--muted); font-size:12px; margin-top:2px; }
+  .avisos { color:var(--muted); font-size:12px; margin-top:18px; display:grid; gap:3px; }
   .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:5px 9px; font-size:12px; z-index:50; display:none; white-space:pre-line; max-width:340px; box-shadow:0 4px 14px rgba(0,0,0,.4); }
-  .chart.ancho { grid-column:1 / -1; }
   .mapa { width:100%; height:auto; display:block; margin-top:10px; cursor:grab; touch-action:none; border-radius:8px; background:var(--bg); }
   .mapa path { stroke:var(--bg); stroke-width:.5; } .mapa path:hover, .mapa circle:hover { stroke:#fff; stroke-width:1; }
   .leyenda { display:flex; gap:16px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:8px; }
@@ -125,8 +142,8 @@
   .calor { display:grid; grid-template-columns:44px repeat(24, minmax(0,1fr)); gap:2px; margin-top:12px; font-size:10.5px; color:var(--muted); }
   .calor .c { aspect-ratio:1.6; border-radius:3px; } .calor .c:hover { outline:1px solid #fff; } .calor .h { text-align:center; align-self:center; }
   .anio2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; } @media (max-width:760px) { .anio2 { grid-template-columns:1fr; } }
+  #vStats .chart .chips { margin-top:10px; }
   .stjob { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:10px 14px; margin-bottom:12px; color:var(--muted); }
-  #vStats .chips { margin-top:10px; }
   .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
   .hidden { display:none !important; }
   @media (max-width:760px) { .cards { grid-template-columns:1fr; } .row { grid-template-columns:1fr; } .seg { justify-content:flex-start; } .cfg { grid-template-columns:1fr; } .hstat { display:none; } }
@@ -289,62 +306,84 @@ function detalleHist(tr, i) {
 // ---------- estadísticas ----------
 // colores por tipo: pelis = celeste (Letterboxd), series = verde (Serializd), anime = azul (AniList), todo = naranja (Dixmax)
 const TIPO = {todo: ['Todo', 'dx'], pelis: ['Películas', 'lb'], series: ['Series', 'sz'], anime: ['Anime', 'al']};
-let ST = null, MAPA_TIPO = 'todo', ANIO = null, MUNDO = null, stPoll = null;
-const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
+let ST = null, VISTA = 'todo', MAPA_TIPO = 'todo', ANIO = null, MUNDO = null, stPoll = null;
 const nfmt = n => Number(n).toLocaleString('es-ES');
 const mezcla = (c, t) => `color-mix(in oklab, var(--${c}) ${Math.round(12 + 88 * t)}%, var(--panel2))`;
-const sec = (titulo, nota, html, ancho) => `<div class="chart${ancho ? ' ancho' : ''}"><h4>${esc(titulo)}</h4>${nota ? `<div class="nota">${esc(nota)}</div>` : ''}${html}</div>`;
+const tarjeta = (titulo, nota, html, ancho = 1, extra = '') => `<div class="chart a${ancho}"${extra}><h4>${esc(titulo)}</h4>${nota ? `<div class="nota">${esc(nota)}</div>` : ''}${html}</div>`;
 
 async function estadisticas() {
   const r = await (await fetch('/api/estadisticas')).json();
-  ST = r.datos && r.datos.resumen ? r.datos : null;
   const job = r.job || {};
   const barra = job.activo ? `<div class="stjob">⏳ ${esc(job.mensaje || 'Calculando…')}</div>` : job.error ? `<div class="stjob bad">No se pudieron calcular: ${esc(job.error)}</div>` : '';
   clearTimeout(stPoll);
   if (job.activo) stPoll = setTimeout(() => { if (!$('vStats').classList.contains('hidden')) estadisticas(); }, 2500);
-  if (!ST) { $('statsT').innerHTML = barra + '<div class="empty"><b>Aún no hay estadísticas</b>Haz una revisión (rápida o completa): se calculan solas después. La primera vez tardan unos minutos en descargar las fichas de cada título.</div>'; return; }
-  if (job.activo && $('statsT').dataset.listo) { $('stjobBox').innerHTML = barra; return; }  // no repintar mientras se calcula
+  const nuevo = r.datos && r.datos.tipos ? r.datos : null;
+  if (!nuevo) { $('statsT').innerHTML = barra + '<div class="empty"><b>Aún no hay estadísticas</b>Haz una revisión (rápida o completa): se calculan solas después. La primera vez tardan unos minutos en descargar las fichas de cada título.</div>'; return; }
+  if (ST && job.activo) { $('stjobBox').innerHTML = barra; return; }  // no repintar mientras se calcula
+  ST = nuevo;
+  $('statsT').innerHTML = `<div id="stjobBox">${barra}</div><div class="stsel" id="stSel"></div><div id="stCuerpo"></div>`;
+  pintaStats();
+}
+async function recalcular() { await fetch('/api/estadisticas', {method: 'POST'}); ST = null; estadisticas(); }
+
+function pintaStats() {
   const s = ST;
-  const anios = Object.keys(s.anios || {});
-  if (!ANIO || !s.anios[ANIO]) ANIO = anios[anios.length - 1];
-  $('statsT').dataset.listo = 1;
-  $('statsT').innerHTML = `<div id="stjobBox">${barra}</div>` +
-    `<div class="stiles">` + s.resumen.map(x => `<div class="stile ${x.c}"><div class="t">${esc(x.t)}</div><div class="v">${esc(x.v)}</div><div class="s">${esc(x.s)}</div></div>`).join('') + '</div>' +
-    `<div class="charts">` +
-      sec('¿De dónde es lo que ves?', 'país de origen · rueda para acercar, arrastra para moverte, doble clic para volver', `<div class="chips" id="mapaTipos"></div><div id="mapaBox"></div>`, true) +
-      (anios.length ? sec('Tu año', '', `<div class="chips" id="anioChips"></div><div id="anioBox"></div>`, true) : '') +
-      sec('¿Cuándo ves series?', 'episodios por día y hora en que los marcaste (sin los marcados de golpe)', calor(s.semana), true) +
-      lista('Directores que más ves', 'películas', s.tops.directores, 'lb') +
-      lista('Actores que más te encuentras', 'películas (5 primeros del reparto)', s.tops.actores, 'lb') +
-      lista('Estudios', 'películas y anime', s.tops.estudios, 'dx') +
-      lista('Sagas y franquicias', 'películas vistas de cada colección', s.tops.sagas, 'lb') +
-      lista('Cadenas y plataformas', 'series (sin anime)', s.tops.cadenas, 'sz') +
-      lista('Idiomas de las películas', 'idioma original', s.tops.idiomas, 'lb') +
-      lista('Géneros de películas', '', s.tops.generos_pelis, 'lb') +
-      lista('Géneros de series', '', s.tops.generos_series, 'sz') +
-      lista('Géneros de anime', '', s.tops.generos_anime, 'al') +
-      s.graficos.map(grafico).join('') +
-    `</div>` +
-    (s.curiosidades.length ? `<div class="curios"><h4 style="margin:10px 0 0">Curiosidades</h4>${s.curiosidades.map(c => `<p>${md(c)}</p>`).join('')}</div>` : '') +
-    `<p style="color:var(--muted);font-size:12px;margin-top:14px">Con los datos de la revisión del ${esc(s.calculado)} · <a href="#" onclick="recalcular();return false">recalcular</a></p>`;
-  $('mapaTipos').innerHTML = Object.entries(TIPO).map(([k, [t]]) => `<span class="chip ${k === MAPA_TIPO ? 'on' : ''}" onclick="MAPA_TIPO='${k}';pintaMapaTipos();pintaMapa()">${t}<b>${Object.keys(s.mapa[k] || {}).length}</b></span>`).join('');
+  $('stSel').innerHTML = Object.entries(TIPO).map(([k, [t, c]]) =>
+    `<button class="${k === VISTA ? 'on' : ''}" style="--c:var(--${c})" onclick="VISTA='${k}';MAPA_TIPO='${k}';pintaStats()">${t}</button>`).join('');
+  const T = VISTA === 'todo' ? null : s.tipos[VISTA], c = TIPO[VISTA][1];
+  const tiles = (xs, col) => `<div class="stiles">` + xs.map(x => `<div class="stile ${x.c || col}"><div class="v">${esc(x.v)}</div><div class="t">${esc(x.t)}</div></div>`).join('') + '</div>';
+  let h = '';
+  if (!T) {
+    h += tiles(s.resumen);
+    // tres columnas temáticas: lo más destacado de cada tipo
+    h += `<div class="tres">` + ['pelis', 'series', 'anime'].map(k => {
+      const t = s.tipos[k], [nom, col] = TIPO[k];
+      return `<div class="col"><div class="colhead" style="--c:var(--${col})" onclick="VISTA='${k}';MAPA_TIPO='${k}';pintaStats()">
+          <b>${nom}</b><span>${esc(t.resumen[0].v)} · ${esc((t.resumen.find(x => x.t === 'Horas') || {}).v || '')} h</span><a>ver todo →</a></div>` +
+        t.bloques.filter(b => b.dest).map(b => bloque(b, 1)).join('') + '</div>';
+    }).join('') + '</div>';
+    h += `<div class="grid3">` + tarjeta('¿De dónde es lo que ves?', 'país de origen · rueda para acercar, arrastra para moverte, doble clic para volver',
+      `<div class="chips" id="mapaTipos"></div><div id="mapaBox"></div>`, 3);
+    const anios = Object.keys(s.anios || {});
+    if (anios.length) h += tarjeta('Tu año', '', `<div class="chips" id="anioChips"></div><div id="anioBox"></div>`, 3);
+    h += tarjeta('¿Cuándo ves series y anime?', 'episodios por día y hora en que los marcaste (sin los marcados de golpe)', calor(s.semana), 3) + '</div>';
+    // selección variada: se van alternando pelis, series, anime y lo general (16 tarjetas)
+    const grupos = ['lb', 'sz', 'al', 'dx'].map(c => s.curiosidades.filter(x => x.c === c)), mezcla16 = [];
+    for (let i = 0; mezcla16.length < 16 && grupos.some(g => g[i]); i++) grupos.forEach(g => g[i] && mezcla16.length < 16 && mezcla16.push(g[i]));
+    h += curiosidades(mezcla16);
+  } else {
+    h += tiles(T.resumen, c);
+    h += `<div class="grid3">` + tarjeta('¿De dónde es?', 'país de origen · rueda para acercar, arrastra para moverte', `<div id="mapaBox"></div>`, 2) +
+      T.bloques.map(b => bloque(b, b.ancho)).join('') + '</div>';
+    h += curiosidades(s.curiosidades.filter(x => x.c === c));
+  }
+  h += `<div class="avisos">${(s.avisos || []).map(a => `<div>${esc(a)}</div>`).join('')}
+    <div>Con los datos de la revisión del ${esc(s.calculado)} · <a href="#" onclick="recalcular();return false">recalcular</a></div></div>`;
+  $('stCuerpo').innerHTML = h;
+  if (!T) $('mapaTipos').innerHTML = Object.entries(TIPO).map(([k, [t]]) => `<span class="chip ${k === MAPA_TIPO ? 'on' : ''}" onclick="MAPA_TIPO='${k}';pintaMapaTipos();pintaMapa()">${t}<b>${Object.keys(s.mapa[k] || {}).length}</b></span>`).join('');
   pintaMapa();
-  if (anios.length) pintaAnio();
+  if (!T && Object.keys(s.anios || {}).length) pintaAnio();
 }
 function pintaMapaTipos() { document.querySelectorAll('#mapaTipos .chip').forEach((c, i) => c.classList.toggle('on', Object.keys(TIPO)[i] === MAPA_TIPO)); }
-async function recalcular() { await fetch('/api/estadisticas', {method: 'POST'}); $('statsT').dataset.listo = ''; estadisticas(); }
 
-function lista(titulo, nota, xs, c) {
-  if (!xs || !xs.length) return '';
-  const max = Math.max(...xs.map(x => x.n));
-  return sec(titulo, nota, `<div class="hbars">` + xs.map(x => `<div class="r" data-tip="${esc(x.k)}: ${x.n}${x.e && x.e.length ? '\n' + esc(x.e.join(' · ')) : ''}"><span>${esc(x.k)}</span><i style="width:${100 * x.n / max}%;background:var(--${c})"></i><span>${x.n}</span></div>`).join('') + '</div>');
+function bloque(b, ancho) {
+  let html = '';
+  if (b.forma === 'barras') {
+    const max = Math.max(...b.datos.map(x => x.n));
+    html = `<div class="hbars">` + b.datos.map(x => `<div class="r" data-tip="${esc(x.k)}: ${esc(x.v || x.n)}${x.e && x.e.length ? '\n' + esc(x.e.join(' · ')) : ''}"><span>${esc(x.k)}</span><i style="width:${100 * x.n / max}%;background:var(--${b.c})"></i><span>${esc(x.v || x.n)}</span></div>`).join('') + '</div>';
+  } else if (b.forma === 'columnas') {
+    const max = Math.max(1, ...b.datos.map(d => d[1])), cada = Math.ceil(b.datos.length / 12);
+    html = `<div class="vbars">` + b.datos.map(([k, v]) => `<div class="b" data-tip="${esc(k)}: ${nfmt(v)}"><i style="height:${100 * v / max}%;background:var(--${b.c})"></i></div>`).join('') +
+      `</div><div class="vlab">` + b.datos.map(([k], i) => `<span>${i % cada ? '' : esc(k)}</span>`).join('') + '</div>';
+  } else {  // lista
+    html = `<ol class="mini">` + b.datos.map(x => `<li${x.d ? ` data-tip="${esc(x.d)}"` : ''}><span>${esc(x.k)}</span><b>${esc(x.v)}</b></li>`).join('') + '</ol>';
+  }
+  return tarjeta(b.titulo, b.nota, html, ancho);
 }
-function grafico(g) {
-  const max = Math.max(1, ...g.datos.map(d => d[1]));
-  if (g.horizontal) return lista(g.titulo, g.nota, g.datos.map(([k, n]) => ({k, n})), g.c);
-  const cada = Math.ceil(g.datos.length / 12);  // como mucho ~12 etiquetas en el eje
-  return sec(g.titulo, g.nota, `<div class="vbars">` + g.datos.map(([k, v]) => `<div class="b" data-tip="${esc(k)}: ${nfmt(v)}"><i style="height:${100 * v / max}%;background:var(--${g.c})"></i></div>`).join('') +
-    `</div><div class="vlab">` + g.datos.map(([k], i) => `<span>${i % cada ? '' : esc(k)}</span>`).join('') + '</div>');
+function curiosidades(xs) {
+  if (!xs.length) return '';
+  if (xs.length > 4) xs = xs.slice(0, Math.floor(xs.length / 4) * 4);  // filas completas
+  return `<h3 class="sttit">Curiosidades</h3><div class="curiosg">` + xs.map(x => `<div class="curio" style="--c:var(--${x.c})"><div class="k">${esc(x.t)}</div><div class="v">${esc(x.v)}</div>${x.d ? `<div class="d">${esc(x.d)}</div>` : ''}</div>`).join('') + '</div>';
 }
 function calor(m) {
   const max = Math.max(1, ...m.flat()), dias = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
@@ -353,16 +392,18 @@ function calor(m) {
       `<div class="c" data-tip="${dias[d]} ${h}:00–${h + 1}:00: ${v} episodios" style="background:${v ? mezcla('sz', v / max) : 'var(--panel2)'}"></div>`).join('')).join('') + '</div>';
 }
 function pintaAnio() {
-  const s = ST, anios = Object.keys(s.anios), a = s.anios[ANIO];
+  const s = ST, anios = Object.keys(s.anios);
+  if (!ANIO || !s.anios[ANIO]) ANIO = anios[anios.length - 1];
+  const a = s.anios[ANIO];
   $('anioChips').innerHTML = anios.map(y => `<span class="chip ${y === ANIO ? 'on' : ''}" onclick="ANIO='${y}';pintaAnio()">${y}</span>`).join('');
   const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'], mx = Math.max(1, ...a.meses);
-  const dato = (v, t, c) => `<div class="stile ${c}" style="padding:10px"><div class="t">${t}</div><div class="v" style="font-size:22px">${v}</div></div>`;
-  $('anioBox').innerHTML = `<div class="stiles" style="margin:12px 0">` + dato(nfmt(a.pelis), 'películas', 'lb') + dato(nfmt(a.episodios), 'episodios', 'sz') +
-    dato(a.series, 'series con episodios', 'sz') + dato(a.series_nuevas, 'series empezadas', 'sz') + '</div>' +
-    `<div class="anio2"><div><div class="nota">Pelis + episodios por mes</div><div class="vbars" style="height:110px">` +
+  const dato = (v, t, c) => `<div class="stile ${c}"><div class="v" style="font-size:22px">${v}</div><div class="t">${t}</div></div>`;
+  $('anioBox').innerHTML = `<div class="stiles cuatro" style="margin:12px 0">` + dato(nfmt(a.pelis), 'películas', 'lb') + dato(nfmt(a.episodios), 'episodios', 'sz') +
+    dato(a.series, 'series y animes', 'sz') + dato(a.series_nuevas, 'empezadas este año', 'sz') + '</div>' +
+    `<div class="anio2"><div><div class="nota">Películas y episodios por mes</div><div class="vbars" style="height:110px">` +
     a.meses.map((v, i) => `<div class="b" data-tip="${meses[i]} ${ANIO}: ${v}"><i style="height:${100 * v / mx}%;background:var(--dx)"></i></div>`).join('') +
     `</div><div class="vlab">${meses.map(m => `<span>${m}</span>`).join('')}</div></div><div>` +
-    (a.top_series.length ? `<div class="nota">Series que más viste</div><div class="hbars">` + a.top_series.map(x => `<div class="r"><span>${esc(x.k)}</span><i style="width:${100 * x.n / a.top_series[0].n}%;background:var(--sz)"></i><span>${x.n}</span></div>`).join('') + '</div>' : '') +
+    (a.top_series.length ? `<div class="nota">Lo que más viste</div><div class="hbars">` + a.top_series.map(x => `<div class="r"><span>${esc(x.k)}</span><i style="width:${100 * x.n / a.top_series[0].n}%;background:var(--sz)"></i><span>${x.n}</span></div>`).join('') + '</div>' : '') +
     `<p class="nota" style="margin-top:10px">${a.mejor_peli ? `⭐ Mejor nota del año: <b>${esc(a.mejor_peli)}</b><br>` : ''}${a.primera ? `▶ Primera peli: ${esc(a.primera)}<br>⏹ Última: ${esc(a.ultima)}` : ''}</p></div></div>`;
 }
 
@@ -403,10 +444,11 @@ async function pintaMapa() {
   $('mapaBox').innerHTML = '';
   $('mapaBox').append(g);
   $('mapaBox').insertAdjacentHTML('beforeend', `<div class="leyenda"><span><i style="background:var(--panel2);border:1px solid var(--line)"></i>nada</span>
-    <span>1 <b style="display:inline-block;width:140px;height:10px;border-radius:5px;vertical-align:-1px;background:${grad}"></b> ${nfmt(max)}</span>
+    <span>1 <b style="display:inline-block;width:120px;height:10px;border-radius:5px;vertical-align:-1px;background:${grad}"></b> ${nfmt(max)}</span>
     <span style="margin-left:auto"><button class="mini" onclick="this.closest('.chart').querySelector('svg').dispatchEvent(new MouseEvent('dblclick'))">mundo entero</button></span></div>
     <div class="nota" style="margin-top:6px">${top.map(([k, v]) => `${esc(nombre(k))} ${nfmt(v.n)}`).join(' · ')}</div>`);
 }
+
 const TIP = document.createElement('div'); TIP.className = 'tip'; document.body.appendChild(TIP);
 document.addEventListener('mousemove', e => {
   const t = e.target.closest && e.target.closest('[data-tip]');
