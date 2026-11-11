@@ -119,10 +119,11 @@ def _episodios_reales(series, dur=lambda s: RT_SERIE, reales=(), falsas=()):
             return carga[_dia(x[3])] <= 16 * 60
         return x[0]["t"] not in falsas and carga[_dia(x[3])] <= 16 * 60
 
-    # Una tanda se marca al acabar: se reparte hacia atrás, encadenada con las tandas siguientes de la misma serie (sin
-    # solaparse), a un episodio cada duración × 0,6 (sin intro/outro, relleno saltado, 1,5x) y como mucho 16 h por día:
-    # 100 de One Piece marcados a las 15:20 caen en el día y medio anterior, no todos ese día.
-    out, por_serie = [], defaultdict(list)
+    # Una tanda se marca al acabar: se reparte por igual entre la marca anterior de esa serie (como mucho 4 días antes) y
+    # ella, encadenada con las siguientes sin solaparse, a un ritmo máximo de un episodio cada duración × 0,6 (sin
+    # intro/outro, relleno saltado, 1,5x) y como mucho 16 h por día. Así 110 de One Piece marcados el 16 tras 4 días sin
+    # marcar caen ~27 por día del 12 al 16. Esas horas son inventadas: «fiables» son solo las marcas sueltas.
+    out, fiables, por_serie = [], [], defaultdict(list)
     for x in eps:
         por_serie[x[0]["id"]].append(x)
     for xs in por_serie.values():
@@ -134,25 +135,29 @@ def _episodios_reales(series, dur=lambda s: RT_SERIE, reales=(), falsas=()):
             else:
                 grupos.append([x])
         cursor, usado = None, Counter()
-        for g in reversed(grupos):
+        for j in range(len(grupos) - 1, -1, -1):
+            g = grupos[j]
             fin = g[-1][3]
             buenos = [x for x in g if vale(x)]
             if len(g) <= 3:
                 out.extend(buenos)
+                fiables.extend(buenos)
                 cursor = fin if cursor is None else min(cursor, fin)
                 continue
             if not buenos:
                 continue
             m = dur(g[0][0]) * 0.6
             t = fin if cursor is None else min(fin, cursor)
+            hueco = min(fin - grupos[j - 1][-1][3], timedelta(days=4)) if j else timedelta(0)
+            paso = max(timedelta(minutes=m), hueco / len(buenos))
             for x in reversed(buenos):
                 if usado[_dia(t)] + m > 16 * 60:  # ese día ya no da más de sí: a la noche anterior
                     t = t - (t - t.replace(hour=6, minute=0, second=0)) % timedelta(days=1) - timedelta(hours=5)
                 out.append((x[0], x[1], x[2], t))
                 usado[_dia(t)] += m
-                t -= timedelta(minutes=m)
+                t -= paso
             cursor = t
-    return out
+    return out, fiables
 
 
 def _es(counter):
@@ -499,11 +504,11 @@ def calcular(progress=print):
 
     # ---------- actividad (todo) ----------
     reglas = (rules().get("estadisticas") or {})
-    reales = _episodios_reales(series, lambda s: (A(s).get("rt") if es_anime(s) else S(s).get("rt")) or D(s).get("dur")
+    reales, fiables = _episodios_reales(series, lambda s: (A(s).get("rt") if es_anime(s) else S(s).get("rt")) or D(s).get("dur")
                                or (RT_ANIME if es_anime(s) else RT_SERIE),
                                set(reglas.get("tandas_reales") or []), set(reglas.get("tandas_falsas") or []))
     semana = [[0] * 24 for _ in range(7)]
-    for _, _, _, d in reales:
+    for _, _, _, d in fiables:  # las horas de las tandas repartidas son inventadas
         semana[d.weekday()][d.hour] += 1
     anio_mes = defaultdict(lambda: [0] * 12)
     for _, d, _ in diario:
@@ -598,8 +603,10 @@ def calcular(progress=print):
                 por_serie[s["t"]].add(_dia(d))
             t, (n, fin) = max(((t, _racha(v)) for t, v in por_serie.items()), key=lambda x: x[1][0])
             cu(f"Racha con {art}", f"{n} días seguidos", f"con {t}, hasta el {_fecha(fin)}", c)
-            noche = sum(1 for _, _, _, d in rr if d.hour < 6)
-            cu("Noctámbulo", f"{round(100 * noche / len(rr))} %", f"de los episodios de {nom} los marcas entre las 0 y las 6", c)
+            ff = [x for x in fiables if x[0]["id"] in ids]
+            noche = sum(1 for _, _, _, d in ff if d.hour < 6)
+            if ff:
+                cu("Noctámbulo", f"{round(100 * noche / len(ff))} %", f"de los episodios de {nom} los marcas entre las 0 y las 6", c)
         # mes más intenso: aquí sí cuentan las marcas en tanda (no dicen el día exacto, pero sí el mes)
         # (pero el mes tiene que tener marcas en 5 días distintos como mínimo: importar una serie entera de golpe no es un mes)
         mes, dias_mes = Counter(), defaultdict(set)
