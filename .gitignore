@@ -10,3 +10,6 @@ logs/
 __pycache__/
 *.pyc
 .venv/
+
+# Casos especiales propios (hay un ejemplo en rules.example.json)
+rules.json

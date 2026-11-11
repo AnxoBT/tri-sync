@@ -12,7 +12,7 @@ import zipfile
 from .config import ROOT, env
 
 REPO = "AnxoBT/tri-sync"
-NO_TOCAR = {".env", "cache", "logs", "data", "salida", ".git", ".venv"}
+NO_TOCAR = {".env", "rules.json", "cache", "logs", "data", "salida", ".git", ".venv"}
 _CACHE = {"t": 0, "r": None}
 SIN_VENTANA = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 

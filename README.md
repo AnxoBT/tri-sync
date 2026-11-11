@@ -99,6 +99,9 @@ Todo lo que no cuadra "por diseño" va aquí y se puede editar:
 fichas mal enlazadas en Dixmax, temporadas que TMDB fusionó o reordenó, especiales,
 episodios dobles, películas que solo están en una web, etc.
 
+`rules.json` es personal y **no se sube al repo** (ni lo toca el actualizador). Para empezar uno nuevo, copia
+`rules.example.json` como `rules.json`. En otro PC, cópialo junto con el `.env`.
+
 ## Estado
 
 - [x] Fase 1: leer las webs, calcular diferencias, web local, guardar plan

@@ -1,0 +1,26 @@
+{
+  "_info": "Casos especiales propios. Copia este archivo como rules.json (no se sube al repo) y añade tus casos.",
+  "dixmax": {
+    "fichas_ignoradas": [],
+    "tmdb_override": {},
+    "mark_override": {},
+    "episodios_manuales": {}
+  },
+  "series": {
+    "excluir_tmdb": [],
+    "especiales_s0": {},
+    "episodios_a_s0": {},
+    "mapa_temporadas": {},
+    "saltar_episodios_serializd": {},
+    "extra_serializd": [],
+    "fecha_serie_manual": {},
+    "sin_equivalencia_esperada": {},
+    "_sin_equivalencia_info": "Episodios de Dixmax que no existen en TMDB/Serializd (episodios dobles fusionados, películas en temporada 0…). No se avisan."
+  },
+  "peliculas": {
+    "titulo_manual": {},
+    "ignorar_solo_letterboxd": [],
+    "ignorar_solo_dixmax": [],
+    "vistas_pero_pendientes_en_dixmax": []
+  }
+}
