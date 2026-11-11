@@ -68,10 +68,18 @@ Tri-Sync avisa solo con una barra verde arriba cuando hay una release nueva: **A
 guarda una copia de la versión actual en `logs/copia_v…`, instala y se reinicia (la página se recarga sola).
 Tu `.env`, la caché y el historial no se tocan. También: Configuración → **Buscar actualizaciones**.
 
-Como el repo es privado, necesita un **token de GitHub** de solo lectura (Configuración → Token de GitHub):
+Como el repo es privado, GitHub pide identificarse. Tri-Sync lo hace solo si el PC tiene **Git o GitHub CLI con
+tu cuenta** (usa esas credenciales, sin ventanas). Si no, pon un **token de GitHub** de solo lectura en Configuración:
 github.com/settings/personal-access-tokens/new → *Repository access*: Only select → `tri-sync` ·
-*Permissions* → *Contents*: Read-only. (Si tienes GitHub CLI con sesión iniciada, no hace falta.)
+*Permissions* → *Contents*: Read-only.
 En una carpeta clonada con git, actualiza con `git pull`.
+
+## Historial y estadísticas
+
+- **Historial**: cada revisión y cada aplicación. Pulsa una fila para ver qué ha cambiado en tus webs desde la
+  anterior (pelis, episodios, notas, favoritas), qué diferencias encontró o qué se aplicó.
+- **Estadísticas**: totales de todas las webs, gráficos (pelis por año, episodios por año, día y hora, décadas,
+  notas, series con más episodios) y curiosidades (maratón, racha, peli más antigua…). Se calculan al revisar.
 
 ## Qué compara
 

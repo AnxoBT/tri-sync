@@ -10,7 +10,7 @@
   :root {
     --bg:#0f1317; --panel:#171d23; --panel2:#1d252c; --line:#28323c; --text:#e3e8ed; --muted:#8994a0;
     --acc:#3fb0ff; --ok:#2fbf71; --warn:#f0a020; --bad:#ef5350;
-    --dx:#ff8000; --lb:#40bcf4; --sz:#00e054; --al:#02a9ff; --r:10px;
+    --dx:#ff8000; --lb:#40bcf4; --sz:#00e054; --al:#4a63e8; --r:10px;
   }
   * { box-sizing:border-box; }
   body { margin:0; font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
@@ -93,6 +93,29 @@
   .cfg { display:grid; grid-template-columns:220px 1fr; gap:12px 16px; align-items:start; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:18px; margin-top:18px; }
   .cfg label { font-weight:600; padding-top:8px; } .cfg .h { color:var(--muted); font-size:12px; margin-top:4px; }
   .cfg input { width:100%; }
+  table.hist tr.fila { cursor:pointer; } table.hist tr.fila:hover td { background:var(--panel2); }
+  table.hist tr.det td { background:var(--panel); color:var(--muted); font-size:12.5px; }
+  table.hist tr.det ul { margin:4px 0 10px; padding-left:18px; } table.hist tr.det b { color:var(--text); }
+  .stiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
+  .stile { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; border-top:3px solid var(--line); }
+  .stile .t { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
+  .stile .v { font-size:28px; font-weight:700; margin:2px 0; font-variant-numeric:tabular-nums; } .stile .s { color:var(--muted); font-size:12px; }
+  .stile.dx { border-top-color:var(--dx); } .stile.lb { border-top-color:var(--lb); } .stile.sz { border-top-color:var(--sz); } .stile.al { border-top-color:var(--al); }
+  .charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; }
+  .chart { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; }
+  .chart h4 { margin:0; font-size:14px; } .chart .nota { color:var(--muted); font-size:12px; }
+  .vbars { display:flex; align-items:flex-end; gap:2px; height:150px; margin-top:12px; border-bottom:1px solid var(--line); }
+  .vbars .b { flex:1; display:flex; flex-direction:column; justify-content:flex-end; height:100%; position:relative; }
+  .vbars .b i { display:block; border-radius:4px 4px 0 0; min-height:1px; }
+  .vbars .b:hover i { filter:brightness(1.25); }
+  .vlab { display:flex; gap:2px; font-size:10.5px; color:var(--muted); margin-top:4px; }
+  .vlab span { flex:1; text-align:center; overflow:hidden; white-space:nowrap; }
+  .hbars { margin-top:10px; } .hbars .r { display:grid; grid-template-columns:minmax(0,40%) 1fr auto; gap:8px; align-items:center; font-size:12.5px; margin:5px 0; }
+  .hbars .r span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .hbars i { display:block; height:10px; border-radius:0 4px 4px 0; }
+  .hbars .r span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
+  .curios { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:6px 16px; margin:18px 0; }
+  .curios p { margin:10px 0; }
+  .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:4px 8px; font-size:12px; z-index:50; display:none; }
   .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
   .hidden { display:none !important; }
   @media (max-width:760px) { .cards { grid-template-columns:1fr; } .row { grid-template-columns:1fr; } .seg { justify-content:flex-start; } .cfg { grid-template-columns:1fr; } .hstat { display:none; } }
@@ -109,7 +132,7 @@
   <div id="updM" style="margin-top:6px"></div></div>
 <header><div class="wrap">
   <div class="logo"><img src="/logo.svg?v=2" alt="">Tri<span>-Sync</span></div>
-  <nav><button id="tRev" class="on" onclick="vista('rev')">Revisión</button><button id="tHist" onclick="vista('hist')">Historial</button><button id="tCfg" onclick="vista('cfg')">Configuración</button></nav>
+  <nav><button id="tRev" class="on" onclick="vista('rev')">Revisión</button><button id="tHist" onclick="vista('hist')">Historial</button><button id="tStats" onclick="vista('stats')">Estadísticas</button><button id="tCfg" onclick="vista('cfg')">Configuración</button></nav>
   <div class="hstat" id="hstat"></div>
   <button id="bOff" onclick="apagarApp()" title="Cierra Tri-Sync ya (también se apaga solo al cerrar la pestaña)">⏻ Apagar</button>
 </div></header>
@@ -120,7 +143,7 @@
     <div class="card dx"><h3>Dixmax</h3><div class="v">En directo (API)</div><div class="s">fechas del export: <span id="cDx">—</span></div></div>
     <div class="card lb"><h3>Letterboxd</h3><div class="v" id="cLb">—</div><div class="s">export más reciente</div></div>
     <div class="card sz"><h3>Serializd</h3><div class="v">En directo</div><div class="s">se lee al revisar</div></div>
-    <div class="card al hidden" id="cAl"><h3>AniList</h3><div class="v">En directo</div><div class="s">solo anime · <span id="cAlU"></span></div></div>
+    <div class="card al" id="cAl"><h3>AniList</h3><div class="v">En directo</div><div class="s">solo anime · <span id="cAlU"></span></div></div>
   </div>
 
   <div class="steps">
@@ -144,6 +167,7 @@
 
 <!-- ============ HISTORIAL ============ -->
 <div id="vHist" class="wrap hidden" style="padding-top:16px"><div id="histT"></div></div>
+<div id="vStats" class="wrap hidden" style="padding-top:16px"><div id="statsT"></div></div>
 
 <!-- ============ CONFIGURACIÓN ============ -->
 <div id="vCfg" class="wrap hidden">
@@ -182,12 +206,13 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 let DATA = {diferencias: []}, sel = {}, filtroCat = null, poll = null;
 
 function vista(v) {
-  for (const [k, id] of [['rev', 'Rev'], ['hist', 'Hist'], ['cfg', 'Cfg']]) {
+  for (const [k, id] of [['rev', 'Rev'], ['hist', 'Hist'], ['stats', 'Stats'], ['cfg', 'Cfg']]) {
     $('v' + id).classList.toggle('hidden', v !== k); $('t' + id).classList.toggle('on', v === k);
   }
   $('abar').classList.toggle('hidden', v !== 'rev');
   if (v === 'cfg') cargarCfg();
   if (v === 'hist') historial();
+  if (v === 'stats') estadisticas();
 }
 
 let ANILIST = false, WEBS = 'Dixmax, Letterboxd y Serializd';
@@ -198,7 +223,7 @@ async function estado() {
   $('cLb').textContent = lb.fecha ? `${lb.fecha}` : 'sin export';
   $('cLb').title = lb.carpeta ? `${lb.carpeta} (${lb.edad})` : '';
   $('cLb').style.color = lb.horas > 24 ? 'var(--warn)' : '';
-  $('cAl').classList.toggle('hidden', !e.anilist_user); $('cAlU').textContent = e.anilist_user || '';
+  $('cAlU').innerHTML = e.anilist_user ? esc(e.anilist_user) : '<a href="#" onclick="vista(\'cfg\');return false">sin conectar · conectar</a>';
   ANILIST = !!e.anilist_user;
   WEBS = ANILIST ? 'Dixmax, Letterboxd, Serializd y AniList' : 'Dixmax, Letterboxd y Serializd';
   if (DATA && DATA.diferencias && !DATA.diferencias.length) pintar();  // el «Todo cuadra» con las webs que usas
@@ -216,16 +241,67 @@ const STAT_TXT = {dx_pelis_vistas: 'pelis vistas Dixmax', dx_pelis_pendientes: '
 async function historial() {
   const h = await (await fetch('/api/historial')).json();
   if (!h.length) { $('histT').innerHTML = '<div class="empty"><b>Sin revisiones todavía</b></div>'; return; }
-  $('histT').innerHTML = `<table class="hist"><tr><th>Fecha</th><th>Modo</th><th>Duración</th><th>Diferencias</th><th>Cambios desde la anterior</th></tr>` +
+  HIST = h;
+  $('histT').innerHTML = `<p class="nota" style="color:var(--muted);margin:0 0 8px">Pulsa una fila para ver el detalle.</p><table class="hist"><tr><th>Fecha</th><th>Modo</th><th>Duración</th><th>Diferencias</th><th>Cambios desde la anterior</th></tr>` +
     h.map((r, i) => {
-      const prev = h[i + 1], s = r.stats || {};
+      if (r.modo === 'aplicación')
+        return `<tr class="fila" onclick="detalleHist(this, ${i})"><td>${esc(r.fecha)}</td><td><b>aplicación</b></td><td>—</td>
+          <td>${r.aplicadas} de ${r.total} aplicadas</td><td>${(r.acciones || []).slice(0, 3).map(a => esc(a.t)).join(' · ')}${r.total > 3 ? ' …' : ''}</td></tr>`;
+      const prev = h.slice(i + 1).find(x => x.stats), s = r.stats || {};
       const deltas = prev ? Object.keys(STAT_TXT).filter(k => s[k] != null && prev.stats?.[k] != null && s[k] !== prev.stats[k])
         .map(k => `<span class="delta">${s[k] > prev.stats[k] ? '+' : ''}${s[k] - prev.stats[k]}</span> ${STAT_TXT[k]}`).join(' · ') : '';
       const cats = Object.entries(r.categorias || {}).map(([c, n]) => `${n} ${esc(c)}`).join('<br>');
-      return `<tr><td>${esc(r.fecha)}</td><td>${esc(r.modo)}</td><td>${r.segundos} s</td><td>${r.diferencias ? cats : '✓ todo cuadra'}</td>
+      return `<tr class="fila" onclick="detalleHist(this, ${i})"><td>${esc(r.fecha)}</td><td>${esc(r.modo)}</td><td>${r.segundos} s</td><td>${r.diferencias ? cats : '✓ todo cuadra'}</td>
         <td>${deltas || (prev ? 'sin cambios' : '—')}</td></tr>`;
     }).join('') + '</table>';
 }
+
+let HIST = [];
+function detalleHist(tr, i) {
+  if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('det')) { tr.nextElementSibling.remove(); return; }
+  const r = HIST[i], lista = (xs, f) => xs && xs.length ? '<ul>' + xs.map(f).join('') + '</ul>' : '<p>—</p>';
+  let html;
+  if (r.modo === 'aplicación') {
+    html = `<b>Qué se aplicó</b>` + lista(r.acciones, a => `<li>${a.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'} <b>${esc(a.t)}</b> · ${esc(a.a || '')} <span style="opacity:.7">(${esc(a.c || '')})</span></li>`);
+  } else {
+    const nov = r.novedades;
+    html = `<b>Novedades en tus webs desde la revisión anterior</b>` +
+      (nov == null ? '<p>No se guardaba en esta revisión (empieza a contar desde la versión 1.8).</p>' : nov.length ? lista(nov, x => `<li>${esc(x)}</li>`) : '<p>Nada nuevo.</p>');
+    const g = {};
+    (r.detalle || []).forEach(d => (g[d.c] ??= []).push(d));
+    html += `<b>Diferencias que encontró</b>` + (r.detalle == null ? '<p>No se guardaba en esta revisión.</p>' : !r.detalle.length ? '<p>Ninguna: todo cuadraba.</p>' :
+      Object.entries(g).map(([c, xs]) => `<div style="margin-top:6px">${esc(c)} (${xs.length})</div>` + lista(xs, d => `<li><b>${esc(d.t)}</b>${d.d ? ' · ' + esc(d.d) : ''}</li>`)).join(''));
+  }
+  tr.insertAdjacentHTML('afterend', `<tr class="det"><td colspan="5">${html}</td></tr>`);
+}
+
+// ---------- estadísticas ----------
+async function estadisticas() {
+  const s = await (await fetch('/api/estadisticas')).json();
+  if (!s.resumen) { $('statsT').innerHTML = '<div class="empty"><b>Aún no hay estadísticas</b>Haz una revisión (rápida o completa) y aparecerán aquí.</div>'; return; }
+  const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
+  const col = c => `var(--${c})`;
+  const graf = g => {
+    const max = Math.max(1, ...g.datos.map(d => d[1]));
+    if (g.horizontal) return `<div class="chart"><h4>${esc(g.titulo)}</h4>${g.nota ? `<div class="nota">${esc(g.nota)}</div>` : ''}<div class="hbars">` +
+      g.datos.map(([k, v]) => `<div class="r" data-tip="${esc(k)}: ${v}"><span>${esc(k)}</span><i style="width:${100 * v / max}%;background:${col(g.c)}"></i><span>${v}</span></div>`).join('') + '</div></div>';
+    const cada = Math.ceil(g.datos.length / 12);  // como mucho ~12 etiquetas en el eje
+    return `<div class="chart"><h4>${esc(g.titulo)}</h4>${g.nota ? `<div class="nota">${esc(g.nota)}</div>` : ''}<div class="vbars">` +
+      g.datos.map(([k, v]) => `<div class="b" data-tip="${esc(k)}: ${v}"><i style="height:${100 * v / max}%;background:${col(g.c)}"></i></div>`).join('') +
+      `</div><div class="vlab">` + g.datos.map(([k], i) => `<span>${i % cada ? '' : esc(k)}</span>`).join('') + '</div></div>';
+  };
+  $('statsT').innerHTML = `<div class="stiles">` + s.resumen.map(r => `<div class="stile ${r.c}"><div class="t">${esc(r.t)}</div><div class="v">${esc(r.v)}</div><div class="s">${esc(r.s)}</div></div>`).join('') + '</div>' +
+    (s.curiosidades.length ? `<div class="curios"><h4 style="margin:10px 0 0">Curiosidades</h4>${s.curiosidades.map(c => `<p>${md(c)}</p>`).join('')}</div>` : '') +
+    `<div class="charts">${s.graficos.map(graf).join('')}</div>` +
+    `<p style="color:var(--muted);font-size:12px;margin-top:14px">Calculado en la revisión del ${esc(s.calculado)}.</p>`;
+}
+const TIP = document.createElement('div'); TIP.className = 'tip'; document.body.appendChild(TIP);
+document.addEventListener('mousemove', e => {
+  const t = e.target.closest && e.target.closest('[data-tip]');
+  if (!t) { TIP.style.display = 'none'; return; }
+  TIP.textContent = t.dataset.tip; TIP.style.display = 'block';
+  TIP.style.left = (e.clientX + 12) + 'px'; TIP.style.top = (e.clientY - 28) + 'px';
+});
 
 async function revisar(modo) {
   $('bRev').disabled = $('bRevC').disabled = true; $('bar').style.display = 'block';
@@ -294,7 +370,8 @@ function grupo(ids, v) { if (!v) return; ids.forEach(id => { const d = DATA.dife
 function todas(v) { (DATA.diferencias || []).forEach(d => sel[d.id] = v); pintar(); }
 function elegidas() {
   return (DATA.diferencias || []).filter(d => (sel[d.id] ?? 'ignorar') !== 'ignorar')
-    .map(d => ({id: d.id, categoria: d.categoria, titulo: d.titulo, accion: sel[d.id], datos: d.datos}));
+    .map(d => ({id: d.id, categoria: d.categoria, titulo: d.titulo, accion: sel[d.id], datos: d.datos,
+                texto: (d.opciones.find(o => o.clave === sel[d.id]) || {}).texto}));
 }
 function contar() { const n = elegidas().length; $('selInfo').textContent = n ? `${n} acciones seleccionadas` : 'Nada seleccionado'; }
 

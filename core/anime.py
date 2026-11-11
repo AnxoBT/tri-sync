@@ -172,6 +172,8 @@ def diferencias(dx, progress=print):
     med = anilist.medios(ids, progress)
     progress("AniList: leyendo tu lista de anime…")
     cur = anilist.lista(usuario)
+    dx["al_lista"] = cur
+    dx["anime_ids"] = {s["id"] for s in shows}
     favs = anilist.favoritos() if env("ANILIST_TOKEN") else set()
     out = []
 

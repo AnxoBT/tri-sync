@@ -258,6 +258,7 @@ def compute(progress=print, solo=None, rapida=False):
     STATS.clear()
     STATS.update(_stats_dx(dx))
     res = {"fuentes": {"dixmax": fuente_dx}, "diferencias": [], "modo": "rápida" if rapida else "completa"}
+    lb = None
     if solo in (None, "peliculas"):
         progress("Leyendo export de Letterboxd…")
         lb = letterboxd.load()
@@ -280,4 +281,11 @@ def compute(progress=print, solo=None, rapida=False):
             progress(f"AniList: no se pudo revisar ({e})")
             res["fuentes"]["anilist"] = f"error: {e}"
     res["stats"] = dict(STATS)
+    if solo is None:  # estadísticas y novedades solo con la revisión entera
+        from . import estadisticas
+        try:
+            res["estadisticas"] = estadisticas.calcular(dx, lb, STATS, dx.get("al_lista"), dx.get("anime_ids"))
+            res["novedades"] = estadisticas.novedades(dx, dx.get("al_lista"))
+        except Exception as e:  # una curiosidad que falle no debe tumbar la revisión
+            progress(f"Estadísticas: no se pudieron calcular ({e})")
     return res

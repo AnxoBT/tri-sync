@@ -34,9 +34,21 @@ def _token():
         return t
     try:  # si tienes GitHub CLI (gh) con sesión iniciada, vale eso
         r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=5, creationflags=SIN_VENTANA)
-        return r.stdout.strip() if r.returncode == 0 else ""
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
     except Exception:
-        return ""
+        pass
+    try:  # o Git con tu cuenta de GitHub guardada (sin ventanas: si no hay credencial, no pregunta)
+        r = subprocess.run(["git", "-c", "credential.interactive=false", "credential", "fill"],
+                           input="protocol=https\nhost=github.com\n\n", capture_output=True, text=True, timeout=10,
+                           creationflags=SIN_VENTANA, env={**__import__("os").environ, "GIT_TERMINAL_PROMPT": "0",
+                                                          "GCM_INTERACTIVE": "never"})
+        for linea in r.stdout.splitlines():
+            if linea.startswith("password="):
+                return linea.split("=", 1)[1]
+    except Exception:
+        pass
+    return ""
 
 
 def _get(url):

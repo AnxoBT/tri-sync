@@ -48,8 +48,21 @@ def _aplicar(acciones, simulacion):
     finally:
         try:
             _quitar_aplicadas(acciones, RUN["resultado"] or {})
+            if not simulacion:
+                _historial_aplicacion(acciones, RUN["resultado"] or {})
         finally:
             RUN["activo"] = False
+
+
+def _historial_aplicacion(acciones, res):
+    """Cada aplicación real queda en el historial con lo que se cambió (y si salió bien)."""
+    hechas = set(res.get("hechas") or [])
+    hist = config.cache_json(HIST, [])
+    hist.append({"fecha": datetime.now().strftime("%d/%m/%Y %H:%M"), "modo": "aplicación", "segundos": None,
+                 "aplicadas": len(hechas), "total": len(acciones),
+                 "acciones": [{"c": a.get("categoria"), "t": a.get("titulo"), "a": a.get("texto") or a.get("accion"),
+                               "ok": a.get("id") in hechas} for a in acciones][:300]})
+    config.save_cache(HIST, hist[-100:])
 
 
 def _quitar_aplicadas(acciones, res):
@@ -84,13 +97,18 @@ def _revisar(solo, rapida=False):
         t0 = datetime.now()
         res = diff.compute(progress=lambda m: JOB["mensajes"].append(m), solo=solo, rapida=rapida)
         res["calculado"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+        if res.get("estadisticas"):
+            config.save_cache("estadisticas.json", res.pop("estadisticas"))
+        novedades = res.pop("novedades", None)
         config.save_cache("diff.json", res)
         from collections import Counter
         hist = config.cache_json(HIST, [])
         hist.append({"fecha": res["calculado"], "modo": res["modo"], "segundos": round((datetime.now() - t0).total_seconds()),
                      "diferencias": len(res["diferencias"]),
                      "categorias": dict(Counter(d["categoria"] for d in res["diferencias"])),
-                     "fuentes": res["fuentes"], "stats": res.get("stats", {})})
+                     "fuentes": res["fuentes"], "stats": res.get("stats", {}), "novedades": novedades,
+                     "detalle": [{"c": d["categoria"], "t": d["titulo"], "d": (d.get("detalle") or "")[:160]}
+                                 for d in res["diferencias"][:300]]})
         config.save_cache(HIST, hist[-100:])
     except Exception as e:  # token caducado, export que falta…
         JOB["error"] = str(e)
@@ -189,6 +207,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, (WEB / "logo.ico").read_bytes(), "image/x-icon")
         if self.path == "/logo.svg":
             return self._send(200, (WEB / "logo.svg").read_bytes(), "image/svg+xml")
+        if self.path == "/api/estadisticas":
+            return self._send(200, config.cache_json("estadisticas.json", {}))
         if self.path == "/api/historial":
             return self._send(200, list(reversed(config.cache_json(HIST, []))))
         if self.path == "/api/run":
