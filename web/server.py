@@ -98,6 +98,17 @@ def _revisar(solo, rapida=False):
         JOB.update(activo=False, fin=datetime.now().strftime("%H:%M:%S"))
 
 
+def _dias_permiso_anilist():
+    """Días que le quedan al permiso de AniList (None si no hay)."""
+    f = config.env("ANILIST_EXPIRA")
+    if not (config.env("ANILIST_TOKEN") and f):
+        return None
+    try:
+        return (datetime.strptime(f, "%d/%m/%Y") - datetime.now()).days
+    except ValueError:
+        return None
+
+
 def _probar():
     from core.imports import estado_exports
     out = {}
@@ -172,7 +183,8 @@ class Handler(BaseHTTPRequestHandler):
             calc = json.loads(p.read_text(encoding="utf-8")).get("calculado") if p.exists() else None
             return self._send(200, {"exports": estado_exports(), "calculado": calc,
                                     "letterboxd_user": config.env("LETTERBOXD_USER"),
-                                    "anilist_user": config.env("ANILIST_USER"), "trabajo": JOB})
+                                    "anilist_user": config.env("ANILIST_USER"),
+                                    "anilist_dias": _dias_permiso_anilist(), "trabajo": JOB})
         if self.path in ("/favicon.ico", "/logo.ico"):
             return self._send(200, (WEB / "logo.ico").read_bytes(), "image/x-icon")
         if self.path == "/logo.svg":

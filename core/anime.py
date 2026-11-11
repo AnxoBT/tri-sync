@@ -249,5 +249,6 @@ def diferencias(dx, progress=print):
                         "opciones": [{"clave": "dx_buscar", "texto": "Añadir en Dixmax (a mano, con el enlace)", "fase": 2},
                                      IGNORAR],
                         "datos": {"anilist": i}})
-    stats = {"al_anime": len(cur), "al_series_cruzadas": len(shows), "al_pelis_cruzadas": len(pelis)}
+    stats = {"al_anime": len(cur), "al_favoritos": len(favs) if env("ANILIST_TOKEN") else None,
+             "al_series_cruzadas": len(shows), "al_pelis_cruzadas": len(pelis)}
     return out, stats

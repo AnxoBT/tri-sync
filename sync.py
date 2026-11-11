@@ -1,4 +1,4 @@
-"""Tri-Sync: compara Dixmax, Letterboxd y Serializd y te deja elegir qué corregir.
+"""Tri-Sync: compara Dixmax, Letterboxd, Serializd y AniList y te deja elegir qué corregir.
 
 Uso:
     python sync.py              # abre la web local (desde ahí importas, revisas y aplicas)

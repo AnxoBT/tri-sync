@@ -1,4 +1,4 @@
-"""Cálculo de diferencias entre Dixmax, Letterboxd y Serializd.
+"""Cálculo de diferencias entre Dixmax, Letterboxd, Serializd y AniList.
 
 Cada diferencia es un dict:
   id, seccion, categoria, titulo, detalle, enlaces, opciones [{clave, texto, fase}], datos

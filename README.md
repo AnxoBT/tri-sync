@@ -1,9 +1,9 @@
 # Tri-Sync
 
-Compara mi historial de **Dixmax/PlayMax**, **Letterboxd** (películas) y **Serializd** (series),
-muestra las diferencias en una web local y me deja elegir qué hacer con cada una.
+Compara mi historial de **Dixmax/PlayMax**, **Letterboxd** (películas), **Serializd** (series) y
+**AniList** (anime, opcional), muestra las diferencias en una web local y me deja elegir qué hacer con cada una.
 
-> Uso personal. Dixmax se usa con su API oficial; la de Serializd es interna (no oficial) y puede cambiar.
+> Uso personal. Dixmax y AniList se usan con su API oficial; la de Serializd es interna (no oficial) y puede cambiar.
 > Letterboxd se lee desde su export oficial y se escribe con su importador CSV.
 
 ## Instalación (también en otro PC)
@@ -81,6 +81,10 @@ entradas del diario.
 **Series (Dixmax ↔ Serializd)**: episodios vistos con su fecha (con equivalencia a la numeración
 actual de TMDB), estado (viendo / watchlist / abandonada / terminada) y nota (redondeo hacia abajo).
 
+**Anime (Dixmax → AniList, y AniList ↔ Serializd)**: estado, episodios, nota, fechas de inicio/fin y
+favoritos (primera temporada de las series favoritas; ordenados por nota). Lo que aún no se ha estrenado
+no se reclama a Dixmax hasta el día del estreno.
+
 ## Casos especiales: `rules.json`
 
 Todo lo que no cuadra "por diseño" va aquí y se puede editar:
@@ -89,6 +93,6 @@ episodios dobles, películas que solo están en una web, etc.
 
 ## Estado
 
-- [x] Fase 1: leer las 3 webs, calcular diferencias, web local, guardar plan
+- [x] Fase 1: leer las webs, calcular diferencias, web local, guardar plan
 - [x] Fase 2: aplicar cambios en Serializd (episodios, estados, notas, terminar serie) y Dixmax (marcar vista, notas)
 - [x] Fase 3: generar CSV de importación para Letterboxd (registros con fecha, notas, watchlist)

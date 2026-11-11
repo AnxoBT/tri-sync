@@ -83,7 +83,7 @@
   .modal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; place-items:center; z-index:10; padding:16px; }
   .modal.on { display:grid; }
   .pbar { height:10px; background:var(--bg); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin:6px 0; }
-  .pbar i { display:block; height:100%; width:0; background:linear-gradient(90deg, var(--dx), var(--sz), var(--lb)); transition:width .4s; }
+  .pbar i { display:block; height:100%; width:0; background:linear-gradient(90deg, var(--dx), var(--sz), var(--lb), var(--al)); transition:width .4s; }
   .ptxt { color:var(--muted); font-size:13px; margin-bottom:8px; }
   .box { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); width:min(760px,100%); max-height:85vh; overflow:auto; padding:18px; }
   .box h2 { margin:0 0 10px; font-size:17px; }
@@ -129,8 +129,8 @@
       <button onclick="window.open('https://letterboxd.com/settings/data/')">Export Letterboxd ↗</button></div>
     <span class="sep">›</span>
     <div class="step"><span class="num">2</span>
-      <button class="pri" id="bRev" onclick="revisar('rapida')" title="~15 s: solo lo nuevo (diario de Serializd y series de Dixmax en las que has visto algo o ha salido un episodio)">Revisión rápida</button>
-      <button id="bRevC" onclick="revisar('completa')" title="~2 min: todo desde cero (detecta borrados y episodios nuevos de Dixmax por la API)">Completa</button></div>
+      <button class="pri" id="bRev" onclick="revisar('rapida')" title="~5-15 s: solo lo nuevo (diario de Serializd, series de Dixmax en las que has visto algo o ha salido un episodio, y tu lista de AniList)">Revisión rápida</button>
+      <button id="bRevC" onclick="revisar('completa')" title="~1 min: todo desde cero (detecta borrados y episodios nuevos de Dixmax por la API)">Completa</button></div>
     <div style="flex-basis:100%"><div id="prog"></div><div class="bar" id="bar"><i></i></div></div>
   </div>
 
@@ -190,6 +190,7 @@ function vista(v) {
   if (v === 'hist') historial();
 }
 
+let ANILIST = false, WEBS = 'Dixmax, Letterboxd y Serializd';
 async function estado() {
   const e = await (await fetch('/api/estado')).json();
   const dx = e.exports.dixmax, lb = e.exports.letterboxd;
@@ -198,6 +199,11 @@ async function estado() {
   $('cLb').title = lb.carpeta ? `${lb.carpeta} (${lb.edad})` : '';
   $('cLb').style.color = lb.horas > 24 ? 'var(--warn)' : '';
   $('cAl').classList.toggle('hidden', !e.anilist_user); $('cAlU').textContent = e.anilist_user || '';
+  ANILIST = !!e.anilist_user;
+  WEBS = ANILIST ? 'Dixmax, Letterboxd, Serializd y AniList' : 'Dixmax, Letterboxd y Serializd';
+  if (DATA && DATA.diferencias && !DATA.diferencias.length) pintar();  // el «Todo cuadra» con las webs que usas
+  if (e.anilist_dias != null && e.anilist_dias < 30)  // el permiso de AniList dura 1 año
+    $('cAlU').innerHTML = `${esc(e.anilist_user)} · <span class="warn">permiso: ${e.anilist_dias < 0 ? 'caducado' : 'caduca en ' + e.anilist_dias + ' días'} (Configuración → Conectar)</span>`;
   $('hstat').textContent = e.calculado ? `Última revisión: ${e.calculado}` : 'Sin revisar todavía';
   return e;
 }
@@ -206,7 +212,7 @@ async function cargarDiff() { DATA = await (await fetch('/api/diff')).json(); se
 const STAT_TXT = {dx_pelis_vistas: 'pelis vistas Dixmax', dx_pelis_pendientes: 'pelis pendientes Dixmax', dx_pelis_favoritas: 'pelis favoritas Dixmax',
   dx_series_terminadas: 'series terminadas', dx_series_siguiendo: 'series siguiendo', dx_series_pendientes: 'series pendientes',
   dx_series_favoritas: 'series favoritas', dx_episodios: 'episodios vistos', lb_vistas: 'vistas Letterboxd', lb_watchlist: 'watchlist Letterboxd',
-  lb_me_gusta: 'me gusta Letterboxd', lb_diario: 'diario Letterboxd', sz_diario: 'diario Serializd', sz_vistas: 'series vistas Serializd', sz_favoritas: '♥ Serializd', al_anime: 'anime en AniList'};
+  lb_me_gusta: 'me gusta Letterboxd', lb_diario: 'diario Letterboxd', sz_diario: 'diario Serializd', sz_vistas: 'series vistas Serializd', sz_favoritas: '♥ Serializd', al_anime: 'anime en AniList', al_favoritos: 'favoritos AniList'};
 async function historial() {
   const h = await (await fetch('/api/historial')).json();
   if (!h.length) { $('histT').innerHTML = '<div class="empty"><b>Sin revisiones todavía</b></div>'; return; }
@@ -246,7 +252,7 @@ function pintar() {
     Object.entries(cats).map(([c, n]) => `<span class="chip ${filtroCat === c ? 'on' : ''}" onclick='filtroCat=${JSON.stringify(c)};pintar()'>${esc(c)}<b>${n}</b></span>`).join('');
   const items = all.filter(d => (!filtroCat || d.categoria === filtroCat) && (!q || d.titulo.toLowerCase().includes(q)));
   if (!DATA.calculado && !all.length) { $('lista').innerHTML = `<div class="empty"><b>Aún no has revisado</b>Pulsa «Revisión rápida» (o «Completa» la primera vez).</div>`; return contar(); }
-  if (!all.length) { $('lista').innerHTML = `<div class="empty"><b>✓ Todo cuadra</b>Dixmax, Letterboxd y Serializd están sincronizados.</div>`; return contar(); }
+  if (!all.length) { $('lista').innerHTML = `<div class="empty"><b>✓ Todo cuadra</b>${esc(WEBS)} están sincronizados.</div>`; return contar(); }
   const g = {};
   items.forEach(d => (g[d.seccion + '|' + d.categoria] ??= []).push(d));
   $('lista').innerHTML = Object.entries(g).map(([k, lst]) => {
@@ -296,7 +302,7 @@ let runPoll = null;
 async function ejecutar(simulacion) {
   const acciones = elegidas();
   if (!acciones.length) return;
-  if (!simulacion && !confirm(`¿Aplicar ${acciones.length} acciones de verdad?\n\nSerializd y Dixmax se cambian directamente; para Letterboxd se genera el CSV.`)) return;
+  if (!simulacion && !confirm(`¿Aplicar ${acciones.length} acciones de verdad?\n\n${ANILIST ? 'Dixmax, Serializd y AniList' : 'Dixmax y Serializd'} se cambian directamente; para Letterboxd se genera el CSV.`)) return;
   await fetch('/api/run', {method: 'POST', body: JSON.stringify({acciones, simulacion})});
   seguirRun();
 }
