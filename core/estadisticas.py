@@ -118,7 +118,41 @@ def _episodios_reales(series, dur=lambda s: RT_SERIE, reales=(), falsas=()):
         if x[0]["t"] in reales:  # forzada, salvo en días de importación masiva (lo demás de ese día ya pasa de 16 h)
             return carga[_dia(x[3])] <= 16 * 60
         return x[0]["t"] not in falsas and carga[_dia(x[3])] <= 16 * 60
-    return [x for x in eps if vale(x)]
+
+    # Una tanda se marca al acabar: se reparte hacia atrás, encadenada con las tandas siguientes de la misma serie (sin
+    # solaparse), a un episodio cada duración × 0,6 (sin intro/outro, relleno saltado, 1,5x) y como mucho 16 h por día:
+    # 100 de One Piece marcados a las 15:20 caen en el día y medio anterior, no todos ese día.
+    out, por_serie = [], defaultdict(list)
+    for x in eps:
+        por_serie[x[0]["id"]].append(x)
+    for xs in por_serie.values():
+        xs.sort(key=lambda x: (x[3], x[1], x[2]))
+        grupos = []
+        for x in xs:
+            if grupos and grupos[-1][0][3].strftime("%Y%m%d%H%M") == x[3].strftime("%Y%m%d%H%M"):
+                grupos[-1].append(x)
+            else:
+                grupos.append([x])
+        cursor, usado = None, Counter()
+        for g in reversed(grupos):
+            fin = g[-1][3]
+            buenos = [x for x in g if vale(x)]
+            if len(g) <= 3:
+                out.extend(buenos)
+                cursor = fin if cursor is None else min(cursor, fin)
+                continue
+            if not buenos:
+                continue
+            m = dur(g[0][0]) * 0.6
+            t = fin if cursor is None else min(fin, cursor)
+            for x in reversed(buenos):
+                if usado[_dia(t)] + m > 16 * 60:  # ese día ya no da más de sí: a la noche anterior
+                    t = t - (t - t.replace(hour=6, minute=0, second=0)) % timedelta(days=1) - timedelta(hours=5)
+                out.append((x[0], x[1], x[2], t))
+                usado[_dia(t)] += m
+                t -= timedelta(minutes=m)
+            cursor = t
+    return out
 
 
 def _es(counter):
