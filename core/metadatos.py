@@ -17,6 +17,7 @@ from .http import call
 PELIS, PAISES, SERIES, ANIME = "meta_pelis.json", "meta_paises.json", "meta_series.json", "meta_anime.json"
 DINERO, DIXMAX, TVMAZE = "meta_dinero4.json", "meta_dixmax.json", "meta_tvmaze.json"
 V_DIXMAX = 2
+V_TVMAZE = 2
 V_PELI, V_ANIME = 2, 3  # al añadir campos se vuelven a pedir las fichas de esa versión
 
 
@@ -217,12 +218,13 @@ def fichas_dixmax(ids, progress=print):
 
 
 def tvmaze(tmdbs, progress=print):
-    """Popularidad (weight 0-100) y nota media de la gente en TVmaze, por IMDb (que da Wikidata). {tmdb: {w, r}}"""
+    """Popularidad (weight 0-100), nota media de la gente y reparto principal en TVmaze, por IMDb (que da Wikidata).
+    {tmdb: {v, w, r, cast}}"""
     c = cache_json(TVMAZE, {})
-    faltan = [str(t) for t in set(tmdbs) if t and str(t) not in c]
+    faltan = [str(t) for t in set(tmdbs) if t and (c.get(str(t)) or {}).get("v") != V_TVMAZE]
     if not faltan:
         return c
-    progress(f"Estadísticas: popularidad de {len(faltan)} series (TVmaze)…")
+    progress(f"Estadísticas: popularidad y reparto de {len(faltan)} series (TVmaze)…")
     imdb = {}
     for i in range(0, len(faltan), 100):
         q = ("SELECT ?t ?imdb WHERE { VALUES ?t {" + " ".join(f'"{t}"' for t in faltan[i:i + 100]) + "} "
@@ -240,14 +242,24 @@ def tvmaze(tmdbs, progress=print):
 
     def uno(t):
         if t not in imdb:
-            return t, None
-        time.sleep(0.6)  # TVmaze: 20 peticiones cada 10 s
+            return t, {"v": V_TVMAZE}
+        time.sleep(1.2)  # TVmaze: 20 peticiones cada 10 s (aquí van 2 por serie)
         s, d = call("GET", f"https://api.tvmaze.com/lookup/shows?imdb={imdb[t]}", delay=0, retries=2, timeout=30)
-        if s == 200 and isinstance(d, dict):
-            return t, {"w": d.get("weight"), "r": (d.get("rating") or {}).get("average")}
-        return t, None
+        if s != 200 or not isinstance(d, dict):
+            return t, ({"v": V_TVMAZE} if s == 404 else None)
+        out = {"v": V_TVMAZE, "w": d.get("weight"), "r": (d.get("rating") or {}).get("average"), "cast": []}
+        s2, cast = call("GET", f"https://api.tvmaze.com/shows/{d['id']}/cast", delay=0, retries=2, timeout=30)
+        if s2 == 200 and isinstance(cast, list):
+            vistos = []
+            for x in cast:  # reparto principal, en orden; sin repetir (hay actores con varios personajes)
+                n = (x.get("person") or {}).get("name")
+                if n and n not in vistos:
+                    vistos.append(n)
+            out["cast"] = vistos
+        return t, out
     with ThreadPoolExecutor(2) as ex:
         for t, d in ex.map(uno, faltan):
-            c[t] = d
+            if d is not None:
+                c[t] = d
     save_cache(TVMAZE, c)
     return c

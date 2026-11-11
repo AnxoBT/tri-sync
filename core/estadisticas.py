@@ -46,6 +46,23 @@ def _fecha(d):
     return f"{d.day} de {MESES[d.month - 1]} de {d.year}"
 
 
+def _dia(d):
+    """Día de visionado: lo de madrugada (antes de las 6) cuenta para el día anterior."""
+    return (d - timedelta(hours=6)).date()
+
+
+def _racha(dias):
+    """Días seguidos más largos de un conjunto de fechas: (n, último día)."""
+    dias = sorted(dias)
+    mejor = actual = 1
+    fin = dias[0]
+    for a, b in zip(dias, dias[1:]):
+        actual = actual + 1 if b - a == timedelta(days=1) else 1
+        if actual > mejor:
+            mejor, fin = actual, b
+    return mejor, fin
+
+
 def _n(x):
     return f"{x:,}".replace(",", ".")
 
@@ -342,8 +359,10 @@ def calcular(progress=print):
         rep, dire, gen, tem, red, ejs = Counter(), Counter(), Counter(), Counter(), Counter(), defaultdict(list)
         for s in lista:
             d, x = D(s), (A(s) if es_an else S(s))
-            personas = x.get("voces") if es_an and x.get("voces") else d.get("reparto", [])
-            for p in personas[:6]:
+            # anime: voces japonesas (AniList); series: reparto principal de TVmaze (Dixmax solo da 8 y deja fuera
+            # a gente como Giancarlo Esposito en Breaking Bad)
+            personas = (x.get("voces") or d.get("reparto", [])) if es_an else (TV(s).get("cast") or d.get("reparto", []))
+            for p in personas[:15]:
                 rep[p] += 1
                 ejs["r" + p].append(s["t"])
             for p in d.get("dir", [])[:2]:
@@ -378,7 +397,7 @@ def calcular(progress=print):
                         {"t": "Favoritas", "v": _n(len(favs))}, {"t": "Pendientes", "v": _n(sum(1 for s in todas if s["st"] == "watchlist"))}],
             "bloques": [
                 _bloque("rep", "Actores de doblaje que más oyes" if es_an else "Reparto que más ves", "barras", _barras(rep, 12, sb("r")),
-                        ("voz japonesa de los personajes principales (AniList)" if es_an else f"{nombre} en las que sale (Dixmax)"), c, dest=True),
+                        ("voz japonesa de los personajes principales (AniList)" if es_an else f"{nombre} en las que sale (reparto principal, TVmaze)"), c, dest=True),
                 _bloque("red", "Estudios" if es_an else "Cadenas y plataformas", "barras", _barras(red, 10, sb("c")), "", c, dest=True),
                 _bloque("gen", "Géneros", "barras", _barras(gen, 10), "", c),
                 _bloque("mas_eps", f"{nombre.capitalize()} con más episodios", "barras",
@@ -446,22 +465,6 @@ def calcular(progress=print):
 
     def cu(t, v, d="", c="dx"):
         cur.append({"t": t, "v": v, "d": d, "c": c})
-    if reales:
-        por_dia = defaultdict(list)
-        for s, _, _, d in reales:
-            por_dia[d.date()].append(s["t"])
-        dmax = max(por_dia, key=lambda k: len(por_dia[k]))
-        cu("Tu mayor maratón", f"{len(por_dia[dmax])} episodios", f"{_fecha(dmax)} · sobre todo {Counter(por_dia[dmax]).most_common(1)[0][0]}", "sz")
-        dias = sorted(por_dia)
-        mejor = actual = 1
-        fin = dias[0]
-        for a, c2 in zip(dias, dias[1:]):
-            actual = actual + 1 if c2 - a == timedelta(days=1) else 1
-            if actual > mejor:
-                mejor, fin = actual, c2
-        cu("Racha más larga", f"{mejor} días seguidos", f"viendo episodios, hasta el {_fecha(fin)}", "sz")
-        noche = sum(1 for _, _, _, d in reales if d.hour < 6)
-        cu("Noctámbulo", f"{round(100 * noche / len(reales))} %", "de los episodios los marcas entre las 0 y las 6", "sz")
     if diario:
         dd, nn = Counter(d for _, d, _ in diario).most_common(1)[0]
         if nn > 1:
@@ -499,41 +502,79 @@ def calcular(progress=print):
     vieja = min((m for m in vistas if str(m.get("y") or "").isdigit()), key=lambda m: int(m["y"]), default=None)
     if vieja:
         cu("La más antigua", tit(vieja), f"hace {datetime.now().year - int(vieja['y'])} años", "lb")
+    nueva = max((m for m in vistas if str(m.get("y") or "").isdigit()), key=lambda m: (int(m["y"]), m.get("r") or 0), default=None)
+    if nueva:
+        cu("La más reciente", tit(nueva), "la de estreno más nuevo que has visto", "lb")
     if idi:
         no_en = sum(v for k, v in idi.items() if k != "inglés")
         cu("Fuera del inglés", f"{round(100 * no_en / sum(idi.values()))} %", "de tus pelis; sobre todo en " + next((k for k, _ in idi.most_common() if k != "inglés"), "—"), "lb")
-    if ser:
-        s = max(ser, key=neps)
-        cu("Tu serie más larga", s["t"], f"{neps(s)} episodios vistos", "sz")
-        pop_s = [s for s in ser if TV(s).get("w") is not None]
-        if pop_s:
-            s = min(pop_s, key=lambda s: (TV(s)["w"], D(s).get("votos") or 0))
-            cu("Tu serie más de nicho", s["t"], f"popularidad {TV(s)['w']}/100 en TVmaze", "sz")
-    if ani:
-        s = max(ani, key=neps)
-        cu("Tu anime más largo", s["t"], f"{neps(s)} episodios vistos", "al")
-        pop_a = [s for s in ani if A(s).get("pop")]
-        if pop_a:
-            s = min(pop_a, key=lambda s: A(s)["pop"])
-            cu("Tu anime más de nicho", s["t"], f"solo {_n(A(s)['pop'])} personas lo tienen en AniList", "al")
-        voces = Counter(v for s in ani for v in (A(s).get("voces") or [])[:6])
-        if voces:
-            k, n = voces.most_common(1)[0]
-            cu("La voz que más oyes", k, f"en {n} animes", "al")
-    for k, c, nom in (("series", "sz", "serie"), ("anime", "al", "anime")):  # lo destacado de cada tipo, como tarjeta
-        bq = {x["id"]: x["datos"] for x in tipos[k]["bloques"]}
-        if bq.get("red"):
-            cu("Tu estudio" if k == "anime" else "Tu cadena", bq["red"][0]["k"], f"{bq['red'][0]['n']} {nom}s vistas" if k == "series" else f"{bq['red'][0]['n']} animes vistos", c)
+    def tarjetas_series(lista, es_an):
+        """Las mismas 16 tarjetas para series y para anime, cada una con lo suyo (sin mezclar)."""
+        c, nom, art = ("al", "anime", "un mismo anime") if es_an else ("sz", "serie", "una misma serie")
+        if not lista:
+            return
+        ids = {s["id"] for s in lista}
+        rr = [x for x in reales if x[0]["id"] in ids]
+        if rr:
+            por_dia = defaultdict(list)
+            for s, _, _, d in rr:
+                por_dia[_dia(d)].append(s["t"])
+            dmax = max(por_dia, key=lambda k: len(por_dia[k]))
+            cu("Tu mayor maratón", f"{len(por_dia[dmax])} episodios",
+               f"{_fecha(dmax)} · sobre todo {Counter(por_dia[dmax]).most_common(1)[0][0]}", c)
+            n, fin = _racha(por_dia)
+            cu("Racha más larga", f"{n} días seguidos", f"viendo {'algún anime' if es_an else 'alguna serie'} cada día, hasta el {_fecha(fin)}", c)
+            por_serie = defaultdict(set)
+            for s, _, _, d in rr:
+                por_serie[s["t"]].add(_dia(d))
+            t, (n, fin) = max(((t, _racha(v)) for t, v in por_serie.items()), key=lambda x: x[1][0])
+            cu(f"Racha con {art}", f"{n} días seguidos", f"con {t}, hasta el {_fecha(fin)}", c)
+            noche = sum(1 for _, _, _, d in rr if d.hour < 6)
+            cu("Noctámbulo", f"{round(100 * noche / len(rr))} %", f"de los episodios de {nom} los marcas entre las 0 y las 6", c)
+        # mes más intenso: aquí sí cuentan las marcas en tanda (no dicen el día exacto, pero sí el mes)
+        # (pero el mes tiene que tener marcas en 5 días distintos como mínimo: importar una serie entera de golpe no es un mes)
+        mes, dias_mes = Counter(), defaultdict(set)
+        for s in lista:
+            for _, _, f, aprox in s["eps"]:
+                d = _local(f)
+                if d and not aprox:
+                    mes[(s["t"], d.year, d.month)] += 1
+                    dias_mes[(s["t"], d.year, d.month)].add(d.day)
+        mes = [(k, n) for k, n in mes.most_common() if len(dias_mes[k]) >= 5]
+        if mes:
+            (t, y, m), n = mes[0]
+            cu("Tu mes más intenso", f"{_n(n)} episodios", f"de {t} en {MESES[m - 1]} de {y}", c)
+        s = max(lista, key=neps)
+        cu(f"Tu {nom} más larg{'o' if es_an else 'a'}", s["t"], f"{_n(neps(s))} episodios vistos", c)
+        bq = {x["id"]: x["datos"] for x in tipos["anime" if es_an else "series"]["bloques"]}
+        if bq.get("nicho"):
+            cu(f"Tu {nom} más de nicho", bq["nicho"][0]["k"], bq["nicho"][0]["v"], c)
         if bq.get("masivas"):
-            cu(f"El {nom} más popular que has visto" if k == "anime" else "La serie más popular que has visto", bq["masivas"][0]["k"], bq["masivas"][0]["v"], c)
+            cu(f"{'El anime' if es_an else 'La serie'} más popular que has visto", bq["masivas"][0]["k"], bq["masivas"][0]["v"], c)
+        if bq.get("red"):
+            cu("Tu estudio" if es_an else "Tu cadena", bq["red"][0]["k"], f"{bq['red'][0]['n']} {nom}s vist{'o' if es_an else 'a'}s", c)
+        if bq.get("rep"):
+            cu("La voz que más oyes" if es_an else "El actor que más ves", bq["rep"][0]["k"], f"en {bq['rep'][0]['n']} {nom}s", c)
+        if bq.get("gen"):
+            cu("Tu género", bq["gen"][0]["k"], f"en {bq['gen'][0]['n']} {nom}s", c)
         if bq.get("mas"):
             cu("Tu defensa más firme", bq["mas"][0]["k"], bq["mas"][0]["v"], c)
         if bq.get("menos"):
             cu("Tu crítica más dura", bq["menos"][0]["k"], bq["menos"][0]["v"], c)
+        con_y = [s for s in lista if str(s.get("y") or "").isdigit()]
+        if con_y:
+            v = min(con_y, key=lambda s: int(s["y"]))
+            cu(f"{'El' if es_an else 'La'} más antigu{'o' if es_an else 'a'}", f"{v['t']} ({v['y']})", f"se estrenó hace {datetime.now().year - int(v['y'])} años", c)
+            v = max(con_y, key=lambda s: (int(s["y"]), neps(s)))
+            cu(f"{'El' if es_an else 'La'} más recient{'e'}", f"{v['t']} ({v['y']})", "la de estreno más nuevo que has visto", c)
+        h = round((min_a if es_an else min_s) / 60)
+        cu(f"Horas de {nom}", f"{_n(h)} h", f"unos {_n(round(h / 24))} días seguidos", c)
+    tarjetas_series(ser, False)
+    tarjetas_series(ani, True)
     total_min = min_p + min_s + min_a
     cu("Frente a la pantalla", f"{_n(round(total_min / 60 / 24))} días", f"{_n(round(total_min / 60))} horas (aprox.)", "dx")
     if b["sz"].get("sz_diario"):
-        cu("Diario de Serializd", _n(b["sz"]["sz_diario"]), "registros de episodios y series", "sz")
+        cu("Diario de Serializd", _n(b["sz"]["sz_diario"]), "registros de episodios y series", "dx")
 
     notas_al = [v["r"] for v in b["al"].values() if v.get("r")]
     nota_al = (f"Notas de AniList: media {_media(notas_al):.1f} en {len(notas_al)} animes.") if notas_al else ""
