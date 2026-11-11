@@ -97,8 +97,6 @@ def _revisar(solo, rapida=False):
         t0 = datetime.now()
         res = diff.compute(progress=lambda m: JOB["mensajes"].append(m), solo=solo, rapida=rapida)
         res["calculado"] = datetime.now().strftime("%d/%m/%Y %H:%M")
-        if res.get("estadisticas"):
-            config.save_cache("estadisticas.json", res.pop("estadisticas"))
         novedades = res.pop("novedades", None)
         config.save_cache("diff.json", res)
         from collections import Counter
@@ -110,6 +108,8 @@ def _revisar(solo, rapida=False):
                      "detalle": [{"c": d["categoria"], "t": d["titulo"], "d": (d.get("detalle") or "")[:160]}
                                  for d in res["diferencias"][:300]]})
         config.save_cache(HIST, hist[-100:])
+        if solo is None:
+            lanzar_estadisticas()
     except Exception as e:  # token caducado, export que falta…
         JOB["error"] = str(e)
     finally:
@@ -125,6 +125,26 @@ def _dias_permiso_anilist():
         return (datetime.strptime(f, "%d/%m/%Y") - datetime.now()).days
     except ValueError:
         return None
+
+
+ESTAD = {"activo": False, "mensaje": "", "error": None}
+
+
+def lanzar_estadisticas():
+    """Calcula las estadísticas en segundo plano (la primera vez descarga fichas: tarda unos minutos)."""
+    if ESTAD["activo"]:
+        return
+    ESTAD.update(activo=True, mensaje="Empezando…", error=None)
+
+    def correr():
+        from core import estadisticas
+        try:
+            estadisticas.calcular(progress=lambda m: ESTAD.update(mensaje=m))
+        except Exception as e:
+            ESTAD["error"] = str(e)
+        finally:
+            ESTAD["activo"] = False
+    threading.Thread(target=correr, daemon=True).start()
 
 
 def _probar():
@@ -208,7 +228,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/logo.svg":
             return self._send(200, (WEB / "logo.svg").read_bytes(), "image/svg+xml")
         if self.path == "/api/estadisticas":
-            return self._send(200, config.cache_json("estadisticas.json", {}))
+            return self._send(200, {"datos": config.cache_json("estadisticas.json", {}), "job": ESTAD})
+        if self.path == "/mundo.json":
+            return self._send(200, (WEB / "mundo.json").read_bytes(), "application/json; charset=utf-8")
         if self.path == "/api/historial":
             return self._send(200, list(reversed(config.cache_json(HIST, []))))
         if self.path == "/api/run":
@@ -280,6 +302,9 @@ class Handler(BaseHTTPRequestHandler):
             config.guardar_config({"ANILIST_TOKEN": b["access_token"], "ANILIST_USER": yo["name"],
                                    "ANILIST_EXPIRA": caduca.strftime("%d/%m/%Y")})
             return self._send(200, {"ok": True, "usuario": yo["name"]})
+        if self.path == "/api/estadisticas":
+            lanzar_estadisticas()
+            return self._send(200, {"ok": True})
         if self.path == "/api/cancelar":
             RUN["cancelar"] = True
             return self._send(200, {"ok": True})
@@ -323,7 +348,7 @@ def _vigilante():
         for k, t in list(PESTANAS.items()):
             if ahora - t > PERDIDA_S:
                 PESTANAS.pop(k, None)
-        ocupado = JOB["activo"] or RUN["activo"]
+        ocupado = JOB["activo"] or RUN["activo"] or ESTAD["activo"]
         if not PESTANAS and not ocupado and ahora - LATIDO["t"] > GRACIA_S:
             print("Pestaña cerrada: apagando Tri-Sync")
             apagar()

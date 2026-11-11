@@ -284,8 +284,8 @@ def compute(progress=print, solo=None, rapida=False):
     if solo is None:  # estadísticas y novedades solo con la revisión entera
         from . import estadisticas
         try:
-            res["estadisticas"] = estadisticas.calcular(dx, lb, STATS, dx.get("al_lista"), dx.get("anime_ids"))
-            res["novedades"] = estadisticas.novedades(dx, dx.get("al_lista"))
+            estadisticas.guardar_base(dx, lb, STATS)  # las estadísticas se calculan luego, en segundo plano
+            res["novedades"] = estadisticas.novedades(dx)
         except Exception as e:  # una curiosidad que falle no debe tumbar la revisión
             progress(f"Estadísticas: no se pudieron calcular ({e})")
     return res

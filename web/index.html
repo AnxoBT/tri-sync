@@ -96,7 +96,7 @@
   table.hist tr.fila { cursor:pointer; } table.hist tr.fila:hover td { background:var(--panel2); }
   table.hist tr.det td { background:var(--panel); color:var(--muted); font-size:12.5px; }
   table.hist tr.det ul { margin:4px 0 10px; padding-left:18px; } table.hist tr.det b { color:var(--text); }
-  .stiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
+  .stiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:18px; }
   .stile { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; border-top:3px solid var(--line); }
   .stile .t { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
   .stile .v { font-size:28px; font-weight:700; margin:2px 0; font-variant-numeric:tabular-nums; } .stile .s { color:var(--muted); font-size:12px; }
@@ -115,7 +115,18 @@
   .hbars .r span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
   .curios { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:6px 16px; margin:18px 0; }
   .curios p { margin:10px 0; }
-  .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:4px 8px; font-size:12px; z-index:50; display:none; }
+  .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:5px 9px; font-size:12px; z-index:50; display:none; white-space:pre-line; max-width:340px; box-shadow:0 4px 14px rgba(0,0,0,.4); }
+  .chart.ancho { grid-column:1 / -1; }
+  .mapa { width:100%; height:auto; display:block; margin-top:10px; cursor:grab; touch-action:none; border-radius:8px; background:var(--bg); }
+  .mapa path { stroke:var(--bg); stroke-width:.5; } .mapa path:hover, .mapa circle:hover { stroke:#fff; stroke-width:1; }
+  .leyenda { display:flex; gap:16px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:8px; }
+  .leyenda i { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-2px; margin-right:5px; }
+  button.mini { padding:3px 9px; font-size:12px; }
+  .calor { display:grid; grid-template-columns:44px repeat(24, minmax(0,1fr)); gap:2px; margin-top:12px; font-size:10.5px; color:var(--muted); }
+  .calor .c { aspect-ratio:1.6; border-radius:3px; } .calor .c:hover { outline:1px solid #fff; } .calor .h { text-align:center; align-self:center; }
+  .anio2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; } @media (max-width:760px) { .anio2 { grid-template-columns:1fr; } }
+  .stjob { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:10px 14px; margin-bottom:12px; color:var(--muted); }
+  #vStats .chips { margin-top:10px; }
   .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
   .hidden { display:none !important; }
   @media (max-width:760px) { .cards { grid-template-columns:1fr; } .row { grid-template-columns:1fr; } .seg { justify-content:flex-start; } .cfg { grid-template-columns:1fr; } .hstat { display:none; } }
@@ -276,31 +287,133 @@ function detalleHist(tr, i) {
 }
 
 // ---------- estadísticas ----------
+// colores por tipo: pelis = celeste (Letterboxd), series = verde (Serializd), anime = azul (AniList), todo = naranja (Dixmax)
+const TIPO = {todo: ['Todo', 'dx'], pelis: ['Películas', 'lb'], series: ['Series', 'sz'], anime: ['Anime', 'al']};
+let ST = null, MAPA_TIPO = 'todo', ANIO = null, MUNDO = null, stPoll = null;
+const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
+const nfmt = n => Number(n).toLocaleString('es-ES');
+const mezcla = (c, t) => `color-mix(in oklab, var(--${c}) ${Math.round(12 + 88 * t)}%, var(--panel2))`;
+const sec = (titulo, nota, html, ancho) => `<div class="chart${ancho ? ' ancho' : ''}"><h4>${esc(titulo)}</h4>${nota ? `<div class="nota">${esc(nota)}</div>` : ''}${html}</div>`;
+
 async function estadisticas() {
-  const s = await (await fetch('/api/estadisticas')).json();
-  if (!s.resumen) { $('statsT').innerHTML = '<div class="empty"><b>Aún no hay estadísticas</b>Haz una revisión (rápida o completa) y aparecerán aquí.</div>'; return; }
-  const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
-  const col = c => `var(--${c})`;
-  const graf = g => {
-    const max = Math.max(1, ...g.datos.map(d => d[1]));
-    if (g.horizontal) return `<div class="chart"><h4>${esc(g.titulo)}</h4>${g.nota ? `<div class="nota">${esc(g.nota)}</div>` : ''}<div class="hbars">` +
-      g.datos.map(([k, v]) => `<div class="r" data-tip="${esc(k)}: ${v}"><span>${esc(k)}</span><i style="width:${100 * v / max}%;background:${col(g.c)}"></i><span>${v}</span></div>`).join('') + '</div></div>';
-    const cada = Math.ceil(g.datos.length / 12);  // como mucho ~12 etiquetas en el eje
-    return `<div class="chart"><h4>${esc(g.titulo)}</h4>${g.nota ? `<div class="nota">${esc(g.nota)}</div>` : ''}<div class="vbars">` +
-      g.datos.map(([k, v]) => `<div class="b" data-tip="${esc(k)}: ${v}"><i style="height:${100 * v / max}%;background:${col(g.c)}"></i></div>`).join('') +
-      `</div><div class="vlab">` + g.datos.map(([k], i) => `<span>${i % cada ? '' : esc(k)}</span>`).join('') + '</div></div>';
-  };
-  $('statsT').innerHTML = `<div class="stiles">` + s.resumen.map(r => `<div class="stile ${r.c}"><div class="t">${esc(r.t)}</div><div class="v">${esc(r.v)}</div><div class="s">${esc(r.s)}</div></div>`).join('') + '</div>' +
+  const r = await (await fetch('/api/estadisticas')).json();
+  ST = r.datos && r.datos.resumen ? r.datos : null;
+  const job = r.job || {};
+  const barra = job.activo ? `<div class="stjob">⏳ ${esc(job.mensaje || 'Calculando…')}</div>` : job.error ? `<div class="stjob bad">No se pudieron calcular: ${esc(job.error)}</div>` : '';
+  clearTimeout(stPoll);
+  if (job.activo) stPoll = setTimeout(() => { if (!$('vStats').classList.contains('hidden')) estadisticas(); }, 2500);
+  if (!ST) { $('statsT').innerHTML = barra + '<div class="empty"><b>Aún no hay estadísticas</b>Haz una revisión (rápida o completa): se calculan solas después. La primera vez tardan unos minutos en descargar las fichas de cada título.</div>'; return; }
+  if (job.activo && $('statsT').dataset.listo) { $('stjobBox').innerHTML = barra; return; }  // no repintar mientras se calcula
+  const s = ST;
+  const anios = Object.keys(s.anios || {});
+  if (!ANIO || !s.anios[ANIO]) ANIO = anios[anios.length - 1];
+  $('statsT').dataset.listo = 1;
+  $('statsT').innerHTML = `<div id="stjobBox">${barra}</div>` +
+    `<div class="stiles">` + s.resumen.map(x => `<div class="stile ${x.c}"><div class="t">${esc(x.t)}</div><div class="v">${esc(x.v)}</div><div class="s">${esc(x.s)}</div></div>`).join('') + '</div>' +
+    `<div class="charts">` +
+      sec('¿De dónde es lo que ves?', 'país de origen · rueda para acercar, arrastra para moverte, doble clic para volver', `<div class="chips" id="mapaTipos"></div><div id="mapaBox"></div>`, true) +
+      (anios.length ? sec('Tu año', '', `<div class="chips" id="anioChips"></div><div id="anioBox"></div>`, true) : '') +
+      sec('¿Cuándo ves series?', 'episodios por día y hora en que los marcaste (sin los marcados de golpe)', calor(s.semana), true) +
+      lista('Directores que más ves', 'películas', s.tops.directores, 'lb') +
+      lista('Actores que más te encuentras', 'películas (5 primeros del reparto)', s.tops.actores, 'lb') +
+      lista('Estudios', 'películas y anime', s.tops.estudios, 'dx') +
+      lista('Sagas y franquicias', 'películas vistas de cada colección', s.tops.sagas, 'lb') +
+      lista('Cadenas y plataformas', 'series (sin anime)', s.tops.cadenas, 'sz') +
+      lista('Idiomas de las películas', 'idioma original', s.tops.idiomas, 'lb') +
+      lista('Géneros de películas', '', s.tops.generos_pelis, 'lb') +
+      lista('Géneros de series', '', s.tops.generos_series, 'sz') +
+      lista('Géneros de anime', '', s.tops.generos_anime, 'al') +
+      s.graficos.map(grafico).join('') +
+    `</div>` +
     (s.curiosidades.length ? `<div class="curios"><h4 style="margin:10px 0 0">Curiosidades</h4>${s.curiosidades.map(c => `<p>${md(c)}</p>`).join('')}</div>` : '') +
-    `<div class="charts">${s.graficos.map(graf).join('')}</div>` +
-    `<p style="color:var(--muted);font-size:12px;margin-top:14px">Calculado en la revisión del ${esc(s.calculado)}.</p>`;
+    `<p style="color:var(--muted);font-size:12px;margin-top:14px">Con los datos de la revisión del ${esc(s.calculado)} · <a href="#" onclick="recalcular();return false">recalcular</a></p>`;
+  $('mapaTipos').innerHTML = Object.entries(TIPO).map(([k, [t]]) => `<span class="chip ${k === MAPA_TIPO ? 'on' : ''}" onclick="MAPA_TIPO='${k}';pintaMapaTipos();pintaMapa()">${t}<b>${Object.keys(s.mapa[k] || {}).length}</b></span>`).join('');
+  pintaMapa();
+  if (anios.length) pintaAnio();
+}
+function pintaMapaTipos() { document.querySelectorAll('#mapaTipos .chip').forEach((c, i) => c.classList.toggle('on', Object.keys(TIPO)[i] === MAPA_TIPO)); }
+async function recalcular() { await fetch('/api/estadisticas', {method: 'POST'}); $('statsT').dataset.listo = ''; estadisticas(); }
+
+function lista(titulo, nota, xs, c) {
+  if (!xs || !xs.length) return '';
+  const max = Math.max(...xs.map(x => x.n));
+  return sec(titulo, nota, `<div class="hbars">` + xs.map(x => `<div class="r" data-tip="${esc(x.k)}: ${x.n}${x.e && x.e.length ? '\n' + esc(x.e.join(' · ')) : ''}"><span>${esc(x.k)}</span><i style="width:${100 * x.n / max}%;background:var(--${c})"></i><span>${x.n}</span></div>`).join('') + '</div>');
+}
+function grafico(g) {
+  const max = Math.max(1, ...g.datos.map(d => d[1]));
+  if (g.horizontal) return lista(g.titulo, g.nota, g.datos.map(([k, n]) => ({k, n})), g.c);
+  const cada = Math.ceil(g.datos.length / 12);  // como mucho ~12 etiquetas en el eje
+  return sec(g.titulo, g.nota, `<div class="vbars">` + g.datos.map(([k, v]) => `<div class="b" data-tip="${esc(k)}: ${nfmt(v)}"><i style="height:${100 * v / max}%;background:var(--${g.c})"></i></div>`).join('') +
+    `</div><div class="vlab">` + g.datos.map(([k], i) => `<span>${i % cada ? '' : esc(k)}</span>`).join('') + '</div>');
+}
+function calor(m) {
+  const max = Math.max(1, ...m.flat()), dias = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+  return `<div class="calor"><div></div>${[...Array(24).keys()].map(h => `<div class="h">${h % 3 ? '' : h + 'h'}</div>`).join('')}` +
+    m.map((fila, d) => `<div class="h" style="text-align:right;padding-right:6px">${dias[d]}</div>` + fila.map((v, h) =>
+      `<div class="c" data-tip="${dias[d]} ${h}:00–${h + 1}:00: ${v} episodios" style="background:${v ? mezcla('sz', v / max) : 'var(--panel2)'}"></div>`).join('')).join('') + '</div>';
+}
+function pintaAnio() {
+  const s = ST, anios = Object.keys(s.anios), a = s.anios[ANIO];
+  $('anioChips').innerHTML = anios.map(y => `<span class="chip ${y === ANIO ? 'on' : ''}" onclick="ANIO='${y}';pintaAnio()">${y}</span>`).join('');
+  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'], mx = Math.max(1, ...a.meses);
+  const dato = (v, t, c) => `<div class="stile ${c}" style="padding:10px"><div class="t">${t}</div><div class="v" style="font-size:22px">${v}</div></div>`;
+  $('anioBox').innerHTML = `<div class="stiles" style="margin:12px 0">` + dato(nfmt(a.pelis), 'películas', 'lb') + dato(nfmt(a.episodios), 'episodios', 'sz') +
+    dato(a.series, 'series con episodios', 'sz') + dato(a.series_nuevas, 'series empezadas', 'sz') + '</div>' +
+    `<div class="anio2"><div><div class="nota">Pelis + episodios por mes</div><div class="vbars" style="height:110px">` +
+    a.meses.map((v, i) => `<div class="b" data-tip="${meses[i]} ${ANIO}: ${v}"><i style="height:${100 * v / mx}%;background:var(--dx)"></i></div>`).join('') +
+    `</div><div class="vlab">${meses.map(m => `<span>${m}</span>`).join('')}</div></div><div>` +
+    (a.top_series.length ? `<div class="nota">Series que más viste</div><div class="hbars">` + a.top_series.map(x => `<div class="r"><span>${esc(x.k)}</span><i style="width:${100 * x.n / a.top_series[0].n}%;background:var(--sz)"></i><span>${x.n}</span></div>`).join('') + '</div>' : '') +
+    `<p class="nota" style="margin-top:10px">${a.mejor_peli ? `⭐ Mejor nota del año: <b>${esc(a.mejor_peli)}</b><br>` : ''}${a.primera ? `▶ Primera peli: ${esc(a.primera)}<br>⏹ Última: ${esc(a.ultima)}` : ''}</p></div></div>`;
+}
+
+async function pintaMapa() {
+  MUNDO = MUNDO || await (await fetch('/mundo.json')).json();
+  const datos = ST.mapa[MAPA_TIPO] || {}, c = TIPO[MAPA_TIPO][1];
+  const max = Math.max(1, ...Object.values(datos).map(p => p.n)), L = Math.log1p(max);
+  const color = n => mezcla(c, 0.15 + 0.85 * Math.log1p(n) / L);
+  const NS = 'http://www.w3.org/2000/svg', sv = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const M = 8, base = {x: -M, y: -M, w: MUNDO.w + 2 * M, h: MUNDO.h + 2 * M};
+  const g = sv('svg', {viewBox: `${base.x} ${base.y} ${base.w} ${base.h}`, class: 'mapa'});
+  const puntos = [];
+  for (const m of MUNDO.paises) {
+    const d = datos[m.c];
+    const tip = d ? `${m.n}: ${d.n} título${d.n > 1 ? 's' : ''}\n${d.top.join(' · ')}` : `${m.n}: nada`;
+    if (m.d) { const p = sv('path', {d: m.d, fill: d ? color(d.n) : 'var(--panel2)', 'vector-effect': 'non-scaling-stroke'}); p.dataset.tip = tip; g.append(p); }
+    if (m.p && (d || !m.d)) {
+      const r = d ? 3.2 : 1.4, ci = sv('circle', {cx: m.p[0], cy: m.p[1], r, fill: d ? color(d.n) : '#3a444e', 'vector-effect': 'non-scaling-stroke'});
+      ci.dataset.r = r; ci.dataset.tip = tip; puntos.push(ci); g.append(ci);
+    }
+  }
+  let vb = {...base};
+  const aplicar = () => { const z = base.w / vb.w; g.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); puntos.forEach(p => p.setAttribute('r', p.dataset.r / Math.sqrt(z))); };
+  const limitar = () => { vb.w = Math.min(base.w, Math.max(base.w / 12, vb.w)); vb.h = vb.w * base.h / base.w;
+    vb.x = Math.min(base.x + base.w - vb.w, Math.max(base.x, vb.x)); vb.y = Math.min(base.y + base.h - vb.h, Math.max(base.y, vb.y)); };
+  const zoom = (f, cx = .5, cy = .5) => { const nw = vb.w / f, nh = vb.h / f; vb = {x: vb.x + (vb.w - nw) * cx, y: vb.y + (vb.h - nh) * cy, w: nw, h: nh}; limitar(); aplicar(); };
+  g.addEventListener('wheel', ev => { ev.preventDefault(); const r = g.getBoundingClientRect(); zoom(ev.deltaY < 0 ? 1.25 : 0.8, (ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height); }, {passive: false});
+  let arr = null;
+  g.addEventListener('pointerdown', ev => { arr = {x: ev.clientX, y: ev.clientY, vb: {...vb}}; g.setPointerCapture(ev.pointerId); g.style.cursor = 'grabbing'; });
+  g.addEventListener('pointermove', ev => { if (!arr) return; const r = g.getBoundingClientRect();
+    vb.x = arr.vb.x - (ev.clientX - arr.x) * vb.w / r.width; vb.y = arr.vb.y - (ev.clientY - arr.y) * vb.h / r.height; limitar(); aplicar(); });
+  const soltar = () => { arr = null; g.style.cursor = 'grab'; };
+  g.addEventListener('pointerup', soltar); g.addEventListener('pointercancel', soltar);
+  g.addEventListener('dblclick', () => { vb = {...base}; aplicar(); });
+  const grad = `linear-gradient(90deg, ${[0, .25, .5, .75, 1].map(t => mezcla(c, 0.15 + 0.85 * t)).join(',')})`;
+  const top = Object.entries(datos).sort((a, b) => b[1].n - a[1].n).slice(0, 8);
+  const nombre = k => (MUNDO.paises.find(p => p.c === k) || {}).n || k;
+  $('mapaBox').innerHTML = '';
+  $('mapaBox').append(g);
+  $('mapaBox').insertAdjacentHTML('beforeend', `<div class="leyenda"><span><i style="background:var(--panel2);border:1px solid var(--line)"></i>nada</span>
+    <span>1 <b style="display:inline-block;width:140px;height:10px;border-radius:5px;vertical-align:-1px;background:${grad}"></b> ${nfmt(max)}</span>
+    <span style="margin-left:auto"><button class="mini" onclick="this.closest('.chart').querySelector('svg').dispatchEvent(new MouseEvent('dblclick'))">mundo entero</button></span></div>
+    <div class="nota" style="margin-top:6px">${top.map(([k, v]) => `${esc(nombre(k))} ${nfmt(v.n)}`).join(' · ')}</div>`);
 }
 const TIP = document.createElement('div'); TIP.className = 'tip'; document.body.appendChild(TIP);
 document.addEventListener('mousemove', e => {
   const t = e.target.closest && e.target.closest('[data-tip]');
   if (!t) { TIP.style.display = 'none'; return; }
   TIP.textContent = t.dataset.tip; TIP.style.display = 'block';
-  TIP.style.left = (e.clientX + 12) + 'px'; TIP.style.top = (e.clientY - 28) + 'px';
+  const w = TIP.offsetWidth;
+  TIP.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + 'px'; TIP.style.top = (e.clientY + 16) + 'px';
 });
 
 async function revisar(modo) {

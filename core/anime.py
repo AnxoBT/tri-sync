@@ -208,6 +208,7 @@ def diferencias(dx, progress=print):
         if s["status"] == "finished" and all(n for _, _, n in partes) and vistos != total:
             aviso = f"⚠ revisa: en Dixmax hay {vistos} episodios y AniList cuenta {total}"
         des = _deseado_serie(s, partes)
+        dx.setdefault("anime_al", {})[s["id"]] = min(partes, key=lambda p: med[str(p[0])]["inicio"])[0]
         if s.get("favorite") or s["tmdb"] in dx.get("sz_favs", set()):
             # favorita en Dixmax o ♥ en Serializd: en AniList se marca la primera temporada
             primera = min(partes, key=lambda p: med[str(p[0])]["inicio"])[0]
