@@ -191,20 +191,25 @@ def calcular(progress=print):
     min_a = sum((A(s).get("rt") or D(s).get("dur") or RT_ANIME) * neps(s) for s in ani)
     eps_s, eps_a = sum(map(neps, ser)), sum(map(neps, ani))
 
-    # ---------- mapa: país principal de producción (Dixmax; si no lo da, Wikidata cuando hay uno solo) ----------
+    # ---------- mapa: país principal de producción ----------
+    # pelis: Dixmax (criterio FilmAffinity/TMDB); si no lo da, Wikidata cuando hay uno solo.
+    # anime: AniList (countryOfOrigin; Dixmax pone Japón a donghuas como To Be Hero X).
+    # series: país de origen de TMDB (Dixmax a veces pone el de rodaje: See, El simpatizante → Canadá).
     nombres = _paises_es()
 
     def pais(x, peli):
-        iso = nombres.get(_norm(D(x).get("pais") or ""))
-        if iso:
-            return iso
+        dx = nombres.get(_norm(D(x).get("pais") or ""))
         if peli:
+            if dx:
+                return dx
             w = pp.get(str(x["tmdb"])) or []
             return w[0] if len(set(w)) == 1 else None
         if es_anime(x):
-            return A(x).get("pais")
+            return A(x).get("pais") or dx
         w = S(x).get("pais") or []
-        return w[0] if w else None
+        if len(w) == 1 or (w and dx not in w):
+            return w[0]
+        return dx
     ESTADOS = ("vistas", "terminadas", "siguiendo", "pendientes", "favoritas", "todas")
     mapa = {k: {e: defaultdict(lambda: {"n": 0, "top": Counter()}) for e in ESTADOS} for k in ("todo", "pelis", "series", "anime")}
 
