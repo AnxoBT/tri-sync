@@ -142,7 +142,7 @@
   .calor { display:grid; grid-template-columns:44px repeat(24, minmax(0,1fr)); gap:2px; margin-top:12px; font-size:10.5px; color:var(--muted); }
   .calor .c { aspect-ratio:1.6; border-radius:3px; } .calor .c:hover { outline:1px solid #fff; } .calor .h { text-align:center; align-self:center; }
   .anio2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; } @media (max-width:760px) { .anio2 { grid-template-columns:1fr; } }
-  #vStats .chart .chips { margin-top:10px; }
+  #vStats .chart .chips { margin-top:10px; } #mapaEst { margin-top:6px; } #mapaEst .chip { font-size:12px; padding:3px 9px; }
   .stjob { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:10px 14px; margin-bottom:12px; color:var(--muted); }
   .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
   .hidden { display:none !important; }
@@ -306,9 +306,11 @@ function detalleHist(tr, i) {
 // ---------- estadísticas ----------
 // colores por tipo: pelis = celeste (Letterboxd), series = verde (Serializd), anime = azul (AniList), todo = naranja (Dixmax)
 const TIPO = {todo: ['Todo', 'dx'], pelis: ['Películas', 'lb'], series: ['Series', 'sz'], anime: ['Anime', 'al']};
-let ST = null, VISTA = 'todo', MAPA_TIPO = 'todo', ANIO = null, MUNDO = null, stPoll = null;
+let ST = null, VISTA = 'todo', MAPA_TIPO = 'todo', MAPA_EST = 'vistas', ANIO = null, MUNDO = null, stPoll = null;
 const nfmt = n => Number(n).toLocaleString('es-ES');
 const mezcla = (c, t) => `color-mix(in oklab, var(--${c}) ${Math.round(12 + 88 * t)}%, var(--panel2))`;
+const ESTADOS = {vistas: 'Vistas o empezadas', terminadas: 'Terminadas', siguiendo: 'Siguiendo', pendientes: 'Pendientes', favoritas: 'Favoritas', todas: 'Todo'};
+const estadosDe = t => t === 'pelis' ? ['vistas', 'pendientes', 'favoritas', 'todas'] : Object.keys(ESTADOS);
 const tarjeta = (titulo, nota, html, ancho = 1, extra = '') => `<div class="chart a${ancho}"${extra}><h4>${esc(titulo)}</h4>${nota ? `<div class="nota">${esc(nota)}</div>` : ''}${html}</div>`;
 
 async function estadisticas() {
@@ -317,7 +319,7 @@ async function estadisticas() {
   const barra = job.activo ? `<div class="stjob">⏳ ${esc(job.mensaje || 'Calculando…')}</div>` : job.error ? `<div class="stjob bad">No se pudieron calcular: ${esc(job.error)}</div>` : '';
   clearTimeout(stPoll);
   if (job.activo) stPoll = setTimeout(() => { if (!$('vStats').classList.contains('hidden')) estadisticas(); }, 2500);
-  const nuevo = r.datos && r.datos.tipos ? r.datos : null;
+  const nuevo = r.datos && r.datos.tipos && r.datos.mapa && r.datos.mapa.todo && r.datos.mapa.todo.vistas ? r.datos : null;
   if (!nuevo) { $('statsT').innerHTML = barra + '<div class="empty"><b>Aún no hay estadísticas</b>Haz una revisión (rápida o completa): se calculan solas después. La primera vez tardan unos minutos en descargar las fichas de cada título.</div>'; return; }
   if (ST && job.activo) { $('stjobBox').innerHTML = barra; return; }  // no repintar mientras se calcula
   ST = nuevo;
@@ -342,8 +344,8 @@ function pintaStats() {
           <b>${nom}</b><span>${esc(t.resumen[0].v)} · ${esc((t.resumen.find(x => x.t === 'Horas') || {}).v || '')} h</span><a>ver todo →</a></div>` +
         t.bloques.filter(b => b.dest).map(b => bloque(b, 1)).join('') + '</div>';
     }).join('') + '</div>';
-    h += `<div class="grid3">` + tarjeta('¿De dónde es lo que ves?', 'país de origen · rueda para acercar, arrastra para moverte, doble clic para volver',
-      `<div class="chips" id="mapaTipos"></div><div id="mapaBox"></div>`, 3);
+    h += `<div class="grid3">` + tarjeta('¿De dónde es lo que ves?', 'país principal de producción · rueda para acercar, arrastra para moverte, doble clic para volver',
+      `<div class="chips" id="mapaTipos"></div><div class="chips" id="mapaEst"></div><div id="mapaBox"></div>`, 3);
     const anios = Object.keys(s.anios || {});
     if (anios.length) h += tarjeta('Tu año', '', `<div class="chips" id="anioChips"></div><div id="anioBox"></div>`, 3);
     h += tarjeta('¿Cuándo ves series y anime?', 'episodios por día y hora en que los marcaste (sin los marcados de golpe)', calor(s.semana), 3) + '</div>';
@@ -353,18 +355,25 @@ function pintaStats() {
     h += curiosidades(mezcla16);
   } else {
     h += tiles(T.resumen, c);
-    h += `<div class="grid3">` + tarjeta('¿De dónde es?', 'país de origen · rueda para acercar, arrastra para moverte', `<div id="mapaBox"></div>`, 2) +
+    h += `<div class="grid3">` + tarjeta('¿De dónde es?', 'país principal de producción · rueda para acercar, arrastra para moverte', `<div class="chips" id="mapaEst"></div><div id="mapaBox"></div>`, 2) +
       T.bloques.map(b => bloque(b, b.ancho)).join('') + '</div>';
     h += curiosidades(s.curiosidades.filter(x => x.c === c));
   }
   h += `<div class="avisos">${(s.avisos || []).map(a => `<div>${esc(a)}</div>`).join('')}
     <div>Con los datos de la revisión del ${esc(s.calculado)} · <a href="#" onclick="recalcular();return false">recalcular</a></div></div>`;
   $('stCuerpo').innerHTML = h;
-  if (!T) $('mapaTipos').innerHTML = Object.entries(TIPO).map(([k, [t]]) => `<span class="chip ${k === MAPA_TIPO ? 'on' : ''}" onclick="MAPA_TIPO='${k}';pintaMapaTipos();pintaMapa()">${t}<b>${Object.keys(s.mapa[k] || {}).length}</b></span>`).join('');
+  pintaMapaChips();
   pintaMapa();
   if (!T && Object.keys(s.anios || {}).length) pintaAnio();
 }
-function pintaMapaTipos() { document.querySelectorAll('#mapaTipos .chip').forEach((c, i) => c.classList.toggle('on', Object.keys(TIPO)[i] === MAPA_TIPO)); }
+function pintaMapaChips() {
+  const m = ST.mapa, n = (k, e) => Object.keys((m[k] || {})[e] || {}).length;
+  if (!estadosDe(MAPA_TIPO).includes(MAPA_EST)) MAPA_EST = 'vistas';
+  if ($('mapaTipos')) $('mapaTipos').innerHTML = Object.entries(TIPO).map(([k, [t]]) =>
+    `<span class="chip ${k === MAPA_TIPO ? 'on' : ''}" onclick="MAPA_TIPO='${k}';pintaMapaChips();pintaMapa()">${t}<b>${n(k, MAPA_EST)}</b></span>`).join('');
+  $('mapaEst').innerHTML = estadosDe(MAPA_TIPO).map(e =>
+    `<span class="chip ${e === MAPA_EST ? 'on' : ''}" onclick="MAPA_EST='${e}';pintaMapaChips();pintaMapa()">${e === 'vistas' && MAPA_TIPO === 'pelis' ? 'Vistas' : ESTADOS[e]}<b>${n(MAPA_TIPO, e)}</b></span>`).join('');
+}
 
 function bloque(b, ancho) {
   let html = '';
@@ -409,7 +418,7 @@ function pintaAnio() {
 
 async function pintaMapa() {
   MUNDO = MUNDO || await (await fetch('/mundo.json')).json();
-  const datos = ST.mapa[MAPA_TIPO] || {}, c = TIPO[MAPA_TIPO][1];
+  const datos = (ST.mapa[MAPA_TIPO] || {})[MAPA_EST] || {}, c = TIPO[MAPA_TIPO][1];
   const max = Math.max(1, ...Object.values(datos).map(p => p.n)), L = Math.log1p(max);
   const color = n => mezcla(c, 0.15 + 0.85 * Math.log1p(n) / L);
   const NS = 'http://www.w3.org/2000/svg', sv = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; };

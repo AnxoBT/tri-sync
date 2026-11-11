@@ -94,6 +94,25 @@ def _es(counter):
     return out
 
 
+def _norm(s):
+    import unicodedata
+    return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower().strip()
+
+
+def _paises_es():
+    import json
+    from .config import ROOT
+    m = json.loads((ROOT / "web" / "mundo.json").read_text(encoding="utf-8"))
+    d = {_norm(p["n"]): p["c"] for p in m["paises"]}
+    # nombres que Dixmax escribe distinto
+    d.update({_norm(k): v for k, v in {"Estados Unidos": "US", "Reino Unido": "GB", "Corea del Sur": "KR", "Rusia": "RU",
+                                        "Irán": "IR", "Unión Soviética": "RU", "URSS": "RU", "Alemania del Oeste (RFA)": "DE",
+                                        "Alemania del Este (RDA)": "DE", "Checoslovaquia": "CZ", "Yugoslavia": "RS",
+                                        "Hong Kong": "HK", "Taiwán": "TW", "República Checa": "CZ", "Chequia": "CZ",
+                                        "Unión Soviética (URSS)": "RU", "Paquistán": "PK", "Emiratos Árabes": "AE"}.items()})
+    return d
+
+
 def _top(counter, n=15, ejemplos=None):
     return [{"k": k, "n": v, "e": (ejemplos or {}).get(k, [])[:5]} for k, v in counter.most_common(n)]
 
@@ -137,49 +156,76 @@ def calcular(progress=print):
         return None
     pelis, series, lbf = b["pelis"], b["series"], b["lb"]
     vistas = [m for m in pelis if m["st"] == "watched"]
+    # fichas de Dixmax de todo (país principal, géneros, reparto…): la primera vez tarda, luego va de caché
+    md = metadatos.fichas_dixmax([m["id"] for m in pelis] + [s["id"] for s in series], progress)
+    D = lambda s: md.get(str(s["id"])) or {}  # noqa: E731
     anime_ids = set(b["anime"])
-    es_anime = lambda s: str(s["id"]) in anime_ids  # noqa: E731
+    ASIA = {"Japón", "China", "Corea del Sur", "Taiwán", "Hong Kong"}
+
+    def es_anime(s):
+        """Anime = lo que cruza con AniList, lo que Dixmax etiqueta como Anime, o animación de Japón/China/Corea/Taiwán."""
+        g = D(s).get("g") or []
+        return str(s["id"]) in anime_ids or "Anime" in g or ("Animación" in g and D(s).get("pais") in ASIA)
     con_eps = [s for s in series if s["eps"]]
     ser = [s for s in con_eps if not es_anime(s)]
     ani = [s for s in con_eps if es_anime(s)]
+    al_de = lambda s: b["anime"].get(str(s["id"]))  # noqa: E731
 
     mp = metadatos.pelis([m["tmdb"] for m in vistas], progress)
-    pp = metadatos.paises_pelis([m["tmdb"] for m in vistas], progress)
+    pp = metadatos.paises_pelis([m["tmdb"] for m in pelis], progress)
     pd = metadatos.dinero([m["tmdb"] for m in vistas], progress)
-    ms = metadatos.series([s["tmdb"] for s in ser], progress)
-    ma = metadatos.anime([b["anime"][str(s["id"])] for s in ani], progress)
-    md = metadatos.fichas_dixmax([s["id"] for s in con_eps], progress)
+    ms = metadatos.series([s["tmdb"] for s in series if not es_anime(s)], progress)
+    ma = metadatos.anime([al_de(s) for s in ani if al_de(s)], progress)
+    mt = metadatos.tvmaze([s["tmdb"] for s in ser], progress)
     progress("Estadísticas: calculando…")
     P = lambda m: mp.get(str(m["tmdb"])) if isinstance(mp.get(str(m["tmdb"])), dict) else {}  # noqa: E731
     S = lambda s: ms.get(str(s["tmdb"])) if isinstance(ms.get(str(s["tmdb"])), dict) else {}  # noqa: E731
-    A = lambda s: ma.get(str(b["anime"][str(s["id"])])) or {}  # noqa: E731
-    D = lambda s: md.get(str(s["id"])) or {}  # noqa: E731
+    A = lambda s: (ma.get(str(al_de(s))) or {}) if al_de(s) else {}  # noqa: E731
+    TV = lambda s: mt.get(str(s["tmdb"])) or {}  # noqa: E731
     neps = lambda s: len(s["eps"])  # noqa: E731
     tit = lambda m: f"{m['t']} ({m['y']})" if m.get("y") else m["t"]  # noqa: E731
 
     # ---------- horas ----------
     min_p = sum(P(m).get("rt") or 0 for m in vistas)
     min_s = sum((S(s).get("rt") or D(s).get("dur") or RT_SERIE) * neps(s) for s in ser)
-    min_a = sum((A(s).get("rt") or RT_ANIME) * neps(s) for s in ani)
+    min_a = sum((A(s).get("rt") or D(s).get("dur") or RT_ANIME) * neps(s) for s in ani)
     eps_s, eps_a = sum(map(neps, ser)), sum(map(neps, ani))
 
-    # ---------- mapa ----------
-    mapa = {k: defaultdict(lambda: {"n": 0, "top": Counter()}) for k in ("todo", "pelis", "series", "anime")}
+    # ---------- mapa: país principal de producción (Dixmax; si no lo da, Wikidata cuando hay uno solo) ----------
+    nombres = _paises_es()
 
-    def poner(tipo, pais, titulo, peso):
+    def pais(x, peli):
+        iso = nombres.get(_norm(D(x).get("pais") or ""))
+        if iso:
+            return iso
+        if peli:
+            w = pp.get(str(x["tmdb"])) or []
+            return w[0] if len(set(w)) == 1 else None
+        if es_anime(x):
+            return A(x).get("pais")
+        w = S(x).get("pais") or []
+        return w[0] if w else None
+    ESTADOS = ("vistas", "terminadas", "siguiendo", "pendientes", "favoritas", "todas")
+    mapa = {k: {e: defaultdict(lambda: {"n": 0, "top": Counter()}) for e in ESTADOS} for k in ("todo", "pelis", "series", "anime")}
+
+    def poner(tipo, estados, iso, titulo, peso):
         for k in (tipo, "todo"):
-            mapa[k][pais]["n"] += 1
-            mapa[k][pais]["top"][titulo] += peso
-    for m in vistas:
-        for p in set(pp.get(str(m["tmdb"])) or []):
-            poner("pelis", p, m["t"], m["r"] or 5)
-    for s in ser:
-        for p in set(S(s).get("pais") or []):
-            poner("series", p, s["t"], neps(s))
-    for s in ani:
-        if A(s).get("pais"):
-            poner("anime", A(s)["pais"], s["t"], neps(s))
-    mapa_out = {k: {p: {"n": v["n"], "top": [t for t, _ in v["top"].most_common(5)]} for p, v in d.items()} for k, d in mapa.items()}
+            for e in estados:
+                mapa[k][e][iso]["n"] += 1
+                mapa[k][e][iso]["top"][titulo] += peso
+    for m in pelis:
+        iso = pais(m, True)
+        if iso:
+            est = {"watched": ["vistas", "terminadas"], "watchlist": ["pendientes"]}.get(m["st"], []) + ["todas"] + (["favoritas"] if m.get("fav") else [])
+            poner("pelis", est, iso, m["t"], (m["r"] or 5) + (5 if m.get("fav") else 0))
+    for s in series:
+        iso = pais(s, False)
+        if iso:
+            est = (["vistas"] if s["eps"] else []) + {"finished": ["terminadas"], "watching": ["siguiendo"], "watchlist": ["pendientes"]}.get(s["st"], []) \
+                + ["todas"] + (["favoritas"] if s.get("fav") else [])
+            poner("anime" if es_anime(s) else "series", est, iso, s["t"], neps(s) + 1)
+    mapa_out = {k: {e: {p: {"n": v["n"], "top": [t for t, _ in v["top"].most_common(5)]} for p, v in d.items()} for e, d in ee.items()}
+                for k, ee in mapa.items()}
 
     # ---------- resumen general (una línea, sin subtítulos) ----------
     resumen = [
@@ -188,7 +234,7 @@ def calcular(progress=print):
         {"t": "Animes", "v": _n(len(ani)), "c": "al"},
         {"t": "Episodios", "v": _n(eps_s + eps_a), "c": "sz"},
         {"t": "Horas", "v": _n(round((min_p + min_s + min_a) / 60)), "c": "dx"},
-        {"t": "Países", "v": str(len(mapa_out["todo"])), "c": "dx"},
+        {"t": "Países", "v": str(len(mapa_out["todo"]["vistas"])), "c": "dx"},
     ]
 
     # ================= PELÍCULAS =================
@@ -214,7 +260,12 @@ def calcular(progress=print):
     idi = Counter(IDIOMAS.get(P(m)["lang"], P(m)["lang"]) for m in vistas if P(m).get("lang"))
     con_votos = sorted([m for m in vistas if P(m).get("imdb_n")], key=lambda m: P(m)["imdb_n"])
     vs_gente = [(m["r"] - P(m)["imdb_r"], m) for m in vistas if m.get("r") and P(m).get("imdb_r") and P(m).get("imdb_n", 0) >= 5000]
-    din = [(m, *(pd.get(str(m["tmdb"])) or [None, None])) for m in vistas]
+    def _din(m):
+        c_, t_, mundo = (pd.get(str(m["tmdb"])) or [None, None, False]) + [False] * 0
+        if t_ and not mundo and P(m).get("lang") not in (None, "en"):
+            t_ = None  # sin marca de «mundial» y no es en inglés: suele ser solo la taquilla de EE. UU.
+        return m, c_, t_
+    din = [_din(m) for m in vistas]
     caras = sorted([x for x in din if x[1]], key=lambda x: -x[1])
     taq = sorted([x for x in din if x[2]], key=lambda x: -x[2])
     # recaudó al menos un 5 % de lo que costó: si no, casi seguro fue un estreno de plataforma (El irlandés…)
@@ -227,14 +278,21 @@ def calcular(progress=print):
     tramos = [("<80", 0, 80), ("80-99", 80, 100), ("100-119", 100, 120), ("120-139", 120, 140), ("140-159", 140, 160),
               ("160-179", 160, 180), ("180+", 180, 10 ** 4)]
     nota_p = _media([m["r"] for m in vistas])
+    favs_p = sorted([m for m in pelis if m.get("fav")], key=lambda m: -(m.get("r") or 0))
+    gen_fav = _es(Counter(g for m in favs_p for g in P(m).get("g", [])))
+    dir_fav = Counter(x for m in favs_p for x in P(m).get("dir", []))
     pel = {
         "resumen": [{"t": "Vistas", "v": _n(len(vistas))}, {"t": "Horas", "v": _n(round(min_p / 60))},
-                    {"t": "Nota media", "v": f"{nota_p:.1f}" if nota_p else "—"}, {"t": "Directores", "v": _n(len(dirs))},
-                    {"t": "Países", "v": str(len(mapa_out["pelis"]))}, {"t": "Pendientes", "v": _n(sum(1 for m in pelis if m["st"] == "watchlist"))}],
+                    {"t": "Nota media", "v": f"{nota_p:.1f}" if nota_p else "—"}, {"t": "Favoritas", "v": _n(len(favs_p))},
+                    {"t": "Pendientes", "v": _n(sum(1 for m in pelis if m["st"] == "watchlist"))}, {"t": "Países", "v": str(len(mapa_out["pelis"]["vistas"]))}],
         "bloques": [
             _bloque("dir", "Directores que más ves", "barras", _barras(dirs, 12, sub("d")), "películas", "lb", dest=True),
             _bloque("cast", "Actores que más te encuentras", "barras", _barras(cast, 12, sub("a")), "5 primeros del reparto", "lb"),
             _bloque("gen", "Géneros", "barras", _barras(gen_p, 10), "", "lb", dest=True),
+            _bloque("favs", "Tus favoritas", "lista", [{"k": tit(m), "v": f"{m['r']:g}" if m.get("r") else "♥"} for m in favs_p[:10]],
+                    f"{len(favs_p)} películas con ♥ en Dixmax · las de mejor nota", "lb"),
+            _bloque("favgen", "Qué tienen tus favoritas", "barras", _barras(gen_fav, 8), "géneros de tus películas favoritas", "lb"),
+            _bloque("favdir", "Directores de tus favoritas", "barras", _barras(dir_fav, 8), "", "lb"),
             _bloque("anio", "Películas por año", "columnas", sorted(Counter(d[:4] for _, d, _ in diario).items()),
                     "diario de Letterboxd" + (" (sin las importadas de golpe)" if importados else ""), "lb", 2),
             _bloque("nicho", "Joyas ocultas", "lista", [{"k": tit(m), "v": _votos(P(m)["imdb_n"])} for m in con_votos[:8]],
@@ -274,6 +332,8 @@ def calcular(progress=print):
     # ================= SERIES y ANIME =================
     def tipo_series(lista, es_an):
         c = "al" if es_an else "sz"
+        todas = [s for s in series if es_anime(s) == es_an]
+        favs = sorted([s for s in todas if s.get("fav")], key=lambda s: -(s.get("r") or 0))
         rep, dire, gen, tem, red, ejs = Counter(), Counter(), Counter(), Counter(), Counter(), defaultdict(list)
         for s in lista:
             d, x = D(s), (A(s) if es_an else S(s))
@@ -284,7 +344,7 @@ def calcular(progress=print):
             for p in d.get("dir", [])[:2]:
                 dire[p] += 1
                 ejs["d" + p].append(s["t"])
-            for g in (x.get("g") if es_an else d.get("g") or x.get("g")) or []:
+            for g in ((x.get("g") or d.get("g")) if es_an else (d.get("g") or x.get("g"))) or []:
                 gen[GENEROS.get(g, g)] += 1
             for t in d.get("temas", []):
                 tem[t] += 1
@@ -299,18 +359,18 @@ def calcular(progress=print):
             yo = [(s["r"] - A(s)["media"] / 10, s, A(s)["media"] / 10) for s in lista if s.get("r") and A(s).get("media")]
             gente = "AniList"
         else:
-            pop = sorted([s for s in lista if D(s).get("votos")], key=lambda s: D(s)["votos"])
-            fmt_pop = lambda s: _votos(D(s)["votos"])  # noqa: E731
-            yo = [(s["r"] - D(s)["r"], s, D(s)["r"]) for s in lista if s.get("r") and D(s).get("r") and D(s).get("votos", 0) >= 20]
-            gente = "Dixmax"
+            # TVmaze: popularidad de 0 a 100 (a igualdad, desempatan los votos de Dixmax) y nota media de la gente
+            pop = sorted([s for s in lista if TV(s).get("w") is not None], key=lambda s: (TV(s)["w"], D(s).get("votos") or 0))
+            fmt_pop = lambda s: f"{TV(s)['w']}/100 en TVmaze"  # noqa: E731
+            yo = [(s["r"] - TV(s)["r"], s, TV(s)["r"]) for s in lista if s.get("r") and TV(s).get("r")]
+            gente = "TVmaze"
         nota = _media([s["r"] for s in lista])
         mins = (min_a if es_an else min_s)
         nombre = "animes" if es_an else "series"
         return {
             "resumen": [{"t": nombre.capitalize(), "v": _n(len(lista))}, {"t": "Episodios", "v": _n(sum(map(neps, lista)))},
-                        {"t": "Horas", "v": _n(round(mins / 60))}, {"t": "Terminadas", "v": _n(sum(1 for s in lista if s["st"] == "finished"))},
-                        {"t": "Nota media", "v": f"{nota:.1f}" if nota else "—"},
-                        {"t": "Países", "v": str(len(mapa_out["anime" if es_an else "series"]))}],
+                        {"t": "Horas", "v": _n(round(mins / 60))}, {"t": "Nota media", "v": f"{nota:.1f}" if nota else "—"},
+                        {"t": "Favoritas", "v": _n(len(favs))}, {"t": "Pendientes", "v": _n(sum(1 for s in todas if s["st"] == "watchlist"))}],
             "bloques": [
                 _bloque("rep", "Actores de doblaje que más oyes" if es_an else "Reparto que más ves", "barras", _barras(rep, 12, sb("r")),
                         ("voz japonesa de los personajes principales (AniList)" if es_an else f"{nombre} en las que sale (Dixmax)"), c, dest=True),
@@ -320,12 +380,21 @@ def calcular(progress=print):
                         [{"k": s["t"], "n": neps(s)} for s in sorted(lista, key=lambda s: -neps(s))[:10]], "", c),
                 _bloque("nicho", "Joyas ocultas", "lista", [{"k": s["t"], "v": fmt_pop(s)} for s in pop[:8]],
                         f"las menos populares en {gente} de las que has visto", c, dest=True),
-                _bloque("masivas", "Las más populares", "lista", [{"k": s["t"], "v": fmt_pop(s)} for s in pop[::-1][:8]], f"en {gente}", c),
+                _bloque("masivas", "Las más populares", "lista", [{"k": s["t"], "v": fmt_pop(s)} for s in pop[::-1][:8]],
+                        "en AniList" if es_an else "en TVmaze (0-100); a igualdad, las más votadas en Dixmax", c),
                 _bloque("mas", "Te gustaron más que a la gente", "lista",
                         [{"k": s["t"], "v": f"tú {s['r']:g} · {gente} {g:.1f}"} for x, s, g in sorted(yo, key=lambda x: -x[0])[:8] if x > 0],
                         f"tu nota frente a la media de {gente}", c),
                 _bloque("menos", "Te gustaron menos que a la gente", "lista",
                         [{"k": s["t"], "v": f"tú {s['r']:g} · {gente} {g:.1f}"} for x, s, g in sorted(yo, key=lambda x: x[0])[:8] if x < 0], "", c),
+                _bloque("favs", "Tus favoritas", "lista", [{"k": s["t"], "v": f"{s['r']:g}" if s.get("r") else "♥"} for s in favs[:10]],
+                        f"{len(favs)} con ♥ (favorita en Dixmax)", c),
+                _bloque("estados", "En qué punto estás", "barras",
+                        [{"k": k, "n": n} for k, n in (("Terminadas", sum(1 for s in todas if s["st"] == "finished")),
+                                                       ("Siguiendo", sum(1 for s in todas if s["st"] == "watching")),
+                                                       ("Pendientes", sum(1 for s in todas if s["st"] == "watchlist")),
+                                                       ("Abandonadas", sum(1 for s in todas if s["st"] == "dropped"))) if n],
+                        "según tu marca en Dixmax", c),
                 _bloque("temas", "Temas y franquicias", "barras", _barras(tem, 10, sb("t")), "etiquetas de Dixmax", c),
                 _bloque("dir", "Dirección", "barras", _barras(dire, 10, sb("d")), "Dixmax", c),
                 _bloque("dec", "Por década de estreno", "columnas",
@@ -431,10 +500,10 @@ def calcular(progress=print):
     if ser:
         s = max(ser, key=neps)
         cu("Tu serie más larga", s["t"], f"{neps(s)} episodios vistos", "sz")
-        pop_s = [s for s in ser if D(s).get("votos")]
+        pop_s = [s for s in ser if TV(s).get("w") is not None]
         if pop_s:
-            s = min(pop_s, key=lambda s: D(s)["votos"])
-            cu("Tu serie más de nicho", s["t"], f"solo {_votos(D(s)['votos'])} en Dixmax", "sz")
+            s = min(pop_s, key=lambda s: (TV(s)["w"], D(s).get("votos") or 0))
+            cu("Tu serie más de nicho", s["t"], f"popularidad {TV(s)['w']}/100 en TVmaze", "sz")
     if ani:
         s = max(ani, key=neps)
         cu("Tu anime más largo", s["t"], f"{neps(s)} episodios vistos", "al")

@@ -15,7 +15,8 @@ from .config import cache_json, save_cache
 from .http import call
 
 PELIS, PAISES, SERIES, ANIME = "meta_pelis.json", "meta_paises.json", "meta_series.json", "meta_anime.json"
-DINERO, DIXMAX = "meta_dinero.json", "meta_dixmax.json"
+DINERO, DIXMAX, TVMAZE = "meta_dinero4.json", "meta_dixmax.json", "meta_tvmaze.json"
+V_DIXMAX = 2
 V_PELI, V_ANIME = 2, 3  # al añadir campos se vuelven a pedir las fichas de esa versión
 
 
@@ -151,7 +152,8 @@ def dinero(tmdbs, progress=print):
     def lote(ids):
         q = ("SELECT ?t ?coste ?uc ?taq ?ut WHERE { VALUES ?t {" + " ".join(f'"{t}"' for t in ids) + "} ?f wdt:P4947 ?t. "
              "OPTIONAL { ?f p:P2130/psv:P2130 [wikibase:quantityAmount ?coste; wikibase:quantityUnit ?uc] } "
-             "OPTIONAL { ?f p:P2142/psv:P2142 [wikibase:quantityAmount ?taq; wikibase:quantityUnit ?ut] } }")
+             "OPTIONAL { ?f p:P2142 ?st. ?st psv:P2142 [wikibase:quantityAmount ?taq; wikibase:quantityUnit ?ut]. "
+             "OPTIONAL { ?st pq:P3005 ?zona } } }")
         try:
             req = urllib.request.Request("https://query.wikidata.org/sparql",
                                          data=urllib.parse.urlencode({"format": "json", "query": q}).encode(),
@@ -161,12 +163,25 @@ def dinero(tmdbs, progress=print):
                 filas = json.load(r)["results"]["bindings"]
         except Exception:
             return {}
-        res = {t: [None, None] for t in ids}
+        res = {t: [None, None, False] for t in ids}  # coste, taquilla, ¿taquilla marcada como mundial?
+        mundial = "http://www.wikidata.org/entity/Q13780930"
+        taq = {t: {"mundo": 0, "usd": 0, "otra": False} for t in ids}
         for b in filas:
             t = b["t"]["value"]
-            for i, (k, u) in enumerate((("coste", "uc"), ("taq", "ut"))):
-                if k in b and b.get(u, {}).get("value") == usd:  # solo dólares; con varias cifras, la mayor (mundial)
-                    res[t][i] = max(res[t][i] or 0, float(b[k]["value"]))
+            if "coste" in b and b.get("uc", {}).get("value") == usd:
+                res[t][0] = max(res[t][0] or 0, float(b["coste"]["value"]))
+            if "taq" in b:
+                if b.get("ut", {}).get("value") != usd:
+                    taq[t]["otra"] = True
+                elif b.get("zona", {}).get("value") == mundial:
+                    taq[t]["mundo"] = max(taq[t]["mundo"], float(b["taq"]["value"]))
+                else:
+                    taq[t]["usd"] = max(taq[t]["usd"], float(b["taq"]["value"]))
+        for t, x in taq.items():
+            # taquilla mundial; si solo hay cifras sueltas en dólares y además otras monedas, la de dólares suele ser
+            # solo la de EE. UU. de una peli extranjera (Battle Royale…): mejor no dar nada que dar un dato engañoso
+            res[t][1] = x["mundo"] or x["usd"] or None  # si no es mundial, estadisticas.py decide según el idioma
+            res[t][2] = bool(x["mundo"])
         return res
     lotes = [faltan[i:i + 100] for i in range(0, len(faltan), 100)]
     with ThreadPoolExecutor(3) as ex:
@@ -180,10 +195,10 @@ def fichas_dixmax(ids, progress=print):
     """Ficha de Dixmax de series y anime: reparto, dirección, géneros (en español), temas, nota y votos de la comunidad."""
     from .dixmax_api import Dixmax
     c = cache_json(DIXMAX, {})
-    faltan = [i for i in dict.fromkeys(ids) if str(i) not in c]
+    faltan = [i for i in dict.fromkeys(ids) if (c.get(str(i)) or {}).get("v") != V_DIXMAX]
     if not faltan:
         return c
-    progress(f"Estadísticas: fichas de Dixmax de {len(faltan)} series (solo la primera vez)…")
+    progress(f"Estadísticas: fichas de Dixmax de {len(faltan)} títulos (solo la primera vez, ~{max(1, round(len(faltan) / 110))} min)…")
     api = Dixmax()
     for n, fid in enumerate(faltan, 1):
         try:
@@ -191,11 +206,48 @@ def fichas_dixmax(ids, progress=print):
         except Exception:
             continue
         grupos = {g["groupName"]: [p["name"] for p in g.get("persons") or []] for g in info.get("crew") or []}
-        c[str(fid)] = {"reparto": grupos.get("Reparto", [])[:8], "dir": grupos.get("Dirección", [])[:3],
+        c[str(fid)] = {"v": V_DIXMAX, "pais": info.get("country"), "reparto": grupos.get("Reparto", [])[:8], "dir": grupos.get("Dirección", [])[:3],
                        "g": [g["name"] for g in info.get("genres") or []], "temas": [x["name"] for x in info.get("topics") or []],
                        "r": info.get("rating"), "votos": info.get("votes") or 0, "dur": info.get("duration")}
         if n % 25 == 0:
-            progress(f"Estadísticas: fichas de Dixmax {n}/{len(faltan)}")
+            progress(f"Estadísticas: fichas de Dixmax {n}/{len(faltan)} (solo la primera vez)")
             save_cache(DIXMAX, c)
     save_cache(DIXMAX, c)
+    return c
+
+
+def tvmaze(tmdbs, progress=print):
+    """Popularidad (weight 0-100) y nota media de la gente en TVmaze, por IMDb (que da Wikidata). {tmdb: {w, r}}"""
+    c = cache_json(TVMAZE, {})
+    faltan = [str(t) for t in set(tmdbs) if t and str(t) not in c]
+    if not faltan:
+        return c
+    progress(f"Estadísticas: popularidad de {len(faltan)} series (TVmaze)…")
+    imdb = {}
+    for i in range(0, len(faltan), 100):
+        q = ("SELECT ?t ?imdb WHERE { VALUES ?t {" + " ".join(f'"{t}"' for t in faltan[i:i + 100]) + "} "
+             "?f wdt:P4983 ?t; wdt:P345 ?imdb }")
+        try:
+            req = urllib.request.Request("https://query.wikidata.org/sparql",
+                                         data=urllib.parse.urlencode({"format": "json", "query": q}).encode(),
+                                         headers={"User-Agent": "Tri-Sync (uso personal)",
+                                                  "Content-Type": "application/x-www-form-urlencoded"})
+            with urllib.request.urlopen(req, timeout=90) as r:
+                for b in json.load(r)["results"]["bindings"]:
+                    imdb.setdefault(b["t"]["value"], b["imdb"]["value"])
+        except Exception:
+            return c
+
+    def uno(t):
+        if t not in imdb:
+            return t, None
+        time.sleep(0.6)  # TVmaze: 20 peticiones cada 10 s
+        s, d = call("GET", f"https://api.tvmaze.com/lookup/shows?imdb={imdb[t]}", delay=0, retries=2, timeout=30)
+        if s == 200 and isinstance(d, dict):
+            return t, {"w": d.get("weight"), "r": (d.get("rating") or {}).get("average")}
+        return t, None
+    with ThreadPoolExecutor(2) as ex:
+        for t, d in ex.map(uno, faltan):
+            c[t] = d
+    save_cache(TVMAZE, c)
     return c
