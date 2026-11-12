@@ -49,6 +49,28 @@ class TriSync(toga.App):
             nav.setNavigationBarHidden(True, animated=False)
         except Exception as e:  # si cambia Toga, se queda la barra (no rompe nada)
             print(f"Tri-Sync: no se pudo ocultar la barra de título ({e})")
+        # sin la barra, la web empezaría debajo de la hora y la isla: dentro de la vista web de Toga el CSS
+        # env(safe-area-inset-*) vale 0, así que se deja el hueco aquí (cuando la ventana ya tiene su tamaño)
+        self.loop.call_later(0.3, self._zona_segura)
+
+    def _zona_segura(self):
+        try:
+            from rubicon.objc import ObjCClass
+            ins = ObjCClass("UIApplication").sharedApplication.keyWindow.safeAreaInsets
+            arriba, abajo = int(ins.top), int(ins.bottom)
+            # caja oscura a pantalla completa y, dentro, la web con un margen arriba y abajo (el hueco sale oscuro)
+            caja = toga.Box(style=Pack(direction="column", flex=1, background_color="#171d23"))
+            self.main_window.content = caja
+            for nombre in ("margin", "padding"):  # Toga 0.5 llama margin a lo que antes era padding
+                try:
+                    setattr(self.web.style, f"{nombre}_top", arriba)
+                    setattr(self.web.style, f"{nombre}_bottom", abajo)
+                    break
+                except Exception:
+                    continue
+            caja.add(self.web)
+        except Exception as e:
+            print(f"Tri-Sync: no se pudo dejar el hueco de la hora ({e})")
 
     def _abrir_cuando_responda(self):
         for _ in range(150):  # la primera vez tarda un poco
