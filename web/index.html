@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tri-Sync</title>
 <link rel="icon" href="/logo.svg?v=2" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon.ico?v=2" sizes="any">
@@ -23,7 +23,7 @@
   input, select { font:inherit; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 10px; box-sizing:border-box; max-width:100%; }
   .wrap { max-width:1100px; margin:0 auto; padding:0 16px; }
 
-  header { background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
+  header { background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; padding-top:env(safe-area-inset-top); }  /* iPhone: debajo de la hora y la isla */
   header .wrap { display:flex; align-items:center; gap:20px; height:54px; }
   .logo { font-weight:750; letter-spacing:.2px; display:flex; align-items:center; gap:9px; }
   .logo img { width:26px; height:26px; }
@@ -76,7 +76,7 @@
   .empty { text-align:center; padding:50px 20px; color:var(--muted); background:var(--panel); border:1px dashed var(--line); border-radius:var(--r); margin-top:18px; }
   .empty b { display:block; color:var(--ok); font-size:18px; margin-bottom:6px; }
 
-  .actionbar { position:sticky; bottom:0; background:var(--panel); border-top:1px solid var(--line); margin-top:20px; }
+  .actionbar { position:sticky; bottom:0; background:var(--panel); border-top:1px solid var(--line); margin-top:20px; padding-bottom:env(safe-area-inset-bottom); }
   .actionbar .wrap { display:flex; align-items:center; gap:10px; height:58px; }
   .actionbar .info { color:var(--muted); margin-right:auto; }
 
