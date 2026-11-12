@@ -38,7 +38,17 @@ class TriSync(toga.App):
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = self.web
         self.main_window.show()
+        self._sin_barra_de_titulo()
         threading.Thread(target=self._abrir_cuando_responda, daemon=True).start()
+
+    def _sin_barra_de_titulo(self):
+        """Toga pone una barra blanca con el título encima; la web ya tiene su cabecera."""
+        try:
+            impl = self.main_window._impl
+            nav = getattr(getattr(impl, "container", None), "controller", None) or getattr(impl, "controller", None)
+            nav.setNavigationBarHidden(True, animated=False)
+        except Exception as e:  # si cambia Toga, se queda la barra (no rompe nada)
+            print(f"Tri-Sync: no se pudo ocultar la barra de título ({e})")
 
     def _abrir_cuando_responda(self):
         for _ in range(150):  # la primera vez tarda un poco

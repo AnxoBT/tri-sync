@@ -73,7 +73,9 @@ jobs:
           set -o pipefail
           xcodebuild build -project "build/trisync/ios/xcode/Tri-Sync.xcodeproj" -scheme "Tri-Sync" -configuration Release \
             -sdk iphoneos -destination "generic/platform=iOS" -derivedDataPath build/device \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -20
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" EXPANDED_CODE_SIGN_IDENTITY="-" | tail -20
+          # EXPANDED_CODE_SIGN_IDENTITY="-": Briefcase firma las librerías de Python con esa identidad; «-» es la firma
+          # provisional (sin certificado). Sideloadly/AltStore la cambian por la tuya al instalar.
           mkdir -p build/ipa/Payload
           cp -R build/device/Build/Products/Release-iphoneos/Tri-Sync.app build/ipa/Payload/
           (cd build/ipa && zip -qry "../../Tri-Sync-$V-iOS.ipa" Payload)
