@@ -24,6 +24,13 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Xcode 26 (Briefcase lo pide; el Mac trae otro por defecto)
+        run: |
+          ls -d /Applications/Xcode*.app
+          X=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version
+
       - name: Briefcase y versión
         run: |
           pip install -q briefcase

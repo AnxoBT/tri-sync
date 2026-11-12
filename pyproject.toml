@@ -11,7 +11,7 @@ author_email = "349251559+AnxoBT@users.noreply.github.com"
 
 [tool.briefcase.app.trisync]
 formal_name = "Tri-Sync"
-description = "Compara Dixmax con Letterboxd, Serializd y AniList y te deja arreglar lo que no cuadra"
+description = "Sincroniza tu historial entre Dixmax, Letterboxd, Serializd y AniList"
 long_description = "Compara Dixmax con Letterboxd, Serializd y AniList y te deja arreglar lo que no cuadra."
 icon = "ios/icono/icono"
 sources = ["ios/src/trisync", "core", "web"]
