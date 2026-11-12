@@ -1,4 +1,5 @@
 """Servidor web local (solo librería estándar). Solo escucha en 127.0.0.1."""
+import hmac
 import html
 import json
 import os
@@ -207,6 +208,13 @@ def _probar():
 
 
 LOCALES = ("127.0.0.1", "localhost")
+# Android: otras apps del móvil también llegan a 127.0.0.1 (y sin Origin) → clave secreta por arranque
+# (TRISYNC_SECRETO, la pone MainActivity). La pantalla de la app la recibe en /?k= y la guarda en una cookie;
+# el PC, al pasar datos por USB, la lee con adb. Sin clave solo: el ping, y las vueltas de Letterboxd (protegida
+# por "state") y de AniList (solo vale 10 min tras pulsar «Conectar con AniList», y una vez), que llegan desde
+# el navegador de fuera de la app.
+SECRETO = os.environ.get("TRISYNC_SECRETO", "")
+SIN_CLAVE = {"/api/ping", "/letterboxd", "/anilist", "/api/anilist_token"}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -220,6 +228,11 @@ class Handler(BaseHTTPRequestHandler):
           peticiones a 127.0.0.1 (CSRF). Sin Origin = no es un navegador (el PC al pasar datos al móvil por adb)."""
         if (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]") not in LOCALES:
             return True
+        if SECRETO and self.path.split("?", 1)[0] not in SIN_CLAVE:
+            galleta = next((c.split("=", 1)[1] for c in (self.headers.get("Cookie") or "").split("; ")
+                            if c.startswith("trisync=")), "")
+            if not hmac.compare_digest((galleta or self.headers.get("X-TriSync-Clave", "")).encode(), SECRETO.encode()):
+                return True
         origen = self.headers.get("Origin")
         if escribe and origen is not None:
             u = urllib.parse.urlsplit(origen)
@@ -240,6 +253,14 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(n) or b"{}")
 
     def do_GET(self):
+        if SECRETO and self.path.startswith("/?"):  # la app abre /?k=<clave>: se guarda en una cookie
+            k = (urllib.parse.parse_qs(self.path[2:]).get("k") or [""])[0]
+            if hmac.compare_digest(k.encode(), SECRETO.encode()):
+                self.send_response(302)
+                self.send_header("Location", "/")
+                self.send_header("Set-Cookie", f"trisync={SECRETO}; Path=/; HttpOnly; SameSite=Strict")
+                self.send_header("Content-Length", "0")
+                return self.end_headers()
         if self._ajena(False):
             return self._send(403, {"error": "petición ajena a Tri-Sync"})
         consulta = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}

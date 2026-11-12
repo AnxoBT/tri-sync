@@ -27,6 +27,7 @@ import com.chaquo.python.android.AndroidPlatform
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.SecureRandom
 import kotlin.concurrent.thread
 
 /**
@@ -41,6 +42,13 @@ class MainActivity : Activity() {
         // El mismo puerto que en el PC: así vale el mismo permiso de AniList (vuelve a 127.0.0.1:8765/anilist)
         const val PUERTO = 8765
         const val BASE = "http://127.0.0.1:$PUERTO"
+
+        /** Clave del servidor local (una por arranque): otras apps del móvil también llegan a 127.0.0.1,
+         *  pero sin la clave el servidor no les contesta. La pantalla la recibe en ?k= (cookie). */
+        val SECRETO: String by lazy {
+            ByteArray(32).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
+        }
+        val INICIO get() = "$BASE/?k=$SECRETO"
         private const val ELEGIR_ARCHIVO = 1
     }
 
@@ -74,11 +82,15 @@ class MainActivity : Activity() {
         if (!Python.isStarted()) Python.start(AndroidPlatform(this))
         val datos = File(filesDir, "datos").apply { mkdirs() }.absolutePath
         thread(name = "arranque") {
-            Python.getInstance().getModule("trisync_android").callAttr("arrancar", datos, PUERTO)
+            Python.getInstance().getModule("trisync_android").callAttr("arrancar", datos, PUERTO, SECRETO)
+            // para pasar datos desde el PC por USB: el PC la lee con adb. Desde Android 11 otras apps no pueden leer esta carpeta.
+            if (Build.VERSION.SDK_INT >= 30) {
+                try { getExternalFilesDir(null)?.let { File(it, "clave-sincro.txt").writeText(SECRETO) } } catch (e: Exception) {}
+            }
             // espera a que el servidor conteste (la primera vez extrae los archivos: unos segundos)
             repeat(200) {
                 if (responde()) {
-                    runOnUiThread { web.loadUrl(BASE) }
+                    runOnUiThread { web.loadUrl(INICIO) }
                     return@thread
                 }
                 Thread.sleep(150)
@@ -155,14 +167,14 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
             Toast.makeText(this, "Permite instalar apps de Tri-Sync y vuelve a pulsar Actualizar", Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
-            web.loadUrl(BASE)
+            web.loadUrl(INICIO)
             return
         }
         val apk = File(filesDir, "datos/apk/Tri-Sync.apk")
         val uri = FileProvider.getUriForFile(this, "$packageName.archivos", apk)
         startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
-        web.loadUrl(BASE)
+        web.loadUrl(INICIO)
     }
 
     private fun abrirFuera(url: Uri) {

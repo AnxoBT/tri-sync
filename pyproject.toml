@@ -5,7 +5,7 @@ project_name = "Tri-Sync"
 bundle = "com.anxobt"
 version = "1.11.0"  # el workflow la pone igual que VERSION
 url = "https://github.com/AnxoBT/tri-sync"
-license.text = "Uso personal"
+license.text = "GPL-3.0-only"
 author = "AnxoBT"
 author_email = "349251559+AnxoBT@users.noreply.github.com"
 

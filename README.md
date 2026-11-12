@@ -184,6 +184,12 @@ install the update over the old version.
 - `android/` and `ios/`: the same Python code inside an app, showing the page in a web view
 - Serializd's API is internal (not official) and may change; Letterboxd's official API is by request
 
+### License
+
+Copyright © 2026 AnxoBT. Licensed under the [GNU General Public License v3.0](LICENSE): you can
+use, study, share and modify it, but anything you distribute that is based on this code must be
+released under the same licence, with its source code.
+
 </details>
 
 <details>
@@ -353,5 +359,11 @@ móvil no instala la actualización encima de la versión anterior.
 - `web/`: el servidor local (`server.py`, solo librería estándar) y la página (`index.html`, un solo archivo)
 - `android/` e `ios/`: el mismo código Python dentro de una app, que enseña la página en una vista web
 - La API de Serializd es interna (no oficial) y puede cambiar; la oficial de Letterboxd se concede bajo petición
+
+### Licencia
+
+Copyright © 2026 AnxoBT. Con licencia [GNU General Public License v3.0](LICENSE): puedes usarla,
+estudiarla, compartirla y modificarla, pero lo que distribuyas basado en este código tiene que
+publicarse con la misma licencia y con su código fuente.
 
 </details>

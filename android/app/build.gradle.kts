@@ -31,7 +31,7 @@ android {
 
     // Clave propia de Tri-Sync (fuera del repo: ~/.android/trisync-release.jks; datos en keystore.properties,
     // ignorado por git). Todas las versiones van firmadas con ella para que se instalen encima de la anterior.
-    // Sin ese archivo (otro PC) se usa la clave de depuración.
+    // Sin ese archivo (otro PC) la depuración usa la clave de depuración y la release se para.
     val claves = rootProject.file("keystore.properties")
     signingConfigs {
         if (claves.exists()) create("trisync") {
@@ -40,6 +40,15 @@ android {
             storePassword = p.getProperty("storePassword")
             keyAlias = p.getProperty("keyAlias")
             keyPassword = p.getProperty("keyPassword")
+        }
+    }
+
+    // Una release firmada con la clave de depuración no se instalaría encima de las anteriores:
+    // sin keystore.properties (otro PC, copia sin restaurar) se para en vez de firmar con ella.
+    gradle.taskGraph.whenReady {
+        if (!claves.exists() && allTasks.any { it.name.contains("Release") }) {
+            throw GradleException("Falta android/keystore.properties (clave de firma ~/.android/trisync-release.jks): " +
+                "sin ella el APK no se instala encima del anterior")
         }
     }
 

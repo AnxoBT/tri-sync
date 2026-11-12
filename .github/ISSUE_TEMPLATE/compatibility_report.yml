@@ -1,0 +1,30 @@
+name: Compatibility report / Informe de compatibilidad
+description: Tell us how it works on your device / Cuéntanos cómo funciona en tu dispositivo
+labels: [compatibility]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tri-Sync has only been tested on a few devices so far; reports from other devices help a lot.
+        Tri-Sync solo se ha probado en pocos dispositivos; los informes de otros ayudan mucho.
+  - type: input
+    id: device
+    attributes:
+      label: Device and system / Dispositivo y sistema
+      placeholder: "Windows 11 / Xiaomi Redmi Note 13, Android 14 / iPhone 15, iOS 26"
+    validations:
+      required: true
+  - type: checkboxes
+    id: works
+    attributes:
+      label: What works / Qué funciona
+      options:
+        - label: Installs and opens / Se instala y se abre
+        - label: Connects to my accounts / Se conecta a mis cuentas
+        - label: Main features work / Las funciones principales van bien
+        - label: Updates from the app / Se actualiza desde la app
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / Notas
+      description: Anything that doesn't work or looks different / Lo que no funcione o se vea distinto

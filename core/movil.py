@@ -145,8 +145,18 @@ def _zip_datos():
     return buf.getvalue()
 
 
+CLAVE_MOVIL = f"/sdcard/Android/data/{PAQUETE}/files/clave-sincro.txt"  # la escribe la app en cada arranque
+
+
+def _clave():
+    """Clave secreta del servidor del móvil (otras apps del móvil no pueden leerla; adb sí)."""
+    code, txt = _adb("shell", "cat", CLAVE_MOVIL, timeout=10)
+    return "" if code else txt.strip()
+
+
 def _post(url, datos, timeout=120):
-    req = urllib.request.Request(url, data=datos, method="POST", headers={"Content-Type": "application/zip"})
+    req = urllib.request.Request(url, data=datos, method="POST",
+                                 headers={"Content-Type": "application/zip", "X-TriSync-Clave": _clave()})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 

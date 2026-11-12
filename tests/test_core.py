@@ -234,6 +234,33 @@ class Servidor(unittest.TestCase):
         s, _ = self.pedir("POST", "/api/config", {"Origin": "http://localhost:3000"}, b"{}")
         self.assertEqual(s, 403)
 
+    def test_en_android_otras_apps_necesitan_la_clave(self):
+        # Otras apps del móvil llegan a 127.0.0.1 sin Origin: sin la clave del arranque no se les contesta
+        from unittest import mock
+
+        from web import server
+        with mock.patch.object(server, "SECRETO", "clave-de-prueba"):
+            self.assertEqual(self.pedir("GET", "/api/config")[0], 403)
+            self.assertEqual(self.pedir("POST", "/api/run", None, b'{"simulacion": false}')[0], 403)
+            self.assertEqual(self.pedir("GET", "/api/config", {"X-TriSync-Clave": "otra"})[0], 403)
+            self.assertEqual(self.pedir("GET", "/api/config", {"X-TriSync-Clave": "clave-de-prueba"})[0], 200)
+            self.assertEqual(self.pedir("GET", "/api/config", {"Cookie": "trisync=clave-de-prueba"})[0], 200)
+            self.assertEqual(self.pedir("GET", "/api/ping")[0], 200)  # el arranque de la app espera al ping
+
+    def test_la_app_recibe_la_clave_en_una_cookie(self):
+        from unittest import mock
+
+        from web import server
+        with mock.patch.object(server, "SECRETO", "clave-de-prueba"):
+            c = http.client.HTTPConnection("127.0.0.1", self.puerto, timeout=5)
+            c.request("GET", "/?k=clave-de-prueba")
+            r = c.getresponse()
+            r.read()
+            self.assertEqual(r.status, 302)
+            self.assertIn("trisync=clave-de-prueba", r.getheader("Set-Cookie"))
+            self.assertIn("HttpOnly", r.getheader("Set-Cookie"))
+            self.assertEqual(self.pedir("GET", "/?k=mala")[0], 403)
+
     def test_permiso_de_anilist_solo_si_lo_has_pedido(self):
         # una web que abra /anilist#access_token=<el suyo> no puede colarlo
         o = {"Origin": f"http://127.0.0.1:{self.puerto}"}
