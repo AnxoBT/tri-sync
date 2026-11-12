@@ -180,8 +180,32 @@ class Serializd:
             body["episode_number"] = episode
         return self._call("POST", "/show/reviews/add", body)
 
-    def set_status(self, show, status):
-        """status: watching / watchlist / dropped / watched (todas las temporadas)."""
+    def quitar(self, show, lista, seasons=None):
+        """Saca la serie de una lista de Serializd (watched y watchlist van por temporadas)."""
+        if lista == "watching":
+            return self._call("POST", "/currently_watching/remove", {"show_id": show})
+        if lista == "dropped":
+            return self._call("POST", "/dropped_shows/remove", {"show_id": show})
+        if lista == "watched":
+            return self._call("POST", "/watched/remove_v2", {"show_id": show, "season_ids": seasons or []})
+        if lista == "watchlist":
+            return self._call("POST", "/watchlist/remove_v2", {"show_id": show, "season_ids": seasons or [], "async": False})
+        raise ValueError(lista)
+
+    def set_status(self, show, status, quitar=None):
+        """status: watching / watchlist / dropped / watched (todas las temporadas).
+        Serializd deja tener una serie en varias listas a la vez (vista y viendo, abandonada y vista…): con quitar
+        ({lista: temporadas}) se saca de las demás para que tenga un solo estado, el de Dixmax."""
+        for lista, seasons in (quitar or {}).items():
+            if lista != status:
+                s, r = self.quitar(show, lista, seasons)
+                if s != 200:
+                    return s, r
+        if status in (quitar or {}):  # ya estaba en su lista: solo había que quitarla de las otras
+            return 200, "ya estaba"
+        return self._set_status(show, status)
+
+    def _set_status(self, show, status):
         if status == "watching":
             return self._call("POST", "/currently_watching", {"show_id": show})
         if status == "dropped":

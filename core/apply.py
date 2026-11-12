@@ -201,9 +201,11 @@ def _execute(por, dry, out, tick, archivos, ctl):
 
         tick(a)
         st = a["datos"]["estado"]
-        out(f"[Serializd] {a['titulo']}: poner como {st}")
+        quitar = a["datos"].get("quitar") or {}
+        otros = [k for k in quitar if k != st]
+        out(f"[Serializd] {a['titulo']}: dejar como {st}" + (f" (quitar de {', '.join(otros)})" if otros else ""))
         if not dry:
-            s, r = sz.set_status(a["datos"]["tmdb"], st)
+            s, r = sz.set_status(a["datos"]["tmdb"], st, quitar)
             if s != 200:
                 out(f"   ERROR {s}: {str(r)[:80]}")
 
@@ -215,7 +217,7 @@ def _execute(por, dry, out, tick, archivos, ctl):
         fecha = sh.get("last_date") or sh.get("mark_date")
         out(f"[Serializd] {a['titulo']}: temporadas vistas + registro de serie {fecha[:10] if fecha else '?'} nota {nota}")
         if not dry:
-            sz.set_status(sh["tmdb"], "watched")
+            sz.set_status(sh["tmdb"], "watched", a["datos"].get("quitar"))
             s, r = sz.add_diary(sh["tmdb"], None, None, fecha, rating=nota, is_log=True, like=bool(sh.get("favorite")))
             if s not in (200, 201):
                 out(f"   ERROR {s}: {str(r)[:80]}")

@@ -177,10 +177,19 @@ def series(dx, sz, progress=print, rapida=False, pre=None):
         en = {k for k, v in lists.items() if tid in v}
         logs = [x for x in show_reviews.get(tid, {}).values() if x.get("isLog")]
         st = show["status"]
-        esperado = {"watching": "watching", "watchlist": "watchlist", "dropped": "dropped"}.get(st)
-        if esperado and esperado not in en:
-            add("Estado distinto", show, f"Dixmax: {st} · Serializd: {', '.join(sorted(en)) or 'nada'}",
-                [{"clave": "sz_estado", "texto": f"Poner en Serializd como '{st}'", "fase": 2}], {"tmdb": tid, "estado": st})
+        # un solo estado en Serializd, el de Dixmax (Serializd deja tener una serie vista y viendo a la vez)
+        esperado = {"watching": "watching", "watchlist": "watchlist", "dropped": "dropped", "finished": "watched"}.get(st)
+        quitar = {k: lists[k][tid].get("seasons") or [] for k in en if k != esperado}
+        NOM = {"watched": "vista", "watching": "viendo", "watchlist": "pendiente", "dropped": "abandonada"}
+        if esperado and (esperado not in en and (st != "finished" or logs)):
+            add("Estado distinto", show, f"Dixmax: {NOM[esperado]} · Serializd: {', '.join(NOM[k] for k in sorted(en)) or 'nada'}",
+                [{"clave": "sz_estado", "texto": f"Dejarla solo como '{NOM[esperado]}' en Serializd", "fase": 2}],
+                {"tmdb": tid, "estado": esperado, "quitar": quitar})
+        elif esperado in en and quitar:
+            add("Varios estados a la vez en Serializd", show,
+                f"Dixmax: {NOM[esperado]} · Serializd: {', '.join(NOM[k] for k in sorted(en))}",
+                [{"clave": "sz_estado", "texto": f"Dejarla solo como '{NOM[esperado]}' (quitar {', '.join(NOM[k] for k in quitar)})", "fase": 2}],
+                {"tmdb": tid, "estado": esperado, "quitar": {**quitar, esperado: []}})
         if st == "finished" and logs:
             liked = any(x.get("like") for x in logs)
             if show.get("favorite") and not liked:
@@ -192,7 +201,7 @@ def series(dx, sz, progress=print, rapida=False, pre=None):
         if st == "finished" and not logs:
             add("Terminada en Dixmax sin registro de serie en Serializd", show, "",
                 [{"clave": "sz_terminar", "texto": "Marcar terminada en Serializd (temporadas + registro + nota)", "fase": 2}],
-                {"tmdb": tid})
+                {"tmdb": tid, "quitar": {k: v for k, v in quitar.items() if k != "watched"}})
         # nota (Serializd: entero 1-10, redondeo hacia abajo)
         if show["rating10"]:
             esperada = math.floor(show["rating10"])
