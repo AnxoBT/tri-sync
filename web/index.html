@@ -135,7 +135,7 @@
   .avisos { color:var(--muted); font-size:12px; margin-top:18px; display:grid; gap:3px; }
   .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:5px 9px; font-size:12px; z-index:50; display:none; white-space:pre-line; max-width:340px; box-shadow:0 4px 14px rgba(0,0,0,.4); }
   .mapa { width:100%; height:auto; display:block; margin-top:10px; cursor:grab; touch-action:none; border-radius:8px; background:var(--bg); }
-  .mapa path { stroke:var(--bg); stroke-width:.5; } .mapa path:hover, .mapa circle:hover { stroke:#fff; stroke-width:1; }
+  .mapa path { stroke:var(--bg); stroke-width:.5; } .mapa circle.con { stroke:#000; stroke-width:1.5; } .mapa path:hover, .mapa circle:hover { stroke:#fff; stroke-width:1; }
   .leyenda { display:flex; gap:16px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:8px; }
   .leyenda i { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-2px; margin-right:5px; }
   button.mini { padding:3px 9px; font-size:12px; }
@@ -437,6 +437,7 @@ async function pintaMapa() {
     }
     if (pt && (d || !m.d)) {
       const r = d ? 3.2 : 1.4, ci = sv('circle', {cx: pt[0], cy: pt[1], r, fill: d ? color(d.n) : '#3a444e', 'vector-effect': 'non-scaling-stroke'});
+      if (d) ci.classList.add('con');  // borde negro: que no se confunda con el país de al lado (Hong Kong/China)
       ci.dataset.r = r; ci.dataset.tip = tip; puntos.push(ci); g.append(ci);
     }
   }
