@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tri-Sync</title>
 <link rel="icon" href="/logo.svg?v=2" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon.ico?v=2" sizes="any">
@@ -23,7 +23,7 @@
   input, select { font:inherit; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 10px; box-sizing:border-box; max-width:100%; }
   .wrap { max-width:1100px; margin:0 auto; padding:0 16px; }
 
-  header { background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; padding-top:env(safe-area-inset-top); }  /* iPhone: debajo de la hora y la isla */
+  header { background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }  /* la hora y la isla del iPhone las deja la propia app (ios/), no la web */
   header .wrap { display:flex; align-items:center; gap:20px; height:54px; }
   .logo { font-weight:750; letter-spacing:.2px; display:flex; align-items:center; gap:9px; }
   .logo img { width:26px; height:26px; }
@@ -76,7 +76,7 @@
   .empty { text-align:center; padding:50px 20px; color:var(--muted); background:var(--panel); border:1px dashed var(--line); border-radius:var(--r); margin-top:18px; }
   .empty b { display:block; color:var(--ok); font-size:18px; margin-bottom:6px; }
 
-  .actionbar { position:sticky; bottom:0; background:var(--panel); border-top:1px solid var(--line); margin-top:20px; padding-bottom:env(safe-area-inset-bottom); }
+  .actionbar { position:sticky; bottom:0; background:var(--panel); border-top:1px solid var(--line); margin-top:20px; }
   .actionbar .wrap { display:flex; align-items:center; gap:10px; height:58px; }
   .actionbar .info { color:var(--muted); margin-right:auto; }
 
@@ -163,6 +163,9 @@
   .pill.ok { color:var(--ok); border-color:var(--ok); }
   details.avz { margin-top:16px; } details.avz summary { cursor:pointer; color:var(--muted); }
   body.deslizando { overflow-x:hidden; }
+  /* lo de lado lo maneja la app (cambiar de pestaña): si no, al empezar despacio el navegador se queda el gesto */
+  #vRev, #vHist, #vStats, #vCfg { touch-action:pan-y pinch-zoom; }
+  #vRev .chips, #vStats .stsel, #vStats .chips, #vHist table { touch-action:pan-x pan-y; }
   .entra-d { animation:entraD .22s ease-out; } .entra-i { animation:entraI .22s ease-out; }
   @keyframes entraD { from { transform:translateX(60px); opacity:0; } } @keyframes entraI { from { transform:translateX(-60px); opacity:0; } }
   /* ---- móvil (la app de Android y pantallas estrechas) ---- */
@@ -176,18 +179,22 @@
     #bOff { margin-left:auto; }
     .cards { grid-template-columns:1fr 1fr; gap:8px; margin:12px 0; } .card { padding:9px 11px; } .card h3 { font-size:11.5px; } .card .v { font-size:14px; } .card .s { font-size:11.5px; }
     .steps { padding:12px; gap:14px; flex-direction:column; align-items:stretch; }
-    .step { display:grid; grid-template-columns:22px 1fr; gap:4px 10px; align-items:start; }
-    .step .num { margin-top:1px; } .step .stxt { display:flex; flex-direction:column; } .step .stxt span { color:var(--muted); font-size:12px; }
-    .step .sbtn { grid-column:2; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .step { display:grid; grid-template-columns:auto 1fr; gap:8px 10px; align-items:center; }
+    .step .stxt { display:flex; flex-direction:column; } .step .stxt span { color:var(--muted); font-size:12px; }
+    .step .sbtn { grid-column:1 / -1; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .step .sbtn button { width:100%; padding:10px 8px; } .step .sbtn .imp { grid-column:1 / -1; }
     .step .sbtn #bExDx:has(+ #bExLb.hidden), .step .sbtn #bExDx.hidden + #bExLb { grid-column:1 / -1; }  /* un solo export: ancho entero */
     .cards > .card:last-child:nth-child(odd) { grid-column:1 / -1; }  /* 1 o 3 apps: sin hueco al lado */
     .sprog #prog { margin-top:0; }
     .appsg { grid-template-columns:1fr; } .bienv { padding:16px; }
-    .tools input[type=search] { min-width:0 !important; flex:1 1 100%; }
+    .tools input[type=search] { min-width:0 !important; flex:1 1 100%; } .tools > button { flex:1 1 100%; }
+    /* chips en una sola fila que se desliza de lado: caben las categorías que haya sin descuadrar nada */
+    .tools .chips { flex:1 1 100%; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; padding-bottom:2px;
+                    -webkit-mask-image:linear-gradient(90deg, #000 88%, transparent); mask-image:linear-gradient(90deg, #000 88%, transparent); }
+    .tools .chips::-webkit-scrollbar { display:none; } .tools .chip { flex:none; white-space:nowrap; }
     .ghead { flex-wrap:wrap; } .ghead select { margin-left:0; flex:1 1 100%; }
-    .actionbar .wrap { height:auto; padding:8px 12px; flex-wrap:wrap; gap:8px; } .actionbar .info { flex:1 1 100%; font-size:13px; }
-    .actionbar button { flex:1; }
+    .actionbar .wrap { height:auto; padding:8px 12px 10px; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+    .actionbar .info { grid-column:1 / -1; font-size:13px; } .actionbar button { width:100%; padding:11px 6px; }
     table.hist { font-size:12px; } table.hist th:nth-child(3), table.hist td:nth-child(3) { display:none; } table.hist td, table.hist th { padding:6px 4px; }
     .stsel { display:flex; overflow-x:auto; } .stsel button { padding:7px 11px; flex:none; }
     .stiles, .stiles.cuatro { grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; } .stile { padding:10px 12px; } .stile .v { font-size:21px; }
@@ -235,7 +242,7 @@
   <div class="tools" id="tools">
     <input type="search" id="q" placeholder="Buscar título…" oninput="pintar()" style="min-width:220px">
     <div class="chips" id="chips"></div>
-    <button onclick="plegarTodo(true)">Plegar todo</button><button onclick="plegarTodo(false)">Desplegar todo</button>
+    <button id="bPleg" onclick="plegarTodo(algoAbierto())">Plegar todo</button>
   </div>
   <div id="lista"></div>
 </div>
@@ -266,7 +273,7 @@
 
 <div class="actionbar" id="abar"><div class="wrap">
   <div class="info" id="selInfo">Nada seleccionado</div>
-  <button onclick="todas('ignorar')">Limpiar selección</button>
+  <button onclick="todas('ignorar')" title="Quitar todo lo seleccionado">Limpiar</button>
   <button onclick="ejecutar(true)">Simular</button>
   <button class="danger" onclick="ejecutar(false)">Aplicar</button>
 </div></div>
@@ -373,7 +380,7 @@ function vista(v, anim = true) {
     if (!t || !t.lock) { t = null; return; }
     const q = t; t = null;
     const dx = (e.changedTouches[0] || {}).clientX - q.x, W = innerWidth, vel = Math.abs(dx) / Math.max(1, Date.now() - q.t);
-    const cambia = q.vec && (Math.abs(dx) > W * 0.3 || (vel > 0.45 && Math.abs(dx) > 40));
+    const cambia = e.type === 'touchend' && q.vec && (Math.abs(dx) > W * 0.3 || (vel > 0.45 && Math.abs(dx) > 40));
     if (cambia) {
       mover(q.cur, -q.dir * W, DUR); mover(q.bar, -q.dir * W, DUR); mover(q.vec, 0, DUR);
     } else {
@@ -693,6 +700,7 @@ function pintar() {
         </select></div>
       ${lst.map(fila).join('')}</div>`;
   }).join('');
+  botonPlegar();
   contar();
 }
 // secciones plegables (se recuerda por navegador); las de más de 15 empiezan plegadas
@@ -701,8 +709,11 @@ const plegado = (k, n) => FOLD[k] ?? n > 15;
 function guardarFold() { try { localStorage.setItem('plegados', JSON.stringify(FOLD)); } catch (e) {} }
 function plegar(ev, k) {
   const g = ev.currentTarget.parentElement; FOLD[k] = !g.classList.contains('fold');
-  g.classList.toggle('fold', FOLD[k]); guardarFold();
+  g.classList.toggle('fold', FOLD[k]); guardarFold(); botonPlegar();
 }
+// un solo botón: «Plegar todo» si hay algún grupo abierto, «Desplegar todo» si están todos plegados
+const algoAbierto = () => [...document.querySelectorAll('#lista .group')].some(g => !g.classList.contains('fold'));
+function botonPlegar() { const b = $('bPleg'); if (b) b.textContent = algoAbierto() ? 'Plegar todo' : 'Desplegar todo'; }
 function plegarTodo(v) {
   (DATA.diferencias || []).forEach(d => FOLD[d.seccion + '|' + d.categoria] = v); guardarFold(); pintar();
 }
