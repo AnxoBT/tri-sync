@@ -177,9 +177,11 @@ def series(dx, sz, progress=print, rapida=False, pre=None):
         en = {k for k, v in lists.items() if tid in v}
         logs = [x for x in show_reviews.get(tid, {}).values() if x.get("isLog")]
         st = show["status"]
-        # un solo estado en Serializd, el de Dixmax (Serializd deja tener una serie vista y viendo a la vez)
+        # un solo estado en Serializd, el de Dixmax. Ojo: «watched» en Serializd son las TEMPORADAS terminadas y se pone
+        # solo al marcar todos sus episodios; convive con viendo/abandonada y no se quita nunca (quitarla borra los ✓ de
+        # los episodios y la serie desaparece de «Continúa viendo»).
         esperado = {"watching": "watching", "watchlist": "watchlist", "dropped": "dropped", "finished": "watched"}.get(st)
-        quitar = {k: lists[k][tid].get("seasons") or [] for k in en if k != esperado}
+        quitar = {k: lists[k][tid].get("seasons") or [] for k in en if k not in (esperado, "watched")}
         NOM = {"watched": "vista", "watching": "viendo", "watchlist": "pendiente", "dropped": "abandonada"}
         if esperado and (esperado not in en and (st != "finished" or logs)):
             add("Estado distinto", show, f"Dixmax: {NOM[esperado]} · Serializd: {', '.join(NOM[k] for k in sorted(en)) or 'nada'}",

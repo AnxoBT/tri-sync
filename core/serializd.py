@@ -186,18 +186,17 @@ class Serializd:
             return self._call("POST", "/currently_watching/remove", {"show_id": show})
         if lista == "dropped":
             return self._call("POST", "/dropped_shows/remove", {"show_id": show})
-        if lista == "watched":
-            return self._call("POST", "/watched/remove_v2", {"show_id": show, "season_ids": seasons or []})
         if lista == "watchlist":
             return self._call("POST", "/watchlist/remove_v2", {"show_id": show, "season_ids": seasons or [], "async": False})
         raise ValueError(lista)
 
     def set_status(self, show, status, quitar=None):
         """status: watching / watchlist / dropped / watched (todas las temporadas).
-        Serializd deja tener una serie en varias listas a la vez (vista y viendo, abandonada y vista…): con quitar
-        ({lista: temporadas}) se saca de las demás para que tenga un solo estado, el de Dixmax."""
+        Con quitar ({lista: temporadas}) se saca de las otras listas (pendiente, viendo, abandonada) para que tenga el
+        estado de Dixmax. «watched» no se toca: son las temporadas terminadas, convive con «viendo» y al quitarla
+        Serializd borra los ✓ de los episodios."""
         for lista, seasons in (quitar or {}).items():
-            if lista != status:
+            if lista not in (status, "watched"):  # nunca quitar temporadas vistas: Serializd borra los ✓ de sus episodios
                 s, r = self.quitar(show, lista, seasons)
                 if s != 200:
                     return s, r
