@@ -179,6 +179,8 @@
     .step .num { margin-top:1px; } .step .stxt { display:flex; flex-direction:column; } .step .stxt span { color:var(--muted); font-size:12px; }
     .step .sbtn { grid-column:2; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .step .sbtn button { width:100%; padding:10px 8px; } .step .sbtn .imp { grid-column:1 / -1; }
+    .step .sbtn #bExDx:has(+ #bExLb.hidden), .step .sbtn #bExDx.hidden + #bExLb { grid-column:1 / -1; }  /* un solo export: ancho entero */
+    .cards > .card:last-child:nth-child(odd) { grid-column:1 / -1; }  /* 1 o 3 apps: sin hueco al lado */
     .sprog #prog { margin-top:0; }
     .appsg { grid-template-columns:1fr; } .bienv { padding:16px; }
     .tools input[type=search] { min-width:0 !important; flex:1 1 100%; }
