@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 import zipfile
 
-from .config import ANDROID, DATOS, ROOT, env
+from .config import ANDROID, DATOS, IOS, ROOT, env
 
 REPO = "AnxoBT/tri-sync"
 NO_TOCAR = {".env", "rules.json", "cache", "logs", "data", "salida", ".git", ".venv"}
@@ -18,6 +18,9 @@ SIN_VENTANA = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
 def actual():
+    import os
+    if os.environ.get("TRISYNC_VERSION"):  # el iPhone no lleva el archivo VERSION: se lo pasa la app
+        return os.environ["TRISYNC_VERSION"]
     try:
         return (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     except OSError:
@@ -30,7 +33,7 @@ def _num(v):
 
 def _token():
     t = env("GITHUB_TOKEN")
-    if t or ANDROID:  # en el móvil no hay gh ni git (y Android no deja lanzar programas)
+    if t or ANDROID or IOS:  # en el móvil no hay gh ni git (y Android no deja lanzar programas)
         return t
     try:  # si tienes GitHub CLI (gh) con sesión iniciada, vale eso
         r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=5, creationflags=SIN_VENTANA)
@@ -70,7 +73,7 @@ def comprobar(forzar=False):
     """{actual, nueva, notas, url} o {actual, error}. Se guarda 6 h para no preguntar a GitHub a cada rato."""
     if not forzar and _CACHE["r"] and time.time() - _CACHE["t"] < 6 * 3600:
         return _CACHE["r"]
-    r = {"actual": actual(), "git": (ROOT / ".git").exists(), "android": ANDROID}
+    r = {"actual": actual(), "git": (ROOT / ".git").exists(), "android": ANDROID, "ios": IOS}
     try:
         rel = json.loads(_get(f"https://api.github.com/repos/{REPO}/releases/latest"))
         tag = rel["tag_name"].lstrip("v")
@@ -88,6 +91,8 @@ def comprobar(forzar=False):
 def instalar(out=print):
     """Descarga la última release y reemplaza los archivos del programa (copia de seguridad en logs/).
     En el móvil descarga el APK de la release; la app abre el instalador de Android (/android/instalar)."""
+    if IOS:
+        raise RuntimeError("En el iPhone, descarga el IPA nuevo de la release e instálalo con Sideloadly o AltStore")
     if ANDROID:
         rel = json.loads(_get(f"https://api.github.com/repos/{REPO}/releases/latest"))
         tag = rel["tag_name"].lstrip("v")

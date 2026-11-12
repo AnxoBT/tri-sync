@@ -47,5 +47,20 @@ def main():
     print("iconos generados en", RES)
 
 
+
+
+def iphone():
+    """Iconos de la app de iPhone (Briefcase): opacos (Apple no acepta transparencia), fondo negro."""
+    carpeta = ROOT / "ios" / "icono"
+    carpeta.mkdir(parents=True, exist_ok=True)
+    for t in (20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024):
+        g = Image.new("RGBA", (t, t), NEGRO)
+        lado = round(t * 0.66)
+        g.alpha_composite(_logo(lado), ((t - lado) // 2, (t - lado) // 2))
+        g.convert("RGB").save(carpeta / f"icono-{t}.png")
+    print("iconos de iPhone en", carpeta)
+
+
 if __name__ == "__main__":
     main()
+    iphone()

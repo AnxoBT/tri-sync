@@ -8,6 +8,10 @@ ROOT = Path(__file__).resolve().parent.parent  # código (en Android va dentro d
 # programa, como siempre; en Android, la carpeta privada de la app (TRISYNC_DATOS la pone el lanzador).
 DATOS = Path(os.environ.get("TRISYNC_DATOS") or ROOT)
 ANDROID = bool(os.environ.get("TRISYNC_ANDROID"))
+IOS = bool(os.environ.get("TRISYNC_IOS"))
+MOVIL = ANDROID or IOS  # en el móvil: sin Descargas, sin abrir carpetas, sin apagarse al cerrar la pestaña
+# Lo pone la app del iPhone (la vista web no abre enlaces de fuera ni descarga archivos): abrir_url(url), compartir(ruta)
+GANCHOS = {"abrir_url": None, "compartir": None}
 CACHE = DATOS / "cache"
 LOGS = DATOS / "logs"
 IMPORTADOS = DATOS / "importados"  # exports subidos con «Importar export» (en el móvil, la única forma)
@@ -101,7 +105,7 @@ def export_dirs():
     """Carpetas donde buscar exports (DATA_DIR, separadas por ';'). Por defecto: Descargas.
     Siempre, además, los importados desde la web (en el móvil son los únicos: Android no deja leer Descargas)."""
     out = [IMPORTADOS]
-    if ANDROID:
+    if MOVIL:
         return out
     for x in (env("DATA_DIR") or str(descargas())).split(";"):
         x = x.strip()

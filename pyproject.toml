@@ -1,0 +1,23 @@
+# Solo para la app de iPhone (BeeWare Briefcase): mete Python y este código en una app de iOS.
+# La compila GitHub Actions en un Mac (.github/workflows/ios.yml). En el PC no hace falta para nada.
+[tool.briefcase]
+project_name = "Tri-Sync"
+bundle = "com.anxobt"
+version = "1.10.0"  # el workflow la pone igual que VERSION
+url = "https://github.com/AnxoBT/tri-sync"
+license.text = "Uso personal"
+author = "AnxoBT"
+author_email = "349251559+AnxoBT@users.noreply.github.com"
+
+[tool.briefcase.app.trisync]
+formal_name = "Tri-Sync"
+description = "Compara Dixmax con Letterboxd, Serializd y AniList y te deja arreglar lo que no cuadra"
+long_description = "Compara Dixmax con Letterboxd, Serializd y AniList y te deja arreglar lo que no cuadra."
+icon = "ios/icono/icono"
+sources = ["ios/src/trisync", "core", "web"]
+requires = ["tzdata", "certifi"]
+
+[tool.briefcase.app.trisync.iOS]
+requires = ["toga-iOS~=0.5.0", "std-nslog~=1.0.3"]
+# el servidor de Tri-Sync va por http en el propio iPhone (127.0.0.1)
+info."NSAppTransportSecurity" = { NSAllowsLocalNetworking = true, NSAllowsArbitraryLoadsInWebContent = true }

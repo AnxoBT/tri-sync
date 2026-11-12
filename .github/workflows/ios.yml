@@ -1,0 +1,81 @@
+# Versión de iPhone: la compila en un Mac con Briefcase (Python dentro de la app), la abre en el simulador para sacar
+# capturas y genera el IPA sin firmar (se firma al instalarlo, por ejemplo con Sideloadly o AltStore).
+# Como en wallpaper-editor. Solo se lanza a mano o al cambiar la parte de iPhone (los Mac gastan más minutos).
+name: iOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+    paths:
+      - "ios/**"
+      - "pyproject.toml"
+      - ".github/workflows/ios.yml"
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Briefcase y versión
+        run: |
+          pip install -q briefcase
+          V=$(cat VERSION)
+          sed -i '' "s/^version = .*/version = \"$V\"/" pyproject.toml
+          echo "V=$V" >> "$GITHUB_ENV"
+          xcodebuild -version
+
+      - name: Crear el proyecto de Xcode y compilar para el simulador
+        run: |
+          briefcase create iOS --no-input
+          briefcase build iOS --no-input
+
+      - name: Abrirla en el simulador y sacar capturas
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          phones = [d for r, ds in sorted(devices.items(), reverse=True) if "iOS" in r for d in ds if d["name"].startswith("iPhone") and "Pro" in d["name"] and "Max" not in d["name"]]
+          phones = phones or [d for r, ds in sorted(devices.items(), reverse=True) if "iOS" in r for d in ds if d["name"].startswith("iPhone")]
+          print(phones[0]["udid"])
+          ')
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryLevel 100 --batteryState charged || true
+          APP=$(find build/trisync/ios/xcode -name "Tri-Sync.app" -path "*iphonesimulator*" | head -1)
+          echo "App: $APP"
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p shots
+          xcrun simctl launch "$UDID" com.anxobt.trisync
+          sleep 25
+          xcrun simctl io "$UDID" screenshot shots/1-arranque.png
+          sleep 35
+          xcrun simctl io "$UDID" screenshot shots/2-un-minuto.png
+          xcrun simctl spawn "$UDID" log show --last 3m --style compact --predicate 'process == "Tri-Sync"' > shots/log.txt || true
+          tail -60 shots/log.txt || true
+
+      - name: IPA sin firmar
+        run: |
+          set -o pipefail
+          xcodebuild build -project "build/trisync/ios/xcode/Tri-Sync.xcodeproj" -scheme "Tri-Sync" -configuration Release \
+            -sdk iphoneos -destination "generic/platform=iOS" -derivedDataPath build/device \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -20
+          mkdir -p build/ipa/Payload
+          cp -R build/device/Build/Products/Release-iphoneos/Tri-Sync.app build/ipa/Payload/
+          (cd build/ipa && zip -qry "../../Tri-Sync-$V-iOS.ipa" Payload)
+          ls -l "Tri-Sync-$V-iOS.ipa"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Tri-Sync-iOS
+          path: |
+            Tri-Sync-*-iOS.ipa
+            shots/
+          if-no-files-found: warn

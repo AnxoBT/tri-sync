@@ -13,3 +13,6 @@ __pycache__/
 
 # Casos especiales propios (hay un ejemplo en rules.example.json)
 rules.json
+
+# App de iPhone (Briefcase): se compila en GitHub Actions
+/build/

@@ -23,13 +23,13 @@ else fetch('/api/anilist_token', {method: 'POST', body: JSON.stringify({access_t
   .then(r => r.json()).then(r => {
     history.replaceState(null, '', '/anilist');
     document.getElementById('m').innerHTML = r.ok ? '✓ Conectado con AniList como <b>' + r.usuario + '</b>. Ya puedes cerrar esta pestaña.' : 'Error: ' + r.texto;
-    if (r.ok) setTimeout(() => window.close(), 1500);
+    if (r.ok) setTimeout(() => { window.close(); location.href = '/'; }, 1500);  // en la app (iPhone) no hay pestaña: vuelve
   });
 </script>""".encode()
 
 PAGINA_VUELTA = """<!doctype html><meta charset="utf-8"><title>Tri-Sync</title>
 <body style="font:16px system-ui;background:#0f1218;color:#e6e6e6;display:grid;place-items:center;height:90vh;padding:20px;text-align:center">
-<div>{txt}</div>"""
+<div>{txt}<p><a href="/" style="color:#3fb0ff">Volver a Tri-Sync</a></p></div>"""
 
 # estado de la revisión en segundo plano
 JOB = {"activo": False, "mensajes": [], "error": None, "fin": None}
@@ -155,7 +155,7 @@ def _probar():
     from core.imports import estado_exports
     ap, out = config.apps(), {}
     ex = estado_exports()
-    if not config.ANDROID:
+    if not config.MOVIL:
         out["carpetas"] = {"ok": all("no existe" not in c for c in ex["carpetas"]), "texto": " · ".join(ex["carpetas"])}
     for k, nombre, max_h, app in (("dixmax", "export Dixmax", 24 * 30, "dixmax"), ("letterboxd", "export Letterboxd", 24, "letterboxd")):
         if not ap[app]:
@@ -271,7 +271,7 @@ class Handler(BaseHTTPRequestHandler):
             from core.actualizar import comprobar
             return self._send(200, comprobar())
         if self.path == "/api/ping":
-            return self._send(200, {"ok": True, "android": config.ANDROID})
+            return self._send(200, {"ok": True, "android": config.ANDROID, "ios": config.IOS, "movil": config.MOVIL})
         if self.path.startswith("/api/descargar/"):  # CSV de Letterboxd (en el móvil se baja a Descargas)
             p = (LOGS / self.path.rsplit("/", 1)[1]).resolve()
             if p.parent == LOGS.resolve() and p.is_file():
@@ -358,8 +358,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True})
         if self.path == "/api/abrir":
             p = Path(self._body().get("archivo", ""))
-            if p.exists() and LOGS in p.parents and not config.ANDROID:
+            if p.exists() and LOGS in p.parents and not config.MOVIL:
                 os.startfile(p.parent)
+            return self._send(200, {"ok": True})
+        if self.path == "/api/abrir_url":  # iPhone: enlaces de fuera (Dixmax, Letterboxd…) en Safari
+            url = str(self._body().get("url", ""))
+            if url.startswith("https://") and config.GANCHOS["abrir_url"]:
+                config.GANCHOS["abrir_url"](url)
+            return self._send(200, {"ok": True})
+        if self.path == "/api/compartir":  # iPhone: el CSV de Letterboxd, con el menú de compartir (Guardar en Archivos…)
+            p = (LOGS / Path(str(self._body().get("archivo", ""))).name).resolve()
+            if p.parent == LOGS.resolve() and p.is_file() and config.GANCHOS["compartir"]:
+                config.GANCHOS["compartir"](str(p))
             return self._send(200, {"ok": True})
         if self.path == "/api/importar":  # zip de export de Dixmax o Letterboxd, elegido en la web
             from core import movil

@@ -162,8 +162,10 @@
   .pill { font-size:11.5px; padding:2px 8px; border-radius:10px; border:1px solid var(--line); color:var(--muted); }
   .pill.ok { color:var(--ok); border-color:var(--ok); }
   details.avz { margin-top:16px; } details.avz summary { cursor:pointer; color:var(--muted); }
+  .entra-d { animation:entraD .22s ease-out; } .entra-i { animation:entraI .22s ease-out; }
+  @keyframes entraD { from { transform:translateX(40px); opacity:.3; } } @keyframes entraI { from { transform:translateX(-40px); opacity:.3; } }
   /* ---- móvil (la app de Android y pantallas estrechas) ---- */
-  .android #bOff, .android .solo-pc { display:none !important; }
+  .movil #bOff, .movil .solo-pc { display:none !important; }
   @media (max-width:700px) {
     body { font-size:14.5px; } .wrap { padding:0 12px; }
     header .wrap { height:auto; flex-wrap:wrap; gap:4px 10px; padding-top:8px; }
@@ -278,20 +280,61 @@
 <script>
 const $ = id => document.getElementById(id);
 const ANDROID = !!window.TriSyncAndroid;  // la app de Android (WebView)
-if (ANDROID) document.body.classList.add('android');
+let IOS = false;  // la app del iPhone (lo dice el servidor)
+if (ANDROID) document.body.classList.add('movil');
+fetch('/api/ping').then(r => r.json()).then(p => {
+  IOS = !!p.ios;
+  if (p.movil) document.body.classList.add('movil');
+  if (!IOS) return;
+  // iPhone: la vista web no abre ventanas nuevas. Los permisos (AniList, Letterboxd) se dan dentro de la app y
+  // vuelven solos; el resto de enlaces de fuera se abren en Safari.
+  const fuera = u => fetch('/api/abrir_url', {method: 'POST', body: JSON.stringify({url: new URL(u, location.href).href})});
+  window.open = u => { if (/anilist\.co\/api\/v2\/oauth|letterboxd\.com\/api\/v0\/auth/.test(u)) location.href = u; else fuera(u); return null; };
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (a && /^https?:/.test(a.href) && new URL(a.href).host !== location.host) { e.preventDefault(); window.open(a.href); }
+  }, true);
+}).catch(() => {});
 const pantalla = si => { try { if (ANDROID) TriSyncAndroid.mantenerPantalla(si); } catch (e) {} };  // que no se pause a medias
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let DATA = {diferencias: []}, sel = {}, filtroCat = null, poll = null;
 
-function vista(v) {
-  for (const [k, id] of [['rev', 'Rev'], ['hist', 'Hist'], ['stats', 'Stats'], ['cfg', 'Cfg']]) {
+const VISTAS = [['rev', 'Rev'], ['hist', 'Hist'], ['stats', 'Stats'], ['cfg', 'Cfg']];
+let VISTA_ACT = 'rev';
+function vista(v, dir) {
+  for (const [k, id] of VISTAS) {
     $('v' + id).classList.toggle('hidden', v !== k); $('t' + id).classList.toggle('on', v === k);
   }
+  VISTA_ACT = v;
   $('abar').classList.toggle('hidden', v !== 'rev' || !$('bienvenida').classList.contains('hidden'));
+  const el = $('v' + VISTAS.find(x => x[0] === v)[1]);
+  if (dir) { el.classList.remove('entra-d', 'entra-i'); void el.offsetWidth; el.classList.add(dir > 0 ? 'entra-d' : 'entra-i'); }
+  $('t' + VISTAS.find(x => x[0] === v)[1]).scrollIntoView({block: 'nearest', inline: 'nearest'});
+  if (dir) scrollTo({top: 0});
   if (v === 'cfg') cargarCfg();
   if (v === 'hist') historial();
   if (v === 'stats') estadisticas();
 }
+// deslizar el dedo a un lado cambia de pestaña (como en Instagram). No cuando deslizas algo que se mueve de lado
+// (mapa, pestañas de arriba, chips, tablas anchas) ni con una ventana abierta.
+(() => {
+  let t0 = null;
+  const desplazable = el => { for (; el && el !== document.body; el = el.parentElement)
+    if (el.scrollWidth > el.clientWidth + 4 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return true; return false; };
+  addEventListener('touchstart', e => {
+    const el = e.target;
+    t0 = (e.touches.length !== 1 || $('modal').classList.contains('on') || el.closest('.mapa, input, select, textarea, pre') || desplazable(el))
+      ? null : {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now()};
+  }, {passive: true});
+  addEventListener('touchend', e => {
+    if (!t0) return;
+    const dx = e.changedTouches[0].clientX - t0.x, dy = e.changedTouches[0].clientY - t0.y, dt = Date.now() - t0.t;
+    t0 = null;
+    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6 || dt > 700) return;
+    const i = VISTAS.findIndex(x => x[0] === VISTA_ACT) + (dx < 0 ? 1 : -1);
+    if (i >= 0 && i < VISTAS.length) vista(VISTAS[i][0], dx < 0 ? 1 : -1);
+  }, {passive: true});
+})();
 
 const NOMBRES = {dixmax: 'Dixmax', letterboxd: 'Letterboxd', serializd: 'Serializd', anilist: 'AniList'};
 const COLOR = {dixmax: 'dx', letterboxd: 'lb', serializd: 'sz', anilist: 'al'};
@@ -666,7 +709,7 @@ function fin(r) {
   $('mT').textContent = (simulacion ? 'Simulación' : cancelado ? 'Cancelado' : (res.ok ? 'Hecho' : 'Error')) + ` · ${r.total} acciones`;
   $('mL').textContent = (res.log || []).join('\n');
   $('mF').innerHTML = (res.archivos || []).map(f => `<div class="file">📄 ${esc(f.texto)}<br><small>${esc(f.archivo)}</small><br>
-      ${ANDROID ? `<a href="/api/descargar/${encodeURIComponent(f.archivo.split(/[\\/]/).pop())}">Descargar el CSV ↓</a> ·` : `<button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button>`}
+      ${IOS ? `<button onclick='compartir(${JSON.stringify(f.archivo)})'>Compartir el CSV…</button>` : ANDROID ? `<a href="/api/descargar/${encodeURIComponent(f.archivo.split(/[\\/]/).pop())}">Descargar el CSV ↓</a> ·` : `<button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button>`}
       <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
   const n = (res.hechas || []).length;
   if (!simulacion && n) {
@@ -685,6 +728,7 @@ async function cancelar() {
 // si recargas o reabres la página mientras se aplica, vuelve a enseñar el progreso
 fetch('/api/run').then(r => r.json()).then(r => { if (r.activo) seguirRun(); });
 function abrir(archivo) { fetch('/api/abrir', {method: 'POST', body: JSON.stringify({archivo})}); }
+function compartir(archivo) { fetch('/api/compartir', {method: 'POST', body: JSON.stringify({archivo})}); }
 async function importar(inp) {
   const f = inp.files[0]; inp.value = '';
   if (!f) return;
@@ -722,7 +766,7 @@ const APPCFG = {
     nota: 'Se conecta con tu cuenta de AniList (el permiso dura 1 año).'},
 };
 const CAMPOS = [  // Avanzado
-  ...(ANDROID ? [] : [['DATA_DIR', 'Carpetas de exports', 'Dónde buscar los zips o carpetas de Dixmax y Letterboxd. Varias separadas por ; · vacío = Descargas. También vale «Importar export».']]),
+  ...(ANDROID || /iPhone|iPad/.test(navigator.userAgent) ? [] : [['DATA_DIR', 'Carpetas de exports', 'Dónde buscar los zips o carpetas de Dixmax y Letterboxd. Varias separadas por ; · vacío = Descargas. También vale «Importar export».']]),
   ['GITHUB_TOKEN', 'Token de GitHub', 'Solo para avisar de versiones nuevas (el repo es privado). github.com/settings/personal-access-tokens/new → Repository access: Only select → tri-sync · Permissions → Contents: Read-only.', 1],
 ];
 const campo = (c, [k, t, h, sec]) => `<label for="f_${k}">${t}</label><input id="f_${k}" ${sec ? 'type="password" autocomplete="off"' : ''} value="${sec ? '' : esc(c[k])}"
@@ -745,7 +789,7 @@ async function cargarCfg() {
   $('cfgForm').innerHTML = CAMPOS.map(f => `<div>${campo(c, f)}</div>`).join('');
 }
 async function quitarApp(k) {
-  if (!confirm(`¿Quitar ${NOMBRES[k]} de Tri-Sync?\n\nSe borran sus claves de este ${ANDROID ? 'móvil' : 'PC'} y deja de revisarse. En ${NOMBRES[k]} no se toca nada.`)) return;
+  if (!confirm(`¿Quitar ${NOMBRES[k]} de Tri-Sync?\n\nSe borran sus claves de este ${document.body.classList.contains('movil') ? 'móvil' : 'PC'} y deja de revisarse. En ${NOMBRES[k]} no se toca nada.`)) return;
   await fetch('/api/app/quitar', {method: 'POST', body: JSON.stringify({app: k})});
   cargarCfg();
 }
