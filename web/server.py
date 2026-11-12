@@ -249,8 +249,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def _body(self):
-        n = int(self.headers.get("Content-Length", 0))
-        return json.loads(self.rfile.read(n) or b"{}")
+        return json.loads(self._crudo or b"{}")
 
     def do_GET(self):
         if SECRETO and self.path.startswith("/?"):  # la app abre /?k=<clave>: se guarda en una cookie
@@ -325,6 +324,9 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "no existe"})
 
     def do_POST(self):
+        # se lee siempre todo lo que manda, también si se va a rechazar: contestar sin leerlo hace que Windows corte
+        # la conexión de golpe (el navegador vería un error en vez de la respuesta)
+        self._crudo = self.rfile.read(int(self.headers.get("Content-Length", 0) or 0))
         if self._ajena(True):
             return self._send(403, {"error": "petición ajena a Tri-Sync"})
         LATIDO["t"] = time.time()
@@ -419,18 +421,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True})
         if self.path == "/api/importar":  # zip de export de Dixmax o Letterboxd, elegido en la web
             from core import movil
-            n = int(self.headers.get("Content-Length", 0))
             try:
-                return self._send(200, {"ok": True, **movil.importar_export(urllib.parse.unquote(self.headers.get("X-Nombre", "")), self.rfile.read(n))})
+                return self._send(200, {"ok": True, **movil.importar_export(urllib.parse.unquote(self.headers.get("X-Nombre", "")), self._crudo)})
             except Exception as e:
                 return self._send(200, {"ok": False, "texto": str(e)})
         if self.path == "/api/sincro/recibir":  # el PC pasa al móvil tu configuración y caché (por USB)
             if not config.MOVIL:
                 return self._send(403, {"error": "solo en el móvil"})
             from core import movil
-            n = int(self.headers.get("Content-Length", 0))
             try:
-                return self._send(200, {"ok": True, **movil.recibir(self.rfile.read(n))})
+                return self._send(200, {"ok": True, **movil.recibir(self._crudo)})
             except Exception as e:
                 return self._send(200, {"ok": False, "texto": str(e)})
         if self.path == "/api/movil":  # PC: instala/actualiza la app del móvil y le pasa los datos (adb)
