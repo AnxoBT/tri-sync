@@ -31,13 +31,37 @@ def _load_env():
 ENV = _load_env()
 
 EDITABLES = ["DATA_DIR", "SERIALIZD_USER", "LETTERBOXD_USER", "SERIALIZD_TOKEN", "DIXMAX_API_KEY", "DIXMAX_AUTH_KEY",
-             "GITHUB_TOKEN", "ANILIST_USER", "ANILIST_TOKEN", "ANILIST_EXPIRA"]
-SECRETOS = {"SERIALIZD_TOKEN", "DIXMAX_API_KEY", "DIXMAX_AUTH_KEY", "GITHUB_TOKEN", "ANILIST_TOKEN"}
+             "GITHUB_TOKEN", "ANILIST_USER", "ANILIST_TOKEN", "ANILIST_EXPIRA",
+             "LETTERBOXD_CLIENT_ID", "LETTERBOXD_CLIENT_SECRET", "LETTERBOXD_TOKEN", "LETTERBOXD_REFRESH", "LETTERBOXD_EXPIRA"]
+SECRETOS = {"SERIALIZD_TOKEN", "DIXMAX_API_KEY", "DIXMAX_AUTH_KEY", "GITHUB_TOKEN", "ANILIST_TOKEN",
+            "LETTERBOXD_CLIENT_SECRET", "LETTERBOXD_TOKEN", "LETTERBOXD_REFRESH"}
+
+# Cada app y las claves del .env que son suyas («Quitar» las borra). Dixmax es el centro: todo se compara con él.
+APPS = {"dixmax": ["DIXMAX_API_KEY", "DIXMAX_AUTH_KEY"],
+        "letterboxd": ["LETTERBOXD_USER", "LETTERBOXD_CLIENT_ID", "LETTERBOXD_CLIENT_SECRET", "LETTERBOXD_TOKEN",
+                       "LETTERBOXD_REFRESH", "LETTERBOXD_EXPIRA"],
+        "serializd": ["SERIALIZD_USER", "SERIALIZD_TOKEN"],
+        "anilist": ["ANILIST_USER", "ANILIST_TOKEN", "ANILIST_EXPIRA"]}
+
+
+def apps():
+    """Qué apps tienes conectadas: solo esas salen en la web y se revisan."""
+    tiene = lambda pre: bool(find_exports(pre))  # noqa: E731
+    return {"dixmax": bool(env("DIXMAX_API_KEY") and env("DIXMAX_AUTH_KEY")) or tiene("playmax-userdata-"),
+            "letterboxd": bool(env("LETTERBOXD_USER") or env("LETTERBOXD_TOKEN")),
+            "serializd": bool(env("SERIALIZD_TOKEN")),
+            "anilist": bool(env("ANILIST_TOKEN"))}
 
 
 def config_publica():
     """Configuración para mostrar en la web: los secretos solo como 'puesto / no puesto'."""
     return {k: ({"puesto": bool(ENV.get(k))} if k in SECRETOS else ENV.get(k, "")) for k in EDITABLES}
+
+
+def _escribir_env():
+    otras = [k for k in ENV if k not in EDITABLES]  # p. ej. ADB: se conservan
+    lines = [f"{k}={ENV.get(k, '')}" for k in EDITABLES + otras]
+    (DATOS / ".env").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def guardar_config(cambios):
@@ -49,8 +73,14 @@ def guardar_config(cambios):
         if k in SECRETOS and not v:
             continue
         ENV[k] = v
-    lines = [f"{k}={ENV.get(k, '')}" for k in EDITABLES]
-    (DATOS / ".env").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    _escribir_env()
+
+
+def quitar_app(app):
+    """Desconecta una app: borra sus claves del .env (en la propia web no se toca nada)."""
+    for k in APPS.get(app, []):
+        ENV[k] = ""
+    _escribir_env()
 
 
 def recargar_env():
@@ -141,7 +171,7 @@ def find_exports(prefix):
 def latest_export(prefix):
     found = find_exports(prefix)
     if not found:
-        raise SystemExit(f"No encuentro ningún export '{prefix}*' (zip o carpeta) en "
+        raise RuntimeError(f"No encuentro ningún export '{prefix}*' (zip o carpeta) en "
                          f"{' ; '.join(map(str, export_dirs()))}. Descárgalo y vuelve a revisar.")
     return found[0]
 

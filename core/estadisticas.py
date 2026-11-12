@@ -543,6 +543,10 @@ def calcular(progress=print):
         dd, nn = Counter(d for _, d, _ in diario).most_common(1)[0]
         if nn > 1:
             cu("Tu día más peliculero", f"{nn} películas", _fecha(datetime.strptime(dd, "%Y-%m-%d")), "lb")
+        dias_p = {datetime.strptime(d, "%Y-%m-%d").date() for _, d, _ in diario}
+        n, fin = _racha(dias_p)
+        if n > 1:
+            cu("Racha más larga", f"{n} días seguidos", f"viendo alguna película cada día, hasta el {_fecha(fin)}", "lb")
     if durs:
         lg = max(vistas, key=lambda m: P(m).get("rt") or 0)
         cu("La peli más larga", tit(lg), f"{P(lg)['rt']} minutos", "lb")
@@ -551,7 +555,6 @@ def calcular(progress=print):
         baratas = [x for x in caras if x[1] >= 1e5]
         if baratas:
             cu("La más barata", tit(baratas[-1][0]), f"costó {_dinero(baratas[-1][1])}", "lb")
-        cu("Dinero en pantalla", _dinero(sum(x[1] for x in caras)), f"lo que costaron juntas {len(caras)} de tus pelis", "lb")
     if ratio:
         m, c_, t_ = ratio[0]
         cu("El mejor negocio", tit(m), f"recaudó {t_ / c_:.0f} veces lo que costó", "lb")

@@ -16,6 +16,11 @@ def iso_utc(ts):
 
 
 def load():
+    """Lo del export de Dixmax. Sin export, con la API configurada, se empieza de cero y la API lo lee todo
+    (la primera vez tarda: pide cada ficha; luego va de caché)."""
+    from .config import env, find_exports
+    if not find_exports("playmax-userdata-") and env("DIXMAX_API_KEY") and env("DIXMAX_AUTH_KEY"):
+        return {"export": "sin export (solo API)", "export_mtime": None, "movies": [], "shows": []}
     exp = latest_export("playmax-userdata-")
     r = rules().get("dixmax", {})
     ign = set(r.get("fichas_ignoradas", []))

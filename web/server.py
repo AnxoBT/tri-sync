@@ -27,6 +27,10 @@ else fetch('/api/anilist_token', {method: 'POST', body: JSON.stringify({access_t
   });
 </script>""".encode()
 
+PAGINA_VUELTA = """<!doctype html><meta charset="utf-8"><title>Tri-Sync</title>
+<body style="font:16px system-ui;background:#0f1218;color:#e6e6e6;display:grid;place-items:center;height:90vh;padding:20px;text-align:center">
+<div>{txt}</div>"""
+
 # estado de la revisión en segundo plano
 JOB = {"activo": False, "mensajes": [], "error": None, "fin": None}
 
@@ -149,29 +153,35 @@ def lanzar_estadisticas():
 
 def _probar():
     from core.imports import estado_exports
-    out = {}
+    ap, out = config.apps(), {}
     ex = estado_exports()
-    out["carpetas"] = {"ok": all("no existe" not in c for c in ex["carpetas"]), "texto": " · ".join(ex["carpetas"])}
-    for k, nombre, max_h in (("dixmax", "export Dixmax", 24 * 30), ("letterboxd", "export Letterboxd", 24)):
+    if not config.ANDROID:
+        out["carpetas"] = {"ok": all("no existe" not in c for c in ex["carpetas"]), "texto": " · ".join(ex["carpetas"])}
+    for k, nombre, max_h, app in (("dixmax", "export Dixmax", 24 * 30, "dixmax"), ("letterboxd", "export Letterboxd", 24, "letterboxd")):
+        if not ap[app]:
+            continue
         e = ex[k]
         if not e["carpeta"]:
             pre = "playmax-userdata-" if k == "dixmax" else "letterboxd-"
-            out[nombre] = {"ok": False, "texto": f"No encontrado (zip o carpeta completa que empiece por '{pre}')"}
+            opcional = k == "dixmax" and config.env("DIXMAX_API_KEY")
+            out[nombre] = {"ok": bool(opcional), "aviso": bool(opcional),
+                           "texto": ("No hay (opcional: la API lo lee todo)" if opcional else
+                                     f"No encontrado: descárgalo e impórtalo (zip que empiece por '{pre}')")}
             continue
-        txt = (f"{e['carpeta']} ({e['tipo']}) en {e['ubicacion']} · descargado {e['fecha']} ({e['edad']}) · "
-               f"archivos OK: {', '.join(e['archivos'])}")
+        txt = (f"{e['carpeta']} ({e['tipo']}) · descargado {e['fecha']} ({e['edad']}) · archivos OK: {', '.join(e['archivos'])}")
         if e["otros"]:
             txt += f" · hay {e['otros']} más antiguos (se ignoran)"
         aviso = e["horas"] > max_h
         if aviso:
             txt += " · ⚠ antiguo, descarga uno nuevo" if k == "letterboxd" else " · ⚠ fechas poco actualizadas"
         out[nombre] = {"ok": True, "aviso": aviso, "texto": txt}
-    try:
-        from core.serializd import Serializd
-        out["serializd"] = {"ok": True, "texto": f"Conectado como {Serializd().check()}"}
-    except Exception as e:
-        out["serializd"] = {"ok": False, "texto": str(e)}
-    if config.env("ANILIST_USER"):
+    if ap["serializd"]:
+        try:
+            from core.serializd import Serializd
+            out["serializd"] = {"ok": True, "texto": f"Conectado como {Serializd().check()}"}
+        except Exception as e:
+            out["serializd"] = {"ok": False, "texto": str(e)}
+    if ap["anilist"]:
         try:
             from core import anilist
             u = anilist.check()
@@ -179,12 +189,19 @@ def _probar():
                               if u else {"ok": False, "texto": "Falta el permiso: pulsa «Conectar con AniList»"})
         except Exception as e:
             out["anilist"] = {"ok": False, "texto": str(e)}
-    try:
-        from core.dixmax_api import Dixmax
-        Dixmax().check()
-        out["dixmax"] = {"ok": True, "texto": "API oficial conectada (se pueden aplicar cambios)"}
-    except Exception as e:
-        out["dixmax"] = {"ok": False, "texto": str(e)}
+    if config.env("LETTERBOXD_TOKEN"):
+        try:
+            from core import letterboxd_api
+            out["letterboxd API"] = {"ok": True, "texto": f"Conectado como {letterboxd_api.check()} (los cambios se aplican directamente)"}
+        except Exception as e:
+            out["letterboxd API"] = {"ok": False, "texto": str(e)}
+    if config.env("DIXMAX_API_KEY"):
+        try:
+            from core.dixmax_api import Dixmax
+            Dixmax().check()
+            out["dixmax"] = {"ok": True, "texto": "API oficial conectada (se pueden aplicar cambios)"}
+        except Exception as e:
+            out["dixmax"] = {"ok": False, "texto": str(e)}
     return out
 
 
@@ -206,7 +223,16 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(n) or b"{}")
 
     def do_GET(self):
+        consulta = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
         self.path = self.path.split("?", 1)[0]  # ignora ?v=… (evita caché del navegador)
+        if self.path == "/letterboxd":  # vuelta de la autorización de la API de Letterboxd (?code=…&state=…)
+            from core import letterboxd_api
+            try:
+                u = letterboxd_api.recibir_codigo((consulta.get("code") or [""])[0], (consulta.get("state") or [""])[0])
+                txt = f"✓ Conectado con Letterboxd{' como <b>' + u + '</b>' if u else ''}. Ya puedes volver a Tri-Sync."
+            except Exception as e:
+                txt = f"No se pudo conectar con Letterboxd: {e}"
+            return self._send(200, PAGINA_VUELTA.replace("{txt}", txt).encode(), "text/html; charset=utf-8")
         LATIDO["t"] = time.time()  # cualquier petición de la página cuenta como actividad
         if self.path == "/anilist":  # vuelta de la autorización de AniList (el permiso viene tras el #)
             return self._send(200, ANILIST_HTML, "text/html; charset=utf-8")
@@ -219,7 +245,9 @@ class Handler(BaseHTTPRequestHandler):
             from core.imports import estado_exports
             p = CACHE / "diff.json"
             calc = json.loads(p.read_text(encoding="utf-8")).get("calculado") if p.exists() else None
-            return self._send(200, {"exports": estado_exports(), "calculado": calc,
+            return self._send(200, {"exports": estado_exports(), "calculado": calc, "apps": config.apps(),
+                                    "dixmax_api": bool(config.env("DIXMAX_API_KEY") and config.env("DIXMAX_AUTH_KEY")),
+                                    "letterboxd_api": bool(config.env("LETTERBOXD_TOKEN")),
                                     "letterboxd_user": config.env("LETTERBOXD_USER"),
                                     "anilist_user": config.env("ANILIST_USER"),
                                     "anilist_dias": _dias_permiso_anilist(), "trabajo": JOB})
@@ -274,6 +302,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True, "config": config.config_publica()})
         if self.path == "/api/probar":
             return self._send(200, _probar())
+        if self.path == "/api/app/quitar":
+            config.quitar_app(self._body().get("app"))
+            return self._send(200, {"ok": True, "apps": config.apps()})
+        if self.path == "/api/letterboxd/conectar":
+            from core import letterboxd_api
+            if not letterboxd_api.configurada():
+                return self._send(200, {"ok": False, "texto": "Pon antes el client_id y el client_secret de tu app de la API de Letterboxd"})
+            return self._send(200, {"ok": True, "url": letterboxd_api.url_autorizar()})
         if self.path == "/api/plan":
             LOGS.mkdir(exist_ok=True)
             f = LOGS / f"plan_{datetime.now():%Y%m%d_%H%M%S}.json"

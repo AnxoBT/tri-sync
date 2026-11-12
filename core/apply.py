@@ -147,6 +147,41 @@ def _al_subir(acciones, dry, out, tick, ctl, anilist):
             out(f"[AniList] no se pudieron ordenar los favoritos ({str(ex)[:120]})")
 
 
+def _lb_api(por, dry, out, tick, api):
+    """Letterboxd por su API: registro en el diario (fecha, nota y ♥ de Dixmax), nota suelta y watchlist."""
+    if not dry:
+        out(f"[Comprobación] Letterboxd conectado por API como {api.check()}")
+        try:  # todas las películas de una vez (de 100 en 100) en lugar de una petición por cada una
+            api.lids([a["datos"]["dx"].get("tmdb") for k in ("lb_log", "nota_dx_a_lb", "lb_watchlist") for a in por[k]])
+        except api.LetterboxdError as e:
+            out(f"[Letterboxd] ERROR buscando las películas: {e}")
+            return
+    for a in por["lb_log"] + por["nota_dx_a_lb"]:
+        tick(a)
+        m = a["datos"]["dx"]
+        estrellas = float(_stars(m.get("rating10")) or 0) or None
+        fecha = (m.get("date") or "")[:10] if a["accion"] == "lb_log" else None
+        out(f"[Letterboxd] {m['title']}: " + (f"diario {fecha}" if fecha else "nota") + (f" · {estrellas:g}★" if estrellas else "")
+            + (" · ♥" if m.get("favorite") and fecha else ""))
+        if not dry:
+            try:
+                if fecha:
+                    api.registrar(m.get("tmdb"), fecha, estrellas, like=bool(m.get("favorite")))
+                else:
+                    api.nota(m.get("tmdb"), estrellas)
+            except api.LetterboxdError as e:
+                out(f"   ERROR {e}")
+    for a in por["lb_watchlist"]:
+        tick(a)
+        m = a["datos"]["dx"]
+        out(f"[Letterboxd] {m['title']}: añadir a la watchlist")
+        if not dry:
+            try:
+                api.watchlist(m.get("tmdb"), True)
+            except api.LetterboxdError as e:
+                out(f"   ERROR {e}")
+
+
 def _execute(por, dry, out, tick, archivos, ctl):
 
     sz = dx = None
@@ -322,7 +357,11 @@ def _execute(por, dry, out, tick, archivos, ctl):
         out(f"[Comprobación] AniList conectado como {anilist.check() or 'NADIE: Configuración → Conectar con AniList'}")
         _al_subir(por["al_subir"], dry, out, tick, ctl, anilist)  # sale en tu feed de actividad como cualquier cambio
 
-    # ---------------- Letterboxd (CSV) ----------------
+    # ---------------- Letterboxd: API oficial si está conectada; si no, CSV para su importador ----------------
+    from . import letterboxd_api
+    if letterboxd_api.conectada() and (por["lb_log"] or por["nota_dx_a_lb"] or por["lb_watchlist"]):
+        _lb_api(por, dry, out, tick, letterboxd_api)
+        por["lb_log"], por["nota_dx_a_lb"], por["lb_watchlist"] = [], [], []  # hecho: sin CSV
     logs_rows, wl_rows = [], []
     for a in por["lb_log"] + por["nota_dx_a_lb"]:
         tick(a)

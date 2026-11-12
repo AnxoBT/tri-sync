@@ -13,7 +13,9 @@ Compara mi historial de **Dixmax/PlayMax**, **Letterboxd** (películas), **Seria
    (O `git clone https://github.com/AnxoBT/tri-sync.git`.)
 3. Doble clic en **`Abrir Tri-Sync.bat`**. La primera vez instala lo necesario (`tzdata`), crea el acceso directo
    **Tri-Sync** en el escritorio y abre la web. Después ya puedes abrirlo desde el acceso directo.
-4. Pestaña **Configuración**: rellena los datos (o copia tu `.env` de otro PC a esta carpeta) → **Probar conexiones**.
+4. La primera vez sale una bienvenida que te lleva a **Configuración → Tus aplicaciones**: conecta **Dixmax**
+   (imprescindible: todo se compara con él) y las que uses de **Letterboxd**, **Serializd** y **AniList**.
+   Las que no conectes no aparecen ni se revisan. (O copia tu `.env` de otro PC.) → **Probar conexiones**.
 5. La primera revisión en un PC nuevo, mejor **Completa** (crea la caché).
 
 Nada personal viaja con el repo: el `.env` (token y claves), la caché y los registros se quedan en cada PC.
@@ -25,7 +27,8 @@ Nada personal viaja con el repo: el `.env` (token y claves), la caché y los reg
 | `DATA_DIR` | Carpetas donde buscar los exports (zip o carpeta), separadas por `;`. Vacío = Descargas |
 | `SERIALIZD_TOKEN` | Cookie `tvproject_credentials` de serializd.com (F12 → Application → Cookies) |
 | `SERIALIZD_USER` / `LETTERBOXD_USER` | Tus usuarios |
-| `DIXMAX_API_KEY` / `DIXMAX_AUTH_KEY` | API oficial de PlayMax: crea una app en playmax.mx/tusapps.php y autorízala en Panel de Control > Aplicaciones autorizadas |
+| `DIXMAX_API_KEY` / `DIXMAX_AUTH_KEY` | API oficial de PlayMax: crea una app en playmax.mx/tusapps.php y autorízala en Panel de Control > Aplicaciones autorizadas. Con ella el export de Dixmax es opcional |
+| `LETTERBOXD_CLIENT_ID` / `LETTERBOXD_CLIENT_SECRET` | Opcional: API oficial de Letterboxd (se pide en letterboxd.com/api-beta). El permiso (`LETTERBOXD_TOKEN`…) se guarda solo al pulsar «Conectar la API» |
 
 El `.env`, los exports y las cachés **nunca** se suben al repo (ver `.gitignore`).
 
@@ -45,7 +48,9 @@ También tienes el botón **⏻ Apagar**. Si lo abres estando ya abierto, solo a
    `playmax-userdata-` y `letterboxd-`, ignora los incompletos y compara todo (~2-3 min).
 3. Elige qué hacer con cada diferencia → **Simular** → **Aplicar**:
    - Serializd y Dixmax: se cambian directamente.
-   - Letterboxd: genera el CSV en `logs/` con botones para abrir la carpeta y el importador.
+   - Letterboxd: con su **API** conectada (opcional, Configuración → Letterboxd), se cambia directamente
+     (diario con fecha, nota y ♥, notas sueltas y watchlist). Sin ella, genera el CSV en `logs/` con botones
+     para abrir la carpeta y el importador.
 
 Todo lo aplicado queda registrado en `logs/ejecucion_*.log`.
 

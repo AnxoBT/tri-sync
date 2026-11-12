@@ -101,8 +101,12 @@ def adb():
     raise RuntimeError("No encuentro adb (Android SDK platform-tools). Pon su ruta en ADB del .env")
 
 
+SERIE = {"id": None}  # el móvil elegido (si hay varios, p. ej. un emulador abierto)
+
+
 def _adb(*args, timeout=120):
-    r = subprocess.run([adb(), *args], capture_output=True, text=True, timeout=timeout, creationflags=SIN_VENTANA)
+    pre = ["-s", SERIE["id"]] if SERIE["id"] and args[0] != "devices" else []
+    r = subprocess.run([adb(), *pre, *args], capture_output=True, text=True, timeout=timeout, creationflags=SIN_VENTANA)
     return r.returncode, (r.stdout + r.stderr).strip()
 
 
@@ -146,8 +150,10 @@ def pasar_al_movil(out=print):
     """Instala o actualiza la app en el móvil (si hay APK más nuevo) y le pasa la configuración y la caché."""
     code, txt = _adb("devices")
     moviles = [l.split()[0] for l in txt.splitlines()[1:] if l.strip().endswith("device")]
+    moviles.sort(key=lambda m: m.startswith("emulator-"))  # mejor el móvil de verdad que un emulador abierto
     if not moviles:
         raise RuntimeError("No veo ningún móvil: conéctalo por USB con la depuración USB activada y acepta el aviso")
+    SERIE["id"] = moviles[0]
     out(f"Móvil conectado ({moviles[0]})")
     actual = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     v = _version_movil()

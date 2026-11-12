@@ -190,7 +190,7 @@ class MainActivity : Activity() {
         super.onResume()
         // al volver del permiso de AniList (navegador) o de pasar datos desde el PC, refresca lo de arriba
         if (web.url?.startsWith(BASE) == true) Handler(Looper.getMainLooper()).postDelayed({
-            web.evaluateJavascript("typeof estado === 'function' && estado()", null)
+            web.evaluateJavascript("(document.getElementById('vCfg') && !document.getElementById('vCfg').classList.contains('hidden')) ? cargarCfg() : (typeof estado === 'function' && estado())", null)
         }, 300)
     }
 }

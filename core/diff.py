@@ -253,8 +253,16 @@ def _stats_dx(dx):
 
 
 def compute(progress=print, solo=None, rapida=False):
+    """Revisa solo las apps conectadas (Configuración). Dixmax es el centro: sin él no hay con qué comparar."""
+    from .config import apps
+    ap = apps()
+    if not ap["dixmax"]:
+        raise RuntimeError("Conecta Dixmax en Configuración: todo se compara con lo que tienes en Dixmax")
+    if solo is None and not (ap["letterboxd"] or ap["serializd"] or ap["anilist"]):
+        raise RuntimeError("Conecta al menos una app más (Letterboxd, Serializd o AniList) en Configuración")
+    hacer = lambda k, app: solo in (None, k) and ap[app]  # noqa: E731
     sz = pre = None
-    if solo in (None, "series"):  # Serializd se va leyendo mientras se lee Dixmax
+    if hacer("series", "serializd"):  # Serializd se va leyendo mientras se lee Dixmax
         sz = Serializd()
         sz.check()
         pre = leer_serializd(sz, rapida)
@@ -270,7 +278,7 @@ def compute(progress=print, solo=None, rapida=False):
     STATS.update(_stats_dx(dx))
     res = {"fuentes": {"dixmax": fuente_dx}, "diferencias": [], "modo": "rápida" if rapida else "completa"}
     lb = None
-    if solo in (None, "peliculas"):
+    if hacer("peliculas", "letterboxd"):
         progress("Leyendo export de Letterboxd…")
         lb = letterboxd.load()
         res["fuentes"]["letterboxd"] = lb["export"]
@@ -278,10 +286,10 @@ def compute(progress=print, solo=None, rapida=False):
         res["diferencias"] += peliculas(dx, lb)
         STATS.update(lb_vistas=sum(1 for f in lb["films"] if f["watched"]), lb_watchlist=sum(1 for f in lb["films"] if f["watchlist"]),
                      lb_me_gusta=sum(1 for f in lb["films"] if f["like"]), lb_diario=sum(len(f["diary"]) for f in lb["films"]))
-    if solo in (None, "series"):
+    if hacer("series", "serializd"):
         res["fuentes"]["serializd"] = sz.user
         res["diferencias"] += series(dx, sz, progress, rapida=rapida, pre=pre)
-    if solo in (None, "anime") and env("ANILIST_USER"):
+    if hacer("anime", "anilist"):
         from . import anime
         try:
             difs, st = anime.diferencias(dx, progress)
