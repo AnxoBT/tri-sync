@@ -429,8 +429,14 @@ async function pintaMapa() {
     const d = datos[m.c];
     const tip = d ? `${m.n}: ${d.n} título${d.n > 1 ? 's' : ''}\n${d.top.join(' · ')}` : `${m.n}: nada`;
     if (m.d) { const p = sv('path', {d: m.d, fill: d ? color(d.n) : 'var(--panel2)', 'vector-effect': 'non-scaling-stroke'}); p.dataset.tip = tip; g.append(p); }
-    if (m.p && (d || !m.d)) {
-      const r = d ? 3.2 : 1.4, ci = sv('circle', {cx: m.p[0], cy: m.p[1], r, fill: d ? color(d.n) : '#3a444e', 'vector-effect': 'non-scaling-stroke'});
+    let pt = m.p;
+    if (!pt && d && m.d) {  // países diminutos en el mapa (Hong Kong…): un punto encima para que se vean
+      const n = m.d.match(/-?\d+\.?\d*/g).map(Number), xs = n.filter((_, i) => !(i % 2)), ys = n.filter((_, i) => i % 2);
+      const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+      if (Math.max(x1 - x0, y1 - y0) < 6) pt = [(x0 + x1) / 2, (y0 + y1) / 2];
+    }
+    if (pt && (d || !m.d)) {
+      const r = d ? 3.2 : 1.4, ci = sv('circle', {cx: pt[0], cy: pt[1], r, fill: d ? color(d.n) : '#3a444e', 'vector-effect': 'non-scaling-stroke'});
       ci.dataset.r = r; ci.dataset.tip = tip; puntos.push(ci); g.append(ci);
     }
   }
