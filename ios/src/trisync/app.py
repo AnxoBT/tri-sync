@@ -38,8 +38,7 @@ class TriSync(toga.App):
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = self.web
         self.main_window.show()
-        self._sin_barra_de_titulo()
-        threading.Thread(target=self._abrir_cuando_responda, daemon=True).start()
+        self._sin_barra_de_titulo()  # y, con la vista ya en su sitio, se carga la página (_zona_segura)
 
     def _sin_barra_de_titulo(self):
         """Toga pone una barra blanca con el título encima; la web ya tiene su cabecera."""
@@ -54,6 +53,8 @@ class TriSync(toga.App):
         self.loop.call_later(0.3, self._zona_segura)
 
     def _zona_segura(self):
+        """Primero se coloca la vista web (debajo de la hora) y DESPUÉS se carga la página: moverla mientras carga
+        dejaba la pantalla en blanco cuando el motor web del iPhone tardaba en arrancar."""
         try:
             from rubicon.objc import ObjCClass
             ins = ObjCClass("UIApplication").sharedApplication.keyWindow.safeAreaInsets
@@ -71,6 +72,7 @@ class TriSync(toga.App):
             caja.add(self.web)
         except Exception as e:
             print(f"Tri-Sync: no se pudo dejar el hueco de la hora ({e})")
+        threading.Thread(target=self._abrir_cuando_responda, daemon=True).start()
 
     def _abrir_cuando_responda(self):
         for _ in range(150):  # la primera vez tarda un poco
