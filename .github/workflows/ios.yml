@@ -14,7 +14,8 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    # Mac con chip Intel: en los de chip Apple GitHub a veces no tiene sitio y el trabajo no arranca (como en wallpaper-editor)
+    runs-on: macos-15-intel
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
