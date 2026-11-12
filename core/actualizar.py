@@ -32,26 +32,8 @@ def _num(v):
 
 
 def _token():
-    t = env("GITHUB_TOKEN")
-    if t or ANDROID or IOS:  # en el móvil no hay gh ni git (y Android no deja lanzar programas)
-        return t
-    try:  # si tienes GitHub CLI (gh) con sesión iniciada, vale eso
-        r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=5, creationflags=SIN_VENTANA)
-        if r.returncode == 0 and r.stdout.strip():
-            return r.stdout.strip()
-    except Exception:
-        pass
-    try:  # o Git con tu cuenta de GitHub guardada (sin ventanas: si no hay credencial, no pregunta)
-        r = subprocess.run(["git", "-c", "credential.interactive=false", "credential", "fill"],
-                           input="protocol=https\nhost=github.com\n\n", capture_output=True, text=True, timeout=10,
-                           creationflags=SIN_VENTANA, env={**__import__("os").environ, "GIT_TERMINAL_PROMPT": "0",
-                                                          "GCM_INTERACTIVE": "never"})
-        for linea in r.stdout.splitlines():
-            if linea.startswith("password="):
-                return linea.split("=", 1)[1]
-    except Exception:
-        pass
-    return ""
+    """Opcional (el repo es público): un token de GitHub en Configuración solo sube el límite de consultas."""
+    return env("GITHUB_TOKEN")
 
 
 def _get(url, binario=False):
@@ -80,8 +62,7 @@ def comprobar(forzar=False):
         if _num(tag) > _num(r["actual"]) and (not ANDROID or _apk(rel)):
             r.update(nueva=tag, notas=rel.get("body") or "", url=rel.get("html_url"))
     except urllib.error.HTTPError as e:
-        r["error"] = ("No puedo ver las versiones (repo privado): pon un token de GitHub en Configuración"
-                      if e.code in (401, 403, 404) else f"GitHub respondió {e.code}")
+        r["error"] = f"GitHub respondió {e.code}" + (" (demasiadas consultas: prueba más tarde)" if e.code == 403 else "")
     except Exception as e:
         r["error"] = f"Sin conexión con GitHub ({e.__class__.__name__})"
     _CACHE.update(t=time.time(), r=r)
@@ -99,7 +80,8 @@ def instalar(out=print):
         if not _apk(rel):
             raise RuntimeError("La release no trae APK")
         out(f"Descargando Tri-Sync {tag} para Android…")
-        (DATOS / "Tri-Sync.apk").write_bytes(_get(_apk(rel), binario=True))
+        (DATOS / "apk").mkdir(exist_ok=True)
+        (DATOS / "apk" / "Tri-Sync.apk").write_bytes(_get(_apk(rel), binario=True))
         _CACHE.update(t=0, r=None)
         out("Descargado: ahora se abre el instalador de Android")
         return tag

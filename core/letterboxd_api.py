@@ -8,6 +8,7 @@ Endpoints usados (https://api.letterboxd.com/api/v0, documentación en api-docs.
   GET  /films?filmId=tmdb:ID…        → LID de Letterboxd de cada película (hasta 100 por petición)
   POST /log-entries                  → entrada del diario con fecha, nota y like
   PATCH /me/rate/{lid}               → nota sin entrada de diario
+  PATCH /me/watch/{lid}              → vista, sin fecha ni nota
   PATCH /me/watchlist/{lid}          → añadir o quitar de la watchlist
 """
 import json

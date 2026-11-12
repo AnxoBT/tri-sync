@@ -1,4 +1,5 @@
 """Servidor web local (solo librería estándar). Solo escucha en 127.0.0.1."""
+import html
 import json
 import os
 import threading
@@ -87,15 +88,15 @@ def _revisar(solo, rapida=False):
     from core.imports import estado_exports
     JOB.update(activo=True, mensajes=[], error=None, fin=None)
     try:
-        if config.env("DIXMAX_API_KEY") and config.env("DIXMAX_AUTH_KEY"):
+        if config.dixmax_api():
             from core.apply import restaurar_pendientes
             from core.dixmax_api import Dixmax
             restaurar_pendientes(Dixmax(), JOB["mensajes"].append)
         if config.env("ANILIST_TOKEN"):
             from core.apply import restaurar_actividad_anilist
             restaurar_actividad_anilist(JOB["mensajes"].append)
-        ex = estado_exports()
-        for k in ("dixmax", "letterboxd"):
+        ex, ap = estado_exports(), config.apps()
+        for k in (k for k in ("dixmax", "letterboxd") if ap[k]):
             e = ex[k]
             JOB["mensajes"].append(f"{k}: {e['carpeta']} ({e['edad']})" if e["carpeta"] else f"{k}: sin export")
         t0 = datetime.now()
@@ -163,7 +164,7 @@ def _probar():
         e = ex[k]
         if not e["carpeta"]:
             pre = "playmax-userdata-" if k == "dixmax" else "letterboxd-"
-            opcional = k == "dixmax" and config.env("DIXMAX_API_KEY")
+            opcional = k == "dixmax" and config.dixmax_api()
             out[nombre] = {"ok": bool(opcional), "aviso": bool(opcional),
                            "texto": ("No hay (opcional: la API lo lee todo)" if opcional else
                                      f"No encontrado: descárgalo e impórtalo (zip que empiece por '{pre}')")}
@@ -189,13 +190,13 @@ def _probar():
                               if u else {"ok": False, "texto": "Falta el permiso: pulsa «Conectar con AniList»"})
         except Exception as e:
             out["anilist"] = {"ok": False, "texto": str(e)}
-    if config.env("LETTERBOXD_TOKEN"):
+    from core import letterboxd_api
+    if letterboxd_api.conectada():
         try:
-            from core import letterboxd_api
             out["letterboxd API"] = {"ok": True, "texto": f"Conectado como {letterboxd_api.check()} (los cambios se aplican directamente)"}
         except Exception as e:
             out["letterboxd API"] = {"ok": False, "texto": str(e)}
-    if config.env("DIXMAX_API_KEY"):
+    if config.dixmax_api():
         try:
             from core.dixmax_api import Dixmax
             Dixmax().check()
@@ -205,9 +206,25 @@ def _probar():
     return out
 
 
+LOCALES = ("127.0.0.1", "localhost")
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
+
+    def _ajena(self, escribe):
+        """Petición que no viene de Tri-Sync: se rechaza.
+        - Host distinto de 127.0.0.1/localhost: una web que se hace pasar por tu equipo (DNS rebinding).
+        - Al cambiar algo (POST), un Origin de otra web: cualquier página abierta en el navegador puede mandar
+          peticiones a 127.0.0.1 (CSRF). Sin Origin = no es un navegador (el PC al pasar datos al móvil por adb)."""
+        if (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]") not in LOCALES:
+            return True
+        origen = self.headers.get("Origin")
+        if escribe and origen is not None:
+            u = urllib.parse.urlsplit(origen)
+            return u.scheme != "http" or u.hostname not in LOCALES or u.port != self.server.server_address[1]
+        return False
 
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
         data = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode()
@@ -223,15 +240,17 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(n) or b"{}")
 
     def do_GET(self):
+        if self._ajena(False):
+            return self._send(403, {"error": "petición ajena a Tri-Sync"})
         consulta = urllib.parse.parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
         self.path = self.path.split("?", 1)[0]  # ignora ?v=… (evita caché del navegador)
         if self.path == "/letterboxd":  # vuelta de la autorización de la API de Letterboxd (?code=…&state=…)
             from core import letterboxd_api
             try:
                 u = letterboxd_api.recibir_codigo((consulta.get("code") or [""])[0], (consulta.get("state") or [""])[0])
-                txt = f"✓ Conectado con Letterboxd{' como <b>' + u + '</b>' if u else ''}. Ya puedes volver a Tri-Sync."
+                txt = f"✓ Conectado con Letterboxd{' como <b>' + html.escape(u) + '</b>' if u else ''}. Ya puedes volver a Tri-Sync."
             except Exception as e:
-                txt = f"No se pudo conectar con Letterboxd: {e}"
+                txt = f"No se pudo conectar con Letterboxd: {html.escape(str(e))}"
             return self._send(200, PAGINA_VUELTA.replace("{txt}", txt).encode(), "text/html; charset=utf-8")
         LATIDO["t"] = time.time()  # cualquier petición de la página cuenta como actividad
         if self.path == "/anilist":  # vuelta de la autorización de AniList (el permiso viene tras el #)
@@ -242,12 +261,12 @@ class Handler(BaseHTTPRequestHandler):
             p = CACHE / "diff.json"
             return self._send(200, json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"diferencias": []})
         if self.path == "/api/estado":
+            from core import letterboxd_api
             from core.imports import estado_exports
             p = CACHE / "diff.json"
             calc = json.loads(p.read_text(encoding="utf-8")).get("calculado") if p.exists() else None
             return self._send(200, {"exports": estado_exports(), "calculado": calc, "apps": config.apps(),
-                                    "dixmax_api": bool(config.env("DIXMAX_API_KEY") and config.env("DIXMAX_AUTH_KEY")),
-                                    "letterboxd_api": bool(config.env("LETTERBOXD_TOKEN")),
+                                    "dixmax_api": config.dixmax_api(), "letterboxd_api": letterboxd_api.conectada(),
                                     "letterboxd_user": config.env("LETTERBOXD_USER"),
                                     "anilist_user": config.env("ANILIST_USER"),
                                     "anilist_dias": _dias_permiso_anilist(), "trabajo": JOB})
@@ -285,6 +304,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "no existe"})
 
     def do_POST(self):
+        if self._ajena(True):
+            return self._send(403, {"error": "petición ajena a Tri-Sync"})
         LATIDO["t"] = time.time()
         if self.path == "/api/latido":  # la pestaña sigue abierta
             PESTANAS[str(self._body().get("id"))] = time.time()
@@ -295,6 +316,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/revisar":
             if not JOB["activo"]:
                 b = self._body()
+                JOB.update(activo=True, mensajes=[], error=None, fin=None)
                 threading.Thread(target=_revisar, args=(b.get("solo"), b.get("modo") == "rapida"), daemon=True).start()
             return self._send(200, {"ok": True})
         if self.path == "/api/config":
@@ -310,11 +332,6 @@ class Handler(BaseHTTPRequestHandler):
             if not letterboxd_api.configurada():
                 return self._send(200, {"ok": False, "texto": "Pon antes el client_id y el client_secret de tu app de la API de Letterboxd"})
             return self._send(200, {"ok": True, "url": letterboxd_api.url_autorizar()})
-        if self.path == "/api/plan":
-            LOGS.mkdir(exist_ok=True)
-            f = LOGS / f"plan_{datetime.now():%Y%m%d_%H%M%S}.json"
-            f.write_text(json.dumps(self._body(), ensure_ascii=False, indent=1), encoding="utf-8")
-            return self._send(200, {"ok": True, "archivo": str(f)})
         if self.path == "/api/run":
             body = self._body()
             if not RUN["activo"]:
@@ -338,7 +355,15 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True})
         if self.path == "/api/actualizando":
             return self._send(200, UPD)
+        if self.path == "/api/anilist/conectar":  # el botón «Conectar con AniList»: se espera su vuelta 10 min
+            ANILIST_PEDIDO["t"] = time.time()
+            return self._send(200, {"ok": True})
         if self.path == "/api/anilist_token":
+            # Una web cualquiera podría abrir /anilist#access_token=<el suyo> y quedarse con lo que subes a AniList:
+            # solo vale si acabas de pulsar «Conectar con AniList» aquí
+            if time.time() - ANILIST_PEDIDO["t"] > 600:
+                return self._send(200, {"ok": False, "texto": "Pulsa «Conectar con AniList» en Tri-Sync y vuelve a autorizar"})
+            ANILIST_PEDIDO["t"] = 0
             from core import anilist
             b = self._body()
             try:
@@ -357,9 +382,9 @@ class Handler(BaseHTTPRequestHandler):
             RUN["cancelar"] = True
             return self._send(200, {"ok": True})
         if self.path == "/api/abrir":
-            p = Path(self._body().get("archivo", ""))
-            if p.exists() and LOGS in p.parents and not config.MOVIL:
-                os.startfile(p.parent)
+            p = Path(str(self._body().get("archivo", ""))).resolve()
+            if p.is_file() and p.parent == LOGS.resolve() and not config.MOVIL:
+                os.startfile(LOGS)
             return self._send(200, {"ok": True})
         if self.path == "/api/abrir_url":  # iPhone: enlaces de fuera (Dixmax, Letterboxd…) en Safari
             url = str(self._body().get("url", ""))
@@ -379,6 +404,8 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._send(200, {"ok": False, "texto": str(e)})
         if self.path == "/api/sincro/recibir":  # el PC pasa al móvil tu configuración y caché (por USB)
+            if not config.MOVIL:
+                return self._send(403, {"error": "solo en el móvil"})
             from core import movil
             n = int(self.headers.get("Content-Length", 0))
             try:
@@ -398,6 +425,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 UPD = {"activo": False, "mensajes": [], "error": None}
+ANILIST_PEDIDO = {"t": 0}
 MOV = {"activo": False, "mensajes": [], "error": None, "fin": False}
 
 
@@ -444,7 +472,7 @@ def _vigilante():
         for k, t in list(PESTANAS.items()):
             if ahora - t > PERDIDA_S:
                 PESTANAS.pop(k, None)
-        ocupado = JOB["activo"] or RUN["activo"] or ESTAD["activo"]
+        ocupado = JOB["activo"] or RUN["activo"] or ESTAD["activo"] or MOV["activo"] or UPD["activo"]
         if not PESTANAS and not ocupado and ahora - LATIDO["t"] > GRACIA_S:
             print("Pestaña cerrada: apagando Tri-Sync")
             apagar()

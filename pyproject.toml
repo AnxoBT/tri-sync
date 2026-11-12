@@ -3,7 +3,7 @@
 [tool.briefcase]
 project_name = "Tri-Sync"
 bundle = "com.anxobt"
-version = "1.10.0"  # el workflow la pone igual que VERSION
+version = "1.11.0"  # el workflow la pone igual que VERSION
 url = "https://github.com/AnxoBT/tri-sync"
 license.text = "Uso personal"
 author = "AnxoBT"

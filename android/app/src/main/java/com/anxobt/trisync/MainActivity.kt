@@ -150,7 +150,7 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Abre el instalador de Android con el APK que ha descargado la actualización (files/datos/Tri-Sync.apk). */
+    /** Abre el instalador de Android con el APK que ha descargado la actualización (files/datos/apk/Tri-Sync.apk). */
     private fun instalarActualizacion() {
         if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
             Toast.makeText(this, "Permite instalar apps de Tri-Sync y vuelve a pulsar Actualizar", Toast.LENGTH_LONG).show()
@@ -158,7 +158,7 @@ class MainActivity : Activity() {
             web.loadUrl(BASE)
             return
         }
-        val apk = File(filesDir, "datos/Tri-Sync.apk")
+        val apk = File(filesDir, "datos/apk/Tri-Sync.apk")
         val uri = FileProvider.getUriForFile(this, "$packageName.archivos", apk)
         startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))

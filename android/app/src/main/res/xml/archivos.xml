@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- El APK de la actualización se descarga en files/datos/Tri-Sync.apk -->
+<!-- Solo la carpeta del APK de la actualización (files/datos/apk/Tri-Sync.apk): nada más de los datos -->
 <paths>
-    <files-path name="datos" path="datos/" />
+    <files-path name="apk" path="datos/apk/" />
 </paths>

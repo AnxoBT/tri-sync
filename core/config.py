@@ -48,10 +48,20 @@ APPS = {"dixmax": ["DIXMAX_API_KEY", "DIXMAX_AUTH_KEY"],
         "anilist": ["ANILIST_USER", "ANILIST_TOKEN", "ANILIST_EXPIRA"]}
 
 
+def dixmax_api():
+    return bool(env("DIXMAX_API_KEY") and env("DIXMAX_AUTH_KEY"))
+
+
 def apps():
-    """Qué apps tienes conectadas: solo esas salen en la web y se revisan."""
+    """Qué apps tienes conectadas: solo esas salen en la web y se revisan. «Quitar» una la apaga aunque quede su
+    export en Descargas (APPS_OFF); volver a configurarla la enciende."""
     tiene = lambda pre: bool(find_exports(pre))  # noqa: E731
-    return {"dixmax": bool(env("DIXMAX_API_KEY") and env("DIXMAX_AUTH_KEY")) or tiene("playmax-userdata-"),
+    off = set(env("APPS_OFF").split(","))
+    return {k: v and k not in off for k, v in _apps(tiene).items()}
+
+
+def _apps(tiene):
+    return {"dixmax": dixmax_api() or tiene("playmax-userdata-"),
             "letterboxd": bool(env("LETTERBOXD_USER") or env("LETTERBOXD_TOKEN")),
             "serializd": bool(env("SERIALIZD_TOKEN")),
             "anilist": bool(env("ANILIST_TOKEN"))}
@@ -73,17 +83,23 @@ def guardar_config(cambios):
     for k, v in cambios.items():
         if k not in EDITABLES:
             continue
-        v = (v or "").strip()
+        v = " ".join(str(v or "").split()) if k not in SECRETOS else "".join(str(v or "").split())  # sin saltos de línea: cada clave, una línea del .env
         if k in SECRETOS and not v:
             continue
         ENV[k] = v
+        if v:  # configurar algo de una app la vuelve a encender
+            app = next((a for a, ks in APPS.items() if k in ks), None)
+            ENV["APPS_OFF"] = ",".join(x for x in env("APPS_OFF").split(",") if x and x != app)
     _escribir_env()
 
 
 def quitar_app(app):
     """Desconecta una app: borra sus claves del .env (en la propia web no se toca nada)."""
-    for k in APPS.get(app, []):
+    if app not in APPS:
+        return
+    for k in APPS[app]:
         ENV[k] = ""
+    ENV["APPS_OFF"] = ",".join(sorted({x for x in env("APPS_OFF").split(",") if x} | {app}))
     _escribir_env()
 
 
@@ -113,10 +129,6 @@ def export_dirs():
             d = Path(x)
             out.append(d if d.is_absolute() else ROOT / d)
     return out
-
-
-def data_dir():
-    return export_dirs()[-1]
 
 
 # archivos que debe tener cada export para darlo por válido

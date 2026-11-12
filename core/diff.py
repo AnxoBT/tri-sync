@@ -254,8 +254,11 @@ def _stats_dx(dx):
 
 def compute(progress=print, solo=None, rapida=False):
     """Revisa solo las apps conectadas (Configuración). Dixmax es el centro: sin él no hay con qué comparar."""
-    from .config import apps
+    from .config import apps, dixmax_api as config_dixmax_api, find_exports
     ap = apps()
+    if ap["letterboxd"] and solo in (None, "peliculas") and not find_exports("letterboxd-"):
+        progress("Letterboxd: no hay export (descárgalo e impórtalo); de momento se revisa lo demás")
+        ap["letterboxd"] = False
     if not ap["dixmax"]:
         raise RuntimeError("Conecta Dixmax en Configuración: todo se compara con lo que tienes en Dixmax")
     if solo is None and not (ap["letterboxd"] or ap["serializd"] or ap["anilist"]):
@@ -270,7 +273,7 @@ def compute(progress=print, solo=None, rapida=False):
     dx = dixmax.load()
     fuente_dx = dx["export"]
     from .config import env
-    if env("DIXMAX_API_KEY") and env("DIXMAX_AUTH_KEY"):
+    if config_dixmax_api():
         progress("Dixmax: leyendo estado actual por la API…")
         dx = dixmax.apply_live(dx, progress, rapida=rapida)
         fuente_dx += " + API en directo"

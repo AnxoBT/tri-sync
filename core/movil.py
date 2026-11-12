@@ -77,6 +77,11 @@ def recibir(datos):
         destino = (DATOS / nombre).resolve()
         if raiz not in destino.parents:  # zip con rutas raras
             raise ValueError(f"Ruta no válida: {nombre}")
+        partes = Path(nombre).parts
+        permitido = nombre in (".env", "rules.json") or (len(partes) == 2 and (
+            (partes[0] == "cache" and nombre.endswith(".json")) or (partes[0] == "importados" and nombre.endswith(".zip"))))
+        if not permitido:  # nada de código ni de otros archivos: solo configuración, caché y exports
+            raise ValueError(f"Archivo no permitido: {nombre}")
         if nombre.startswith("importados/"):  # el export nuevo sustituye al anterior del mismo tipo
             for pre in REQUIRED:
                 if Path(nombre).name.startswith(pre):

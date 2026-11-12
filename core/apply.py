@@ -1,7 +1,7 @@
 """Ejecuta un plan (acciones elegidas en la web).
 
-- Serializd y Dixmax: se aplican directamente con tu sesión.
-- Letterboxd: se generan CSV para su importador oficial (logs/notas y watchlist).
+- Dixmax, Serializd y AniList: se aplican directamente con tu sesión.
+- Letterboxd: por su API oficial si la has conectado; si no, CSV para su importador (registros/notas y watchlist).
 - dry=True: simulación, no cambia nada.
 Cada ejecución real queda registrada en logs/.
 """
@@ -9,7 +9,6 @@ import json
 import math
 from collections import defaultdict
 from datetime import datetime, timezone
-from pathlib import Path
 
 from .config import LOGS, env
 from .letterboxd import write_import_csv
@@ -187,7 +186,7 @@ def _execute(por, dry, out, tick, archivos, ctl):
     sz = dx = None
     sz_acc = {"sz_subir_eps", "sz_estado", "sz_terminar", "sz_nota", "sz_like"}
     dx_acc = {"dx_vista", "nota_lb_a_dx", "dx_nota", "dx_favorita"}
-    # también en simulación: se comprueba que las conexiones funcionan antes de dar el visto bueno
+    # también en simulación: se comprueba que Serializd y Dixmax responden antes de dar el visto bueno
     if sz_acc & set(por):
         from .serializd import Serializd
         sz = Serializd()
@@ -330,7 +329,7 @@ def _execute(por, dry, out, tick, archivos, ctl):
             out(f"   {len(fechas)} favoritas marcadas con su fecha original")
     for a in por["dx_vista"]:
         tick(a)
-        m, f = a["datos"]["dx"], a["datos"]["lb"]
+        m = a["datos"]["dx"]
         out(f"[Dixmax] {m['title']}: marcar como vista")
         if not dry:
             out(f"   {dx.set_mark(m['id'], 'viewed')}")

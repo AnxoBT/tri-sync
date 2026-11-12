@@ -5,7 +5,8 @@ con esa foto y las fichas de cada título (core/metadatos.py) y se guardan en ca
 
 Qué se cuenta y de dónde (sin sumar dos veces lo mismo):
 - Pelis vistas, pendientes, notas y favoritas: Dixmax. Fechas de cuándo viste cada peli: diario de Letterboxd.
-- Series y episodios (con fecha y hora): Dixmax. Anime = series de Dixmax que también están en AniList.
+- Series y episodios (con fecha y hora): Dixmax. Anime = lo que cruza con AniList, lo que Dixmax etiqueta como
+  Anime y la animación de Japón, China, Corea, Taiwán o Hong Kong.
 - Las pelis de anime cuentan como pelis y también en «anime».
 """
 from collections import Counter, defaultdict
