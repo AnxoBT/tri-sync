@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 import zipfile
 
-from .config import ROOT, env
+from .config import ANDROID, DATOS, ROOT, env
 
 REPO = "AnxoBT/tri-sync"
 NO_TOCAR = {".env", "rules.json", "cache", "logs", "data", "salida", ".git", ".venv"}
@@ -30,7 +30,7 @@ def _num(v):
 
 def _token():
     t = env("GITHUB_TOKEN")
-    if t:
+    if t or ANDROID:  # en el móvil no hay gh ni git (y Android no deja lanzar programas)
         return t
     try:  # si tienes GitHub CLI (gh) con sesión iniciada, vale eso
         r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=5, creationflags=SIN_VENTANA)
@@ -51,24 +51,30 @@ def _token():
     return ""
 
 
-def _get(url):
-    h = {"Accept": "application/vnd.github+json", "User-Agent": "Tri-Sync", "X-GitHub-Api-Version": "2022-11-28"}
+def _get(url, binario=False):
+    h = {"Accept": "application/octet-stream" if binario else "application/vnd.github+json", "User-Agent": "Tri-Sync",
+         "X-GitHub-Api-Version": "2022-11-28"}
+    req = urllib.request.Request(url, headers=h)
     t = _token()
     if t:
-        h["Authorization"] = f"Bearer {t}"
-    with urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=60) as r:
+        req.add_unredirected_header("Authorization", f"Bearer {t}")  # no se reenvía al servidor de descargas
+    with urllib.request.urlopen(req, timeout=300 if binario else 60) as r:
         return r.read()
+
+
+def _apk(rel):
+    return next((a["url"] for a in rel.get("assets", []) if a.get("name", "").endswith(".apk")), None)
 
 
 def comprobar(forzar=False):
     """{actual, nueva, notas, url} o {actual, error}. Se guarda 6 h para no preguntar a GitHub a cada rato."""
     if not forzar and _CACHE["r"] and time.time() - _CACHE["t"] < 6 * 3600:
         return _CACHE["r"]
-    r = {"actual": actual(), "git": (ROOT / ".git").exists()}
+    r = {"actual": actual(), "git": (ROOT / ".git").exists(), "android": ANDROID}
     try:
         rel = json.loads(_get(f"https://api.github.com/repos/{REPO}/releases/latest"))
         tag = rel["tag_name"].lstrip("v")
-        if _num(tag) > _num(r["actual"]):
+        if _num(tag) > _num(r["actual"]) and (not ANDROID or _apk(rel)):
             r.update(nueva=tag, notas=rel.get("body") or "", url=rel.get("html_url"))
     except urllib.error.HTTPError as e:
         r["error"] = ("No puedo ver las versiones (repo privado): pon un token de GitHub en Configuración"
@@ -80,7 +86,18 @@ def comprobar(forzar=False):
 
 
 def instalar(out=print):
-    """Descarga la última release y reemplaza los archivos del programa (copia de seguridad en logs/)."""
+    """Descarga la última release y reemplaza los archivos del programa (copia de seguridad en logs/).
+    En el móvil descarga el APK de la release; la app abre el instalador de Android (/android/instalar)."""
+    if ANDROID:
+        rel = json.loads(_get(f"https://api.github.com/repos/{REPO}/releases/latest"))
+        tag = rel["tag_name"].lstrip("v")
+        if not _apk(rel):
+            raise RuntimeError("La release no trae APK")
+        out(f"Descargando Tri-Sync {tag} para Android…")
+        (DATOS / "Tri-Sync.apk").write_bytes(_get(_apk(rel), binario=True))
+        _CACHE.update(t=0, r=None)
+        out("Descargado: ahora se abre el instalador de Android")
+        return tag
     if (ROOT / ".git").exists():
         raise RuntimeError("Esta carpeta es un clon de git: actualiza con «git pull»")
     rel = json.loads(_get(f"https://api.github.com/repos/{REPO}/releases/latest"))

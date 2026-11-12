@@ -3,16 +3,16 @@ import json
 import os
 import threading
 import time
+import urllib.parse
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from core import config
-from core.config import CACHE, ROOT
+from core.config import CACHE, LOGS
 
 WEB = Path(__file__).resolve().parent
 INDEX = (WEB / "index.html").read_bytes()  # se fija al arrancar: página y servidor siempre de la misma versión
-LOGS = ROOT / "logs"
 ANILIST_HTML = """<!doctype html><meta charset="utf-8"><title>Tri-Sync · AniList</title>
 <body style="font:16px system-ui;background:#0f1218;color:#e6e6e6;display:grid;place-items:center;height:90vh">
 <div id="m">Guardando el permiso de AniList…</div>
@@ -242,6 +242,18 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/version":
             from core.actualizar import comprobar
             return self._send(200, comprobar())
+        if self.path == "/api/ping":
+            return self._send(200, {"ok": True, "android": config.ANDROID})
+        if self.path.startswith("/api/descargar/"):  # CSV de Letterboxd (en el móvil se baja a Descargas)
+            p = (LOGS / self.path.rsplit("/", 1)[1]).resolve()
+            if p.parent == LOGS.resolve() and p.is_file():
+                self.send_response(200)
+                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                self.send_header("Content-Disposition", f'attachment; filename="{p.name}"')
+                data = p.read_bytes()
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                return self.wfile.write(data)
         self._send(404, {"error": "no existe"})
 
     def do_POST(self):
@@ -310,19 +322,57 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True})
         if self.path == "/api/abrir":
             p = Path(self._body().get("archivo", ""))
-            if p.exists() and LOGS in p.parents:
+            if p.exists() and LOGS in p.parents and not config.ANDROID:
                 os.startfile(p.parent)
             return self._send(200, {"ok": True})
+        if self.path == "/api/importar":  # zip de export de Dixmax o Letterboxd, elegido en la web
+            from core import movil
+            n = int(self.headers.get("Content-Length", 0))
+            try:
+                return self._send(200, {"ok": True, **movil.importar_export(urllib.parse.unquote(self.headers.get("X-Nombre", "")), self.rfile.read(n))})
+            except Exception as e:
+                return self._send(200, {"ok": False, "texto": str(e)})
+        if self.path == "/api/sincro/recibir":  # el PC pasa al móvil tu configuración y caché (por USB)
+            from core import movil
+            n = int(self.headers.get("Content-Length", 0))
+            try:
+                return self._send(200, {"ok": True, **movil.recibir(self.rfile.read(n))})
+            except Exception as e:
+                return self._send(200, {"ok": False, "texto": str(e)})
+        if self.path == "/api/movil":  # PC: instala/actualiza la app del móvil y le pasa los datos (adb)
+            from core import movil
+            if MOV["activo"]:
+                return self._send(200, {"ok": False, "texto": "Ya se está pasando al móvil"})
+            MOV.update(activo=True, mensajes=[], error=None, fin=False)
+            threading.Thread(target=_movil, daemon=True).start()
+            return self._send(200, {"ok": True})
+        if self.path == "/api/movil/estado":
+            return self._send(200, MOV)
         self._send(404, {"error": "no existe"})
 
 
 UPD = {"activo": False, "mensajes": [], "error": None}
+MOV = {"activo": False, "mensajes": [], "error": None, "fin": False}
+
+
+def _movil():
+    from core import movil
+    try:
+        movil.pasar_al_movil(MOV["mensajes"].append)
+        MOV["fin"] = True
+    except Exception as e:
+        MOV["error"] = str(e)
+    finally:
+        MOV["activo"] = False
 
 
 def _actualizar():
     from core.actualizar import instalar, reiniciar
     try:
         instalar(UPD["mensajes"].append)
+        if config.ANDROID:  # la página abre el instalador de Android con el APK descargado
+            UPD.update(activo=False, apk=True)
+            return
         reiniciar(SRV["srv"].server_address[1])
         apagar()
     except Exception as e:
@@ -355,9 +405,11 @@ def _vigilante():
             return
 
 
-def serve(port=8765):
+def serve(port=8765, auto_apagar=True):
+    """auto_apagar: en el PC se apaga al cerrar la pestaña; en el móvil vive lo que viva la app."""
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     SRV["srv"] = srv
-    threading.Thread(target=_vigilante, daemon=True).start()
+    if auto_apagar:
+        threading.Thread(target=_vigilante, daemon=True).start()
     print(f"Web local en http://127.0.0.1:{port}")
     srv.serve_forever()

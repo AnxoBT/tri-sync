@@ -54,6 +54,26 @@ Todo lo aplicado queda registrado en `logs/ejecucion_*.log`.
 - Borrar entradas o notas, quitar de la watchlist y "me gusta" en Letterboxd (su importador no lo permite).
 - Añadir en Dixmax algo que solo está en otra web (hay que buscar la ficha).
 
+## Móvil (Android 8+)
+
+La misma app dentro de un APK (como Chronify): Python va dentro con Chaquopy, el servidor corre en el propio
+móvil y la web se ve en la app. **No hace falta el PC encendido.**
+
+- **Instalar / pasar tus datos**: conecta el móvil por USB (depuración USB activada) y en el PC pulsa
+  Configuración → **📱 Pasar al móvil**. Instala o actualiza la app (si hay APK compilado en `android/`) y le pasa
+  por el cable tu `.env`, `rules.json`, la caché (fichas, estadísticas, historial) y los últimos exports.
+  Nada pasa por internet. adb: `ADB` en el `.env`, el PATH o `%LOCALAPPDATA%/Android/Sdk/platform-tools`.
+- **Exports**: Android no deja leer Descargas: botón **Importar export…** y eliges el zip de Dixmax o Letterboxd
+  (también funciona en el PC).
+- **Letterboxd**: el CSV se descarga en Descargas del móvil y el botón abre su importador.
+- **Actualizar**: la barra verde descarga el APK de la release y abre el instalador de Android (necesita el token
+  de GitHub en Configuración, el repo es privado). O, más fácil, **Pasar al móvil** desde el PC.
+- La app solo trabaja con la pantalla encendida: mientras revisa o aplica, la pantalla no se apaga sola.
+
+Compilar: `cd android && gradlew assembleDebug` (necesita `local.properties` con `sdk.dir` y Java 17).
+Firma: clave propia `~/.android/trisync-release.jks` (datos en `android/keystore.properties`, fuera del repo):
+**consérvala**, con otra clave el móvil no instala la actualización encima. Iconos: `python -m tools.generar_icono_android`.
+
 ## AniList (anime, opcional)
 
 Sube a tu lista de **anime** de AniList lo que ves en Dixmax: estado, episodios, nota y fechas de inicio/fin.

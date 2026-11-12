@@ -11,10 +11,9 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .config import ROOT, env
+from .config import LOGS, env
 from .letterboxd import write_import_csv
 
-LOGS = ROOT / "logs"
 
 
 def _unix(iso):

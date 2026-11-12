@@ -29,7 +29,7 @@
   .logo img { width:26px; height:26px; }
   table.hist { width:100%; border-collapse:collapse; font-size:13px; } table.hist td, table.hist th { padding:8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
   table.hist th { color:var(--muted); font-weight:500; } .delta { color:var(--acc); }
-  .logo span { color:var(--muted); font-weight:500; }
+  .logo span { color:var(--muted); font-weight:500; } .logo b { font-weight:750; }
   nav { display:flex; gap:4px; }
   nav button { background:none; border:0; color:var(--muted); padding:8px 12px; }
   nav button.on { color:var(--text); background:var(--panel2); }
@@ -147,6 +147,28 @@
   .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
   .hidden { display:none !important; }
   @media (max-width:760px) { .cards { grid-template-columns:1fr; } .row { grid-template-columns:1fr; } .seg { justify-content:flex-start; } .cfg { grid-template-columns:1fr; } .hstat { display:none; } }
+  /* ---- móvil (la app de Android y pantallas estrechas) ---- */
+  .android #bOff, .android .solo-pc { display:none !important; }
+  @media (max-width:700px) {
+    body { font-size:14.5px; } .wrap { padding:0 12px; }
+    header .wrap { height:auto; flex-wrap:wrap; gap:4px 10px; padding-top:8px; }
+    .logo { white-space:nowrap; } .logo img { width:24px; height:24px; }
+    nav { order:3; width:calc(100% + 24px); margin:0 -12px; padding:0 8px 6px; overflow-x:auto; scrollbar-width:none; } nav::-webkit-scrollbar { display:none; }
+    nav button { flex:none; padding:8px 12px; }
+    #bOff { margin-left:auto; }
+    .cards { grid-template-columns:1fr 1fr; gap:8px; margin:12px 0; } .card { padding:9px 11px; } .card h3 { font-size:11.5px; } .card .v { font-size:14px; } .card .s { font-size:11.5px; }
+    .steps { padding:10px; gap:8px; } .step { flex-wrap:wrap; } .sep { display:none; } .steps button { padding:9px 12px; }
+    .tools input[type=search] { min-width:0 !important; flex:1 1 100%; }
+    .ghead { flex-wrap:wrap; } .ghead select { margin-left:0; flex:1 1 100%; }
+    .actionbar .wrap { height:auto; padding:8px 12px; flex-wrap:wrap; gap:8px; } .actionbar .info { flex:1 1 100%; font-size:13px; }
+    .actionbar button { flex:1; }
+    table.hist { font-size:12px; } table.hist th:nth-child(3), table.hist td:nth-child(3) { display:none; } table.hist td, table.hist th { padding:6px 4px; }
+    .stsel { display:flex; overflow-x:auto; } .stsel button { padding:7px 11px; flex:none; }
+    .stiles, .stiles.cuatro { grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; } .stile { padding:10px 12px; } .stile .v { font-size:21px; }
+    .curiosg { grid-template-columns:1fr 1fr; gap:8px; } .curio { padding:9px 11px; }
+    .chart { padding:12px; } .calor { grid-template-columns:30px repeat(24, minmax(0,1fr)); gap:1px; font-size:9px; }
+    .box { padding:14px; max-height:90vh; } .cfg { padding:12px; }
+  }
 </style>
 </head>
 <body>
@@ -159,7 +181,7 @@
   <button onclick="$('upd').classList.add('hidden')">Luego</button>
   <div id="updM" style="margin-top:6px"></div></div>
 <header><div class="wrap">
-  <div class="logo"><img src="/logo.svg?v=2" alt="">Tri<span>-Sync</span></div>
+  <div class="logo"><img src="/logo.svg?v=2" alt=""><b>Tri<span>-Sync</span></b></div>
   <nav><button id="tRev" class="on" onclick="vista('rev')">Revisión</button><button id="tHist" onclick="vista('hist')">Historial</button><button id="tStats" onclick="vista('stats')">Estadísticas</button><button id="tCfg" onclick="vista('cfg')">Configuración</button></nav>
   <div class="hstat" id="hstat"></div>
   <button id="bOff" onclick="apagarApp()" title="Cierra Tri-Sync ya (también se apaga solo al cerrar la pestaña)">⏻ Apagar</button>
@@ -177,7 +199,9 @@
   <div class="steps">
     <div class="step"><span class="num">1</span>
       <button title="Casi nunca: la API ya da las fechas. Solo para detectar marcas que quites en Dixmax" onclick="window.open('https://playmax.mx/settings.php?module=profile&mode=my_data')">Export Dixmax (opcional) ↗</button>
-      <button onclick="window.open('https://letterboxd.com/settings/data/')">Export Letterboxd ↗</button></div>
+      <button onclick="window.open('https://letterboxd.com/settings/data/')">Export Letterboxd ↗</button>
+      <button onclick="$('fImp').click()" title="Elige el zip del export de Dixmax o de Letterboxd (en el PC también vale dejarlo en Descargas)">Importar export…</button>
+      <input type="file" id="fImp" accept=".zip,application/zip" class="hidden" onchange="importar(this)"></div>
     <span class="sep">›</span>
     <div class="step"><span class="num">2</span>
       <button class="pri" id="bRev" onclick="revisar('rapida')" title="~5-15 s: solo lo nuevo (diario de Serializd, series de Dixmax en las que has visto algo o ha salido un episodio, y tu lista de AniList)">Revisión rápida</button>
@@ -210,6 +234,9 @@
   <div id="probar"></div>
   <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <span id="verInfo">Versión…</span><button onclick="version(true)">Buscar actualizaciones</button></div>
+  <div class="solo-pc" style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button onclick="pasarMovil()" title="Por el cable USB (adb), nunca por internet">📱 Pasar al móvil</button>
+    <span id="movInfo" style="color:var(--muted);font-size:12.5px">Instala o actualiza Tri-Sync en el móvil conectado por USB y le pasa tu configuración, la caché y los últimos exports.</span></div>
 </div>
 
 <div class="actionbar" id="abar"><div class="wrap">
@@ -230,6 +257,9 @@
 
 <script>
 const $ = id => document.getElementById(id);
+const ANDROID = !!window.TriSyncAndroid;  // la app de Android (WebView)
+if (ANDROID) document.body.classList.add('android');
+const pantalla = si => { try { if (ANDROID) TriSyncAndroid.mantenerPantalla(si); } catch (e) {} };  // que no se pause a medias
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let DATA = {diferencias: []}, sel = {}, filtroCat = null, poll = null;
 
@@ -328,6 +358,9 @@ async function estadisticas() {
 }
 async function recalcular() { await fetch('/api/estadisticas', {method: 'POST'}); ST = null; estadisticas(); }
 
+const MOVIL = () => matchMedia('(max-width:700px)').matches;
+const AYUDA_MAPA = matchMedia('(pointer:coarse)').matches ? 'pellizca para acercar, arrastra para moverte, toca un país para ver qué tienes de él'
+  : 'rueda para acercar, arrastra para moverte, doble clic para volver';
 function pintaStats() {
   const s = ST;
   $('stSel').innerHTML = Object.entries(TIPO).map(([k, [t, c]]) =>
@@ -337,25 +370,26 @@ function pintaStats() {
   let h = '';
   if (!T) {
     h += tiles(s.resumen);
-    // tres columnas temáticas: lo más destacado de cada tipo
-    h += `<div class="tres">` + ['pelis', 'series', 'anime'].map(k => {
+    // tres columnas temáticas: lo más destacado de cada tipo (en el móvil, debajo del mapa y de «Tu año»)
+    let cols = `<div class="tres">` + ['pelis', 'series', 'anime'].map(k => {
       const t = s.tipos[k], [nom, col] = TIPO[k];
       return `<div class="col"><div class="colhead" style="--c:var(--${col})" onclick="VISTA='${k}';MAPA_TIPO='${k}';pintaStats()">
           <b>${nom}</b><span>${esc(t.resumen[0].v)} · ${esc((t.resumen.find(x => x.t === 'Horas') || {}).v || '')} h</span><a>ver todo →</a></div>` +
         t.bloques.filter(b => b.dest).map(b => bloque(b, 1)).join('') + '</div>';
     }).join('') + '</div>';
-    h += `<div class="grid3">` + tarjeta('¿De dónde es lo que ves?', 'país principal de producción · rueda para acercar, arrastra para moverte, doble clic para volver',
+    let g3 = `<div class="grid3">` + tarjeta('¿De dónde es lo que ves?', 'país principal de producción · ' + AYUDA_MAPA,
       `<div class="chips" id="mapaTipos"></div><div class="chips" id="mapaEst"></div><div id="mapaBox"></div>`, 3);
     const anios = Object.keys(s.anios || {});
-    if (anios.length) h += tarjeta('Tu año', '', `<div class="chips" id="anioChips"></div><div id="anioBox"></div>`, 3);
-    h += tarjeta('¿Cuándo ves series y anime?', 'episodios por día y hora en que los marcaste (sin los marcados de golpe)', calor(s.semana), 3) + '</div>';
+    if (anios.length) g3 += tarjeta('Tu año', '', `<div class="chips" id="anioChips"></div><div id="anioBox"></div>`, 3);
+    g3 += tarjeta('¿Cuándo ves series y anime?', 'episodios por día y hora en que los marcaste (sin los marcados de golpe)', calor(s.semana), 3) + '</div>';
+    h += MOVIL() ? g3 + cols : cols + g3;
     // selección variada: se van alternando pelis, series, anime y lo general (16 tarjetas)
     const grupos = ['lb', 'sz', 'al', 'dx'].map(c => s.curiosidades.filter(x => x.c === c)), mezcla16 = [];
     for (let i = 0; mezcla16.length < 16 && grupos.some(g => g[i]); i++) grupos.forEach(g => g[i] && mezcla16.length < 16 && mezcla16.push(g[i]));
     h += curiosidades(mezcla16);
   } else {
     h += tiles(T.resumen, c);
-    h += `<div class="grid3">` + tarjeta('¿De dónde es?', 'país principal de producción · rueda para acercar, arrastra para moverte', `<div class="chips" id="mapaEst"></div><div id="mapaBox"></div>`, 2) +
+    h += `<div class="grid3">` + tarjeta('¿De dónde es?', 'país principal de producción · ' + AYUDA_MAPA, `<div class="chips" id="mapaEst"></div><div id="mapaBox"></div>`, 2) +
       T.bloques.map(b => bloque(b, b.ancho)).join('') + '</div>';
     h += curiosidades(s.curiosidades.filter(x => x.c === c));
   }
@@ -447,11 +481,23 @@ async function pintaMapa() {
     vb.x = Math.min(base.x + base.w - vb.w, Math.max(base.x, vb.x)); vb.y = Math.min(base.y + base.h - vb.h, Math.max(base.y, vb.y)); };
   const zoom = (f, cx = .5, cy = .5) => { const nw = vb.w / f, nh = vb.h / f; vb = {x: vb.x + (vb.w - nw) * cx, y: vb.y + (vb.h - nh) * cy, w: nw, h: nh}; limitar(); aplicar(); };
   g.addEventListener('wheel', ev => { ev.preventDefault(); const r = g.getBoundingClientRect(); zoom(ev.deltaY < 0 ? 1.25 : 0.8, (ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height); }, {passive: false});
-  let arr = null;
-  g.addEventListener('pointerdown', ev => { arr = {x: ev.clientX, y: ev.clientY, vb: {...vb}}; g.setPointerCapture(ev.pointerId); g.style.cursor = 'grabbing'; });
-  g.addEventListener('pointermove', ev => { if (!arr) return; const r = g.getBoundingClientRect();
+  let arr = null, pel = null;
+  const dedos = new Map();  // dos dedos: pellizco para hacer zoom (móvil)
+  const dist = () => { const [a, b] = [...dedos.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  g.addEventListener('pointerdown', ev => {
+    dedos.set(ev.pointerId, {x: ev.clientX, y: ev.clientY}); g.setPointerCapture(ev.pointerId);
+    if (dedos.size === 2) { arr = null; pel = {d: dist()}; return; }
+    arr = {x: ev.clientX, y: ev.clientY, vb: {...vb}}; g.style.cursor = 'grabbing'; });
+  g.addEventListener('pointermove', ev => {
+    if (dedos.has(ev.pointerId)) dedos.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
+    const r = g.getBoundingClientRect();
+    if (pel && dedos.size === 2) {
+      const d = dist(), [a, b] = [...dedos.values()];
+      zoom(d / pel.d, ((a.x + b.x) / 2 - r.left) / r.width, ((a.y + b.y) / 2 - r.top) / r.height); pel.d = d; return;
+    }
+    if (!arr) return;
     vb.x = arr.vb.x - (ev.clientX - arr.x) * vb.w / r.width; vb.y = arr.vb.y - (ev.clientY - arr.y) * vb.h / r.height; limitar(); aplicar(); });
-  const soltar = () => { arr = null; g.style.cursor = 'grab'; };
+  const soltar = ev => { dedos.delete(ev.pointerId); if (dedos.size < 2) pel = null; arr = null; g.style.cursor = 'grab'; };
   g.addEventListener('pointerup', soltar); g.addEventListener('pointercancel', soltar);
   g.addEventListener('dblclick', () => { vb = {...base}; aplicar(); });
   const grad = `linear-gradient(90deg, ${[0, .25, .5, .75, 1].map(t => mezcla(c, 0.15 + 0.85 * t)).join(',')})`;
@@ -475,13 +521,13 @@ document.addEventListener('mousemove', e => {
 });
 
 async function revisar(modo) {
-  $('bRev').disabled = $('bRevC').disabled = true; $('bar').style.display = 'block';
+  $('bRev').disabled = $('bRevC').disabled = true; $('bar').style.display = 'block'; pantalla(true);
   await fetch('/api/revisar', {method: 'POST', body: JSON.stringify({modo})});
   poll = setInterval(async () => {
     const j = await (await fetch('/api/progreso')).json();
     $('prog').textContent = j.mensajes.slice(-1)[0] || 'Empezando…';
     if (!j.activo) {
-      clearInterval(poll); $('bRev').disabled = $('bRevC').disabled = false; $('bar').style.display = 'none';
+      clearInterval(poll); $('bRev').disabled = $('bRevC').disabled = false; $('bar').style.display = 'none'; pantalla(false);
       if (j.error) { $('prog').innerHTML = `<span class="bad">Error: ${esc(j.error)}</span>`; return; }
       $('prog').innerHTML = `<span class="ok">Revisión terminada (${j.fin})</span>`;
       await estado(); await cargarDiff();
@@ -558,7 +604,7 @@ function seguirRun() {
   $('mF').innerHTML = ''; $('mL').textContent = ''; $('modal').classList.add('on');
   $('mP').classList.remove('hidden'); $('mL').classList.add('hidden');
   $('bCancel').classList.remove('hidden'); $('bCancel').disabled = false; $('bCerrar').classList.add('hidden');
-  clearInterval(runPoll);
+  clearInterval(runPoll); pantalla(true);
   const paso = async () => {
     let r;
     try { r = await (await fetch('/api/run')).json(); } catch (e) { r = {error: 'sin conexión'}; }
@@ -573,7 +619,7 @@ function seguirRun() {
     $('mPi').style.width = (r.activo ? pct : 100) + '%';
     $('mPt').textContent = r.activo ? `${Math.max(0, r.hechos - 1)} de ${r.total} · ${r.actual}` +
       (r.cancelar ? ' · cancelando (termina la acción en curso)…' : '') : '';
-    if (!r.activo && r.resultado) { clearInterval(runPoll); fin(r); }
+    if (!r.activo && r.resultado) { clearInterval(runPoll); pantalla(false); fin(r); }
   };
   paso(); runPoll = setInterval(paso, 700);
 }
@@ -585,7 +631,8 @@ function fin(r) {
   $('mT').textContent = (simulacion ? 'Simulación' : cancelado ? 'Cancelado' : (res.ok ? 'Hecho' : 'Error')) + ` · ${r.total} acciones`;
   $('mL').textContent = (res.log || []).join('\n');
   $('mF').innerHTML = (res.archivos || []).map(f => `<div class="file">📄 ${esc(f.texto)}<br><small>${esc(f.archivo)}</small><br>
-      <button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button> <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
+      ${ANDROID ? `<a href="/api/descargar/${encodeURIComponent(f.archivo.split(/[\\/]/).pop())}">Descargar el CSV ↓</a> ·` : `<button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button>`}
+      <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
   const n = (res.hechas || []).length;
   if (!simulacion && n) {
     const csv = (res.archivos || []).length ? ' Lo de Letterboxd sale de la lista al generar el CSV: si no lo importas, volverá a salir en la próxima revisión.' : '';
@@ -603,10 +650,27 @@ async function cancelar() {
 // si recargas o reabres la página mientras se aplica, vuelve a enseñar el progreso
 fetch('/api/run').then(r => r.json()).then(r => { if (r.activo) seguirRun(); });
 function abrir(archivo) { fetch('/api/abrir', {method: 'POST', body: JSON.stringify({archivo})}); }
+async function importar(inp) {
+  const f = inp.files[0]; inp.value = '';
+  if (!f) return;
+  $('prog').textContent = `Importando ${f.name}…`;
+  const r = await (await fetch('/api/importar', {method: 'POST', headers: {'X-Nombre': encodeURIComponent(f.name)}, body: f})).json();
+  $('prog').innerHTML = r.ok ? `<span class="ok">✓ Export de ${r.tipo === 'dixmax' ? 'Dixmax' : 'Letterboxd'} importado</span>` : `<span class="bad">${esc(r.texto)}</span>`;
+  estado();
+}
+async function pasarMovil() {
+  const r = await (await fetch('/api/movil', {method: 'POST'})).json();
+  if (!r.ok) { $('movInfo').innerHTML = `<span class="bad">${esc(r.texto)}</span>`; return; }
+  const t = setInterval(async () => {
+    const m = await (await fetch('/api/movil/estado', {method: 'POST'})).json();
+    $('movInfo').innerHTML = m.error ? `<span class="bad">${esc(m.error)}</span>` : m.fin ? `<span class="ok">✓ ${esc(m.mensajes.slice(-1)[0] || 'Hecho')}</span>` : esc(m.mensajes.slice(-1)[0] || 'Empezando…');
+    if (!m.activo) clearInterval(t);
+  }, 800);
+}
 
 // ---------- configuración ----------
 const CAMPOS = [
-  ['DATA_DIR', 'Carpetas de exports', 'Dónde buscar los zips o carpetas de Dixmax y Letterboxd. Varias separadas por ; · vacío = Descargas.'],
+  ...(ANDROID ? [] : [['DATA_DIR', 'Carpetas de exports', 'Dónde buscar los zips o carpetas de Dixmax y Letterboxd. Varias separadas por ; · vacío = Descargas. También vale «Importar export».']]),
   ['LETTERBOXD_USER', 'Usuario de Letterboxd', ''],
   ['SERIALIZD_USER', 'Usuario de Serializd', ''],
   ['SERIALIZD_TOKEN', 'Token de Serializd', 'serializd.com → F12 → Application → Cookies → tvproject_credentials. Caduca de vez en cuando.', 1],
@@ -669,13 +733,14 @@ async function version(forzar) {
   return v;
 }
 async function actualizar() {
-  if (!confirm('¿Actualizar Tri-Sync ahora?\n\nSe descarga la versión nueva, se guarda una copia de la actual en la carpeta logs y se reinicia solo en unos segundos. Tu configuración, claves e historial no se tocan.')) return;
+  if (!confirm(ANDROID ? '¿Actualizar Tri-Sync ahora?\n\nSe descarga el APK de la versión nueva y se abre el instalador de Android. Tu configuración, claves e historial no se tocan.' : '¿Actualizar Tri-Sync ahora?\n\nSe descarga la versión nueva, se guarda una copia de la actual en la carpeta logs y se reinicia solo en unos segundos. Tu configuración, claves e historial no se tocan.')) return;
   const r = await (await fetch('/api/actualizar', {method: 'POST'})).json();
   if (!r.ok) { $('updM').textContent = r.texto; return; }
   const t = setInterval(async () => {
     let u; try { u = await (await fetch('/api/actualizando', {method: 'POST'})).json(); } catch (e) { u = null; }
     if (u && u.error) { clearInterval(t); $('updM').innerHTML = `<span class="bad">No se pudo actualizar: ${esc(u.error)}</span>`; return; }
     if (u && u.activo) { $('updM').textContent = u.mensajes.slice(-1)[0] || 'Empezando…'; return; }
+    if (u && u.apk) { clearInterval(t); $('updM').textContent = 'Abriendo el instalador de Android…'; location.href = '/android/instalar'; return; }
     $('updM').textContent = 'Reiniciando con la versión nueva…';  // espera a que arranque la nueva y recarga
     try { const v = await (await fetch('/api/version')).json(); if (v.actual && !v.nueva) { clearInterval(t); location.reload(); } } catch (e) {}
   }, 1000);

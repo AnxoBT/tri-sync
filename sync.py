@@ -17,9 +17,9 @@ from core.config import save_cache
 def _sin_consola():
     """Con pythonw no hay consola: lo que se imprimiría va a logs/servidor.log."""
     if sys.stdout is None or sys.stderr is None:
-        from core.config import ROOT
-        (ROOT / "logs").mkdir(exist_ok=True)
-        f = open(ROOT / "logs" / "servidor.log", "a", encoding="utf-8", buffering=1)
+        from core.config import LOGS
+        LOGS.mkdir(exist_ok=True)
+        f = open(LOGS / "servidor.log", "a", encoding="utf-8", buffering=1)
         sys.stdout = sys.stdout or f
         sys.stderr = sys.stderr or f
 

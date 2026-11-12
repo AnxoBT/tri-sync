@@ -3,14 +3,21 @@ import json
 import os
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-CACHE = ROOT / "cache"
-CACHE.mkdir(exist_ok=True)
+ROOT = Path(__file__).resolve().parent.parent  # código (en Android va dentro del APK: de solo lectura)
+# Datos que la app modifica (.env, rules.json, caché, logs, exports importados). En el PC = la carpeta del
+# programa, como siempre; en Android, la carpeta privada de la app (TRISYNC_DATOS la pone el lanzador).
+DATOS = Path(os.environ.get("TRISYNC_DATOS") or ROOT)
+ANDROID = bool(os.environ.get("TRISYNC_ANDROID"))
+CACHE = DATOS / "cache"
+LOGS = DATOS / "logs"
+IMPORTADOS = DATOS / "importados"  # exports subidos con «Importar export» (en el móvil, la única forma)
+CACHE.mkdir(parents=True, exist_ok=True)
+IMPORTADOS.mkdir(parents=True, exist_ok=True)
 
 
 def _load_env():
     env = {}
-    p = ROOT / ".env"
+    p = DATOS / ".env"
     if p.exists():
         for line in p.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -43,7 +50,13 @@ def guardar_config(cambios):
             continue
         ENV[k] = v
     lines = [f"{k}={ENV.get(k, '')}" for k in EDITABLES]
-    (ROOT / ".env").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (DATOS / ".env").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def recargar_env():
+    """Tras recibir un .env nuevo (pasar del PC al móvil)."""
+    ENV.clear()
+    ENV.update(_load_env())
 
 
 def env(key, default=""):
@@ -55,8 +68,11 @@ def descargas():
 
 
 def export_dirs():
-    """Carpetas donde buscar exports (DATA_DIR, separadas por ';'). Por defecto: Descargas."""
-    out = []
+    """Carpetas donde buscar exports (DATA_DIR, separadas por ';'). Por defecto: Descargas.
+    Siempre, además, los importados desde la web (en el móvil son los únicos: Android no deja leer Descargas)."""
+    out = [IMPORTADOS]
+    if ANDROID:
+        return out
     for x in (env("DATA_DIR") or str(descargas())).split(";"):
         x = x.strip()
         if x:
@@ -66,7 +82,7 @@ def export_dirs():
 
 
 def data_dir():
-    return export_dirs()[0]
+    return export_dirs()[-1]
 
 
 # archivos que debe tener cada export para darlo por válido
@@ -132,7 +148,7 @@ def latest_export(prefix):
 
 def rules():
     """Reglas editables (casos especiales). Ver rules.json."""
-    p = ROOT / "rules.json"
+    p = DATOS / "rules.json"
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
