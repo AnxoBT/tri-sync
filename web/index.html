@@ -162,8 +162,9 @@
   .pill { font-size:11.5px; padding:2px 8px; border-radius:10px; border:1px solid var(--line); color:var(--muted); }
   .pill.ok { color:var(--ok); border-color:var(--ok); }
   details.avz { margin-top:16px; } details.avz summary { cursor:pointer; color:var(--muted); }
+  body.deslizando { overflow-x:hidden; }
   .entra-d { animation:entraD .22s ease-out; } .entra-i { animation:entraI .22s ease-out; }
-  @keyframes entraD { from { transform:translateX(40px); opacity:.3; } } @keyframes entraI { from { transform:translateX(-40px); opacity:.3; } }
+  @keyframes entraD { from { transform:translateX(60px); opacity:0; } } @keyframes entraI { from { transform:translateX(-60px); opacity:0; } }
   /* ---- móvil (la app de Android y pantallas estrechas) ---- */
   .movil #bOff, .movil .solo-pc { display:none !important; }
   @media (max-width:700px) {
@@ -303,39 +304,90 @@ let DATA = {diferencias: []}, sel = {}, filtroCat = null, poll = null;
 
 const VISTAS = [['rev', 'Rev'], ['hist', 'Hist'], ['stats', 'Stats'], ['cfg', 'Cfg']];
 let VISTA_ACT = 'rev';
-function vista(v, dir) {
+const elVista = v => $('v' + VISTAS.find(x => x[0] === v)[1]);
+const idx = v => VISTAS.findIndex(x => x[0] === v);
+const cargarVista = v => { if (v === 'cfg') cargarCfg(); if (v === 'hist') historial(); if (v === 'stats') estadisticas(); };
+// anim: al tocar una pestaña, la nueva entra deslizando desde su lado (al arrastrar con el dedo ya se ha deslizado)
+function vista(v, anim = true) {
+  const antes = VISTA_ACT;
   for (const [k, id] of VISTAS) {
     $('v' + id).classList.toggle('hidden', v !== k); $('t' + id).classList.toggle('on', v === k);
   }
   VISTA_ACT = v;
   $('abar').classList.toggle('hidden', v !== 'rev' || !$('bienvenida').classList.contains('hidden'));
-  const el = $('v' + VISTAS.find(x => x[0] === v)[1]);
-  if (dir) { el.classList.remove('entra-d', 'entra-i'); void el.offsetWidth; el.classList.add(dir > 0 ? 'entra-d' : 'entra-i'); }
-  $('t' + VISTAS.find(x => x[0] === v)[1]).scrollIntoView({block: 'nearest', inline: 'nearest'});
-  if (dir) scrollTo({top: 0});
-  if (v === 'cfg') cargarCfg();
-  if (v === 'hist') historial();
-  if (v === 'stats') estadisticas();
+  const el = elVista(v);
+  if (anim && antes !== v) {
+    el.classList.remove('entra-d', 'entra-i'); void el.offsetWidth; el.classList.add(idx(v) > idx(antes) ? 'entra-d' : 'entra-i');
+  }
+  $('t' + VISTAS.find(x => x[0] === v)[1]).scrollIntoView({block: 'nearest', inline: 'nearest', behavior: 'smooth'});
+  if (antes !== v) scrollTo({top: 0});
+  cargarVista(v);
 }
-// deslizar el dedo a un lado cambia de pestaña (como en Instagram). No cuando deslizas algo que se mueve de lado
-// (mapa, pestañas de arriba, chips, tablas anchas) ni con una ventana abierta.
+// Deslizar el dedo a un lado cambia de pestaña, como en las redes sociales: la pestaña sigue al dedo y la de al lado
+// va entrando; al soltar, si has pasado del 30 % o lo has hecho rápido, termina de cambiar; si no, vuelve. En los
+// extremos cede un poco (efecto goma). No cuando deslizas algo que ya se mueve de lado (mapa, pestañas, chips…).
 (() => {
-  let t0 = null;
+  let t = null;
+  const DUR = 240, curva = 'cubic-bezier(.2,.8,.2,1)';
   const desplazable = el => { for (; el && el !== document.body; el = el.parentElement)
     if (el.scrollWidth > el.clientWidth + 4 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return true; return false; };
+  const mover = (el, x, ms) => { if (!el) return; el.style.transition = ms ? `transform ${ms}ms ${curva}` : 'none'; el.style.transform = `translateX(${x}px)`; };
+  const soltarVecina = () => {
+    if (!t || !t.vec) return;
+    Object.assign(t.vec.style, {position: '', top: '', left: '', right: '', bottom: '', overflow: '', transform: '', transition: '', zIndex: '', background: ''});
+    t.vec.classList.add('hidden');
+    t.vec = null;
+  };
+  const prepararVecina = j => {  // la pestaña de al lado, fija debajo de la cabecera, lista para entrar
+    soltarVecina();
+    if (j < 0 || j >= VISTAS.length) return;
+    const v = VISTAS[j][0], el = elVista(v);
+    Object.assign(el.style, {position: 'fixed', top: document.querySelector('header').getBoundingClientRect().bottom + 'px', left: '0', right: '0',
+                             bottom: '0', overflow: 'hidden', zIndex: '4', background: 'var(--bg)'});
+    el.classList.remove('hidden', 'entra-d', 'entra-i');
+    t.vec = el; t.vecV = v;
+    if (!t.cargadas.has(v)) { t.cargadas.add(v); cargarVista(v); }
+  };
   addEventListener('touchstart', e => {
     const el = e.target;
-    t0 = (e.touches.length !== 1 || $('modal').classList.contains('on') || el.closest('.mapa, input, select, textarea, pre') || desplazable(el))
-      ? null : {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now()};
+    t = (e.touches.length !== 1 || $('modal').classList.contains('on') || el.closest('.mapa, input, select, textarea, pre, header') || desplazable(el))
+      ? null : {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), lock: null, dir: 0, vec: null, cargadas: new Set()};
   }, {passive: true});
-  addEventListener('touchend', e => {
-    if (!t0) return;
-    const dx = e.changedTouches[0].clientX - t0.x, dy = e.changedTouches[0].clientY - t0.y, dt = Date.now() - t0.t;
-    t0 = null;
-    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6 || dt > 700) return;
-    const i = VISTAS.findIndex(x => x[0] === VISTA_ACT) + (dx < 0 ? 1 : -1);
-    if (i >= 0 && i < VISTAS.length) vista(VISTAS[i][0], dx < 0 ? 1 : -1);
-  }, {passive: true});
+  addEventListener('touchmove', e => {
+    if (!t) return;
+    const dx = e.touches[0].clientX - t.x, dy = e.touches[0].clientY - t.y;
+    if (!t.lock) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.2) { t = null; return; }  // vas hacia abajo o arriba: se deja hacer scroll
+      t.lock = true; t.i = idx(VISTA_ACT); t.cur = elVista(VISTA_ACT);
+      t.bar = $('abar').classList.contains('hidden') ? null : $('abar');
+      document.body.classList.add('deslizando');
+    }
+    e.preventDefault();  // mientras arrastras de lado, la página no se mueve hacia arriba ni abajo
+    const dir = dx < 0 ? 1 : -1, W = innerWidth;
+    if (dir !== t.dir) { t.dir = dir; prepararVecina(t.i + dir); }
+    const x = t.vec ? dx : dx / 3;  // sin pestaña a ese lado: cede poco (goma)
+    mover(t.cur, x); mover(t.bar, x); mover(t.vec, x + dir * W);
+  }, {passive: false});
+  const fin = e => {
+    if (!t || !t.lock) { t = null; return; }
+    const q = t; t = null;
+    const dx = (e.changedTouches[0] || {}).clientX - q.x, W = innerWidth, vel = Math.abs(dx) / Math.max(1, Date.now() - q.t);
+    const cambia = q.vec && (Math.abs(dx) > W * 0.3 || (vel > 0.45 && Math.abs(dx) > 40));
+    if (cambia) {
+      mover(q.cur, -q.dir * W, DUR); mover(q.bar, -q.dir * W, DUR); mover(q.vec, 0, DUR);
+    } else {
+      mover(q.cur, 0, DUR); mover(q.bar, 0, DUR); mover(q.vec, q.dir * W, DUR);
+    }
+    setTimeout(() => {
+      [q.cur, q.bar].forEach(el => el && Object.assign(el.style, {transform: '', transition: ''}));
+      t = q; soltarVecina(); t = null;
+      document.body.classList.remove('deslizando');
+      if (cambia) vista(q.vecV, false);
+    }, DUR + 20);
+  };
+  addEventListener('touchend', fin, {passive: true});
+  addEventListener('touchcancel', fin, {passive: true});
 })();
 
 const NOMBRES = {dixmax: 'Dixmax', letterboxd: 'Letterboxd', serializd: 'Serializd', anilist: 'AniList'};
