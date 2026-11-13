@@ -271,10 +271,19 @@ class Handler(BaseHTTPRequestHandler):
                 txt = f"✓ Conectado con Letterboxd{' como <b>' + html.escape(u) + '</b>' if u else ''}. Ya puedes volver a Tri-Sync."
             except Exception as e:
                 txt = f"No se pudo conectar con Letterboxd: {html.escape(str(e))}"
-            return self._send(200, PAGINA_VUELTA.replace("{txt}", txt).encode(), "text/html; charset=utf-8")
+            if config.env("IDIOMA") == "en":
+                txt = txt.replace("Conectado con Letterboxd", "Connected to Letterboxd").replace(" como ", " as ").replace(
+                    "Ya puedes volver a Tri-Sync.", "You can go back to Tri-Sync now.").replace("No se pudo conectar con Letterboxd", "Couldn't connect to Letterboxd")
+            return self._send(200, PAGINA_VUELTA.replace("{txt}", txt).replace("Volver a Tri-Sync", "Back to Tri-Sync" if config.env("IDIOMA") == "en" else "Volver a Tri-Sync").encode(), "text/html; charset=utf-8")
         LATIDO["t"] = time.time()  # cualquier petición de la página cuenta como actividad
         if self.path == "/anilist":  # vuelta de la autorización de AniList (el permiso viene tras el #)
-            return self._send(200, ANILIST_HTML, "text/html; charset=utf-8")
+            pagina = ANILIST_HTML
+            if config.env("IDIOMA") == "en":
+                for es_, en_ in (("Guardando el permiso de AniList…", "Saving the AniList permission…"),
+                                 ("AniList no ha dado permiso. Cierra esta pestaña y vuelve a probar.", "AniList didn't give permission. Close this tab and try again."),
+                                 ("✓ Conectado con AniList como ", "✓ Connected to AniList as "), (". Ya puedes cerrar esta pestaña.", ". You can close this tab now.")):
+                    pagina = pagina.replace(es_.encode(), en_.encode())
+            return self._send(200, pagina, "text/html; charset=utf-8")
         if self.path in ("/", "/index.html"):
             return self._send(200, INDEX, "text/html; charset=utf-8")
         if self.path == "/api/diff":
@@ -296,6 +305,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, (WEB / "logo.svg").read_bytes(), "image/svg+xml")
         if self.path == "/api/estadisticas":
             return self._send(200, {"datos": config.cache_json("estadisticas.json", {}), "job": ESTAD})
+        if self.path == "/i18n_en.json":  # traducciones al inglés (la web traduce al mostrar)
+            return self._send(200, (WEB / "i18n_en.json").read_bytes(), "application/json; charset=utf-8")
         if self.path == "/mundo.json":
             return self._send(200, (WEB / "mundo.json").read_bytes(), "application/json; charset=utf-8")
         if self.path == "/api/historial":
@@ -422,7 +433,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/importar":  # zip de export de Dixmax o Letterboxd, elegido en la web
             from core import movil
             try:
-                return self._send(200, {"ok": True, **movil.importar_export(urllib.parse.unquote(self.headers.get("X-Nombre", "")), self._crudo)})
+                return self._send(200, {"ok": True, **movil.importar_export(urllib.parse.unquote(self.headers.get("X-Nombre", "")), self._crudo,
+                                                                             self.headers.get("X-Fecha", ""))})
             except Exception as e:
                 return self._send(200, {"ok": False, "texto": str(e)})
         if self.path == "/api/sincro/recibir":  # el PC pasa al móvil tu configuración y caché (por USB)

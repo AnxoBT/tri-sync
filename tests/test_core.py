@@ -97,6 +97,11 @@ class Exports(unittest.TestCase):
         self.assertEqual(len(list(config.IMPORTADOS.glob("letterboxd-*"))), 1)
         self.assertEqual(config.find_exports("letterboxd-")[0].missing("letterboxd-"), [])
 
+    def test_conserva_la_fecha_del_archivo_original(self):
+        movil.importar_export("letterboxd-yo-2026.zip", zip_de(LB), "1715000000000")  # 6 de mayo de 2024
+        p = next(config.IMPORTADOS.glob("letterboxd-*"))
+        self.assertEqual(time.localtime(p.stat().st_mtime)[:2], (2024, 5))
+
     def test_rechaza_lo_que_no_es_un_export(self):
         with self.assertRaises(ValueError):
             movil.importar_export("foto.zip", b"no es un zip")
@@ -130,6 +135,17 @@ class PasarAlMovil(unittest.TestCase):
         with self.assertRaises(ValueError):
             movil.recibir(zip_de({"../fuera.txt": "x"}))
         self.assertFalse((Path(TMP).parent / "fuera.txt").exists())
+
+
+class Idioma(unittest.TestCase):
+    def test_traducciones_validas(self):
+        import re
+        d = json.loads((Path(__file__).resolve().parent.parent / "web" / "i18n_en.json").read_text(encoding="utf-8"))
+        self.assertGreater(len(d["exactos"]), 400)
+        for patron, sust in d["patrones"]:
+            re.compile(patron)
+            self.assertIsInstance(sust, str)
+        self.assertTrue(all(isinstance(v, str) and v for v in d["exactos"].values()))
 
 
 class Estadisticas(unittest.TestCase):

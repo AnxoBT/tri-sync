@@ -48,8 +48,10 @@
   With its official API you don't even need its export
 - **Letterboxd** (films), **Serializd** (series) and **AniList** (anime) are optional; the ones you
   don't connect don't show up anywhere and are not reviewed
-- The first time, a welcome screen takes you to **Settings → Your apps**, with a card per app
-  explaining what it does and how to connect it
+- The first time, a short **welcome guide** (4 steps) explains how it works, and a welcome screen takes you to
+  **Settings → Your apps**, with a card per app explaining what it does and how to connect it
+- **English and Spanish**: it follows your device's language, and you can change it in Settings. Everything is
+  translated (reviews, statistics, curiosities); only your film and series titles keep the names they have on Dixmax
 
 **Review**
 
@@ -226,8 +228,10 @@ released under the same licence, with its source code.
   API oficial ni siquiera hace falta su export
 - **Letterboxd** (películas), **Serializd** (series) y **AniList** (anime) son opcionales; las que no
   conectes no aparecen en ningún sitio ni se revisan
-- La primera vez, una bienvenida te lleva a **Configuración → Tus aplicaciones**, con una tarjeta por app
-  que explica qué hace y cómo conectarla
+- La primera vez, una **guía de bienvenida** de 4 pasos explica cómo funciona, y una bienvenida te lleva a
+  **Configuración → Tus aplicaciones**, con una tarjeta por app que explica qué hace y cómo conectarla
+- **Español e inglés**: sigue el idioma del dispositivo y se cambia en Configuración. Se traduce todo (revisión,
+  estadísticas, curiosidades); solo los títulos de tus películas y series se quedan como los tiene Dixmax
 
 **Revisión**
 

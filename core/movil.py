@@ -37,8 +37,9 @@ def _tipo_export(nombre, zf):
     return None
 
 
-def importar_export(nombre, datos):
-    """Guarda el zip en la carpeta de importados (sustituye al anterior del mismo tipo)."""
+def importar_export(nombre, datos, fecha_ms=""):
+    """Guarda el zip en la carpeta de importados (sustituye al anterior del mismo tipo). fecha_ms: la del archivo
+    original (la da el navegador): así la edad del export es la de cuando lo descargaste, no la de importarlo."""
     try:
         zf = zipfile.ZipFile(io.BytesIO(datos))
     except zipfile.BadZipFile:
@@ -61,6 +62,8 @@ def importar_export(nombre, datos):
     for viejo in IMPORTADOS.glob(pre + "*"):
         viejo.unlink()
     tmp.replace(destino)
+    if str(fecha_ms).isdigit() and 0 < int(fecha_ms) / 1000 <= time.time() + 60:
+        os.utime(destino, (int(fecha_ms) / 1000, int(fecha_ms) / 1000))
     return {"tipo": "dixmax" if pre.startswith("playmax") else "letterboxd", "nombre": nombre}
 
 

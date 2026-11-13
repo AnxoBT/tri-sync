@@ -1,0 +1,856 @@
+{
+ "_info": "Traducciones al inglés de todo lo que se ve en Tri-Sync (la web traduce al mostrar). exactos: texto completo de un nodo o atributo; patrones: [expresión regular, sustitución] para lo que lleva números o nombres. Fechas, números, dinero y países los traduce index.html.",
+ "exactos": {
+  "Revisión": "Review",
+  "Historial": "History",
+  "Estadísticas": "Statistics",
+  "Configuración": "Settings",
+  "⏻ Apagar": "⏻ Shut down",
+  "Apagar": "Shut down",
+  "Cierra Tri-Sync ya (también se apaga solo al cerrar la pestaña)": "Close Tri-Sync now (it also shuts down by itself when you close the tab)",
+  "Tri-Sync está cerrado (se apaga al cerrar la pestaña). Ábrelo otra vez con el acceso directo": "Tri-Sync is closed (it shuts down when you close the tab). Open it again with the shortcut",
+  "Nueva versión": "New version",
+  "disponible": "available",
+  "(tienes la": "(you have",
+  "ver cambios": "see changes",
+  "Actualizar ahora": "Update now",
+  "Luego": "Later",
+  "Bienvenido a Tri-Sync": "Welcome to Tri-Sync",
+  "Te falta poco": "Almost there",
+  "Tri-Sync compara lo que ves en": "Tri-Sync compares what you watch on",
+  "con tus otras apps y te deja arreglar con un clic lo que no cuadra.": "with your other apps and lets you fix whatever doesn't match in one click.",
+  "Empieza conectando": "Start by connecting",
+  "y al menos otra app.": "and at least one other app.",
+  "Conecta al menos otra app para tener con qué comparar.": "Connect at least one more app so there is something to compare with.",
+  "(opcional)": "(optional)",
+  "Configurar mis apps →": "Set up my apps →",
+  "En directo (API)": "Live (API)",
+  "En directo": "Live",
+  "Export": "Export",
+  "se lee al revisar": "read when you review",
+  "solo anime": "anime only",
+  "sin export": "no export",
+  "descarga e importa el export": "download and import the export",
+  "descarga uno nuevo": "download a new one",
+  "cambios por API": "changes via API",
+  "· cambios por API": "· changes via API",
+  "los cambios se aplican directamente": "changes are applied directly",
+  "Exports": "Exports",
+  "descárgalos y, si hace falta, impórtalos": "download them and, if needed, import them",
+  "Revisar": "Review",
+  "compara tus apps y te enseña lo que no cuadra": "compares your apps and shows what doesn't match",
+  "⤓ Importar export…": "⤓ Import export…",
+  "Importar export…": "Import export…",
+  "Elige el zip del export de Dixmax o de Letterboxd (en el PC también vale dejarlo en Descargas)": "Pick the zip of your Dixmax or Letterboxd export (on the PC you can also leave it in Downloads)",
+  "Casi nunca: la API ya da las fechas. Solo para detectar marcas que quites en Dixmax": "Rarely needed: the API already gives the dates. Only to detect marks you remove in Dixmax",
+  "Revisión rápida": "Quick review",
+  "Completa": "Full",
+  "~5-15 s: solo lo nuevo (diario de Serializd, series de Dixmax en las que has visto algo o ha salido un episodio, y tu lista de AniList)": "~5-15 s: only what's new (Serializd diary, Dixmax series where you watched something or a new episode came out, and your AniList list)",
+  "~1 min: todo desde cero (detecta borrados y episodios nuevos de Dixmax por la API)": "~1 min: everything from scratch (detects removals and new Dixmax episodes through the API)",
+  "Buscar título…": "Search title…",
+  "Todas": "All",
+  "Plegar todo": "Collapse all",
+  "Desplegar todo": "Expand all",
+  "Aplicar a todo el grupo…": "Apply to the whole group…",
+  "Ignorar": "Ignore",
+  "Nada seleccionado": "Nothing selected",
+  "Limpiar": "Clear",
+  "Quitar todo lo seleccionado": "Unselect everything",
+  "Simular": "Simulate",
+  "Aplicar": "Apply",
+  "Aún no has revisado": "You haven't reviewed yet",
+  "Pulsa «Revisión rápida» (o «Completa» la primera vez).": "Press «Quick review» (or «Full» the first time).",
+  "✓ Todo cuadra": "✓ Everything matches",
+  "✓ todo cuadra": "✓ everything matches",
+  "Cancelar": "Cancel",
+  "Cerrar": "Close",
+  "Simulando": "Simulating",
+  "Simulando…": "Simulating…",
+  "Aplicando": "Applying",
+  "Aplicando…": "Applying…",
+  "Simulación": "Simulation",
+  "Cancelado": "Cancelled",
+  "Hecho": "Done",
+  "Error": "Error",
+  "No puedo seguir el progreso": "I can't follow the progress",
+  "Tri-Sync está desactualizado o cerrado: pulsa ⏻ Apagar (o espera a que se cierre) y ábrelo de nuevo desde el acceso directo. Lo que se aplicó queda en la carpeta logs.": "Tri-Sync is outdated or closed: press ⏻ Shut down (or wait for it to close) and open it again from the shortcut. What was applied is in the logs folder.",
+  "Abrir carpeta": "Open folder",
+  "Abrir importador ↗": "Open importer ↗",
+  "Descargar el CSV ↓": "Download the CSV ↓",
+  "Compartir el CSV…": "Share the CSV…",
+  "Lo de Letterboxd sale de la lista al generar el CSV: si no lo importas, volverá a salir en la próxima revisión.": "Letterboxd items leave the list when the CSV is created: if you don't import it, they will show up again in the next review.",
+  "Revisión terminada": "Review finished",
+  "Empezando…": "Starting…",
+  "Pulsa una fila para ver el detalle.": "Tap a row to see the details.",
+  "Sin revisiones todavía": "No reviews yet",
+  "Fecha": "Date",
+  "Modo": "Mode",
+  "Duración": "Duration",
+  "Diferencias": "Differences",
+  "Cambios desde la anterior": "Changes since the previous one",
+  "rápida": "quick",
+  "completa": "full",
+  "aplicación": "application",
+  "sin cambios": "no changes",
+  "aplicadas": "applied",
+  "Novedades en tus webs desde la revisión anterior": "What's new in your apps since the previous review",
+  "Nada nuevo.": "Nothing new.",
+  "Diferencias que encontró": "Differences found",
+  "Ninguna: todo cuadraba.": "None: everything matched.",
+  "Qué se aplicó": "What was applied",
+  "Lo que más viste": "What you watched most",
+  "No se guardaba en esta revisión (empieza a contar desde la versión 1.8).": "Not saved in this review (it is recorded from version 1.8).",
+  "No se guardaba en esta revisión.": "Not saved in this review.",
+  "pelis vistas Dixmax": "films watched on Dixmax",
+  "pelis pendientes Dixmax": "films to watch on Dixmax",
+  "pelis favoritas Dixmax": "favourite films on Dixmax",
+  "series terminadas": "series finished",
+  "series siguiendo": "series watching",
+  "series pendientes": "series to watch",
+  "series favoritas": "favourite series",
+  "episodios vistos": "episodes watched",
+  "vistas Letterboxd": "watched on Letterboxd",
+  "watchlist Letterboxd": "Letterboxd watchlist",
+  "me gusta Letterboxd": "Letterboxd likes",
+  "diario Letterboxd": "Letterboxd diary",
+  "diario Serializd": "Serializd diary",
+  "series vistas Serializd": "series watched on Serializd",
+  "♥ Serializd": "♥ Serializd",
+  "anime en AniList": "anime on AniList",
+  "favoritos AniList": "AniList favourites",
+  "Tus aplicaciones": "Your apps",
+  "Conecta solo las que uses. Dixmax es el centro (todo se compara con lo que tienes allí); las demás son opcionales y, si no están conectadas, no aparecen ni se revisan.": "Connect only the ones you use. Dixmax is the centre (everything is compared with what you have there); the others are optional and, if they aren't connected, they don't show up and aren't reviewed.",
+  "imprescindible": "required",
+  "✓ conectada": "✓ connected",
+  "sin conectar": "not connected",
+  "Quitar": "Remove",
+  "conectada": "connected",
+  "Tu historial de películas, series y anime (el centro: todo se compara con él).": "Your film, series and anime history (the centre: everything is compared with it).",
+  "apiKey": "apiKey",
+  "authKey": "authKey",
+  "Usuario": "Username",
+  "Token": "Token",
+  "playmax.mx/tusapps.php → Añadir App → copia la apiKey de tu app.": "playmax.mx/tusapps.php → Add App → copy your app's apiKey.",
+  "Panel de Control → Aplicaciones autorizadas → autoriza tu app y copia la authKey.": "Control Panel → Authorised apps → authorise your app and copy the authKey.",
+  "Con la API no hace falta el export: se lee todo en directo (la primera vez tarda unos minutos).": "With the API you don't need the export: everything is read live (the first time takes a few minutes).",
+  "Películas: vistas, diario, notas y watchlist.": "Films: watched, diary, ratings and watchlist.",
+  "Tu nombre de usuario en letterboxd.com.": "Your username on letterboxd.com.",
+  "Se lee desde su export (Revisión → Exports). Los cambios van por su importador CSV, o directamente si conectas la API:": "It is read from its export (Review → Exports). Changes go through its CSV importer, or directly if you connect the API:",
+  "API de Letterboxd (opcional)": "Letterboxd API (optional)",
+  "client_id de la API": "API client_id",
+  "client_secret de la API": "API client_secret",
+  "Se pide a Letterboxd (letterboxd.com/api-beta). Dirección de vuelta: http://127.0.0.1:8765/letterboxd": "Requested from Letterboxd (letterboxd.com/api-beta). Redirect URI: http://127.0.0.1:8765/letterboxd",
+  "Conectar la API": "Connect the API",
+  "✓ Conectada · volver a conectar": "✓ Connected · reconnect",
+  "Series: episodios vistos con su fecha, estado y nota.": "Series: watched episodes with their date, status and rating.",
+  "serializd.com → F12 → Application → Cookies → tvproject_credentials. Caduca de vez en cuando.": "serializd.com → F12 → Application → Cookies → tvproject_credentials. It expires now and then.",
+  "Anime: estado, episodios, nota y fechas (solo tu lista de anime; la de manga no se toca).": "Anime: status, episodes, rating and dates (only your anime list; your manga list is never touched).",
+  "Se conecta con tu cuenta de AniList (el permiso dura 1 año).": "It connects with your AniList account (the permission lasts 1 year).",
+  "Conectar con AniList": "Connect with AniList",
+  "Volver a conectar": "Reconnect",
+  "Avanzado": "Advanced",
+  "Carpetas de exports": "Export folders",
+  "Dónde buscar los zips o carpetas de Dixmax y Letterboxd. Varias separadas por ; · vacío = Descargas. También vale «Importar export».": "Where to look for the Dixmax and Letterboxd zips or folders. Several separated by ; · empty = Downloads. «Import export» also works.",
+  "Token de GitHub": "GitHub token",
+  "Solo para avisar de versiones nuevas (el repo es privado). github.com/settings/personal-access-tokens/new → Repository access: Only select → tri-sync · Permissions → Contents: Read-only.": "Optional: only raises GitHub's limit for checking new versions. github.com/settings/personal-access-tokens/new → Repository access: Only select → tri-sync · Permissions → Contents: Read-only.",
+  "•••••• guardado (escribe para cambiarlo)": "•••••• saved (type to change it)",
+  "sin poner": "not set",
+  "Guardar": "Save",
+  "Guardado": "Saved",
+  "Probar conexiones": "Test connections",
+  "Probando…": "Testing…",
+  "Versión…": "Version…",
+  "Buscar actualizaciones": "Check for updates",
+  "es la última": "it's the latest",
+  "📱 Pasar al móvil": "📱 Send to phone",
+  "Por el cable USB (adb), nunca por internet": "Over the USB cable (adb), never over the internet",
+  "Instala o actualiza Tri-Sync en el móvil conectado por USB y le pasa tu configuración, la caché y los últimos exports.": "Installs or updates Tri-Sync on the phone connected by USB and copies your settings, cache and latest exports.",
+  "Pulsa «Authorize» en AniList; al volver, esto se actualiza solo.": "Press «Authorize» on AniList; when you come back, this updates by itself.",
+  "Autoriza Tri-Sync en Letterboxd; al volver, esto se actualiza solo.": "Authorise Tri-Sync on Letterboxd; when you come back, this updates by itself.",
+  "Idioma": "Language",
+  "La app en español o en inglés.": "The app in Spanish or English.",
+  "Ver la guía de inicio": "Show the welcome guide",
+  "Todo": "All",
+  "Películas": "Films",
+  "Series": "Series",
+  "Anime": "Anime",
+  "Animes": "Anime",
+  "Episodios": "Episodes",
+  "Horas": "Hours",
+  "Países": "Countries",
+  "Vistas": "Watched",
+  "Nota media": "Average rating",
+  "Favoritas": "Favourites",
+  "Pendientes": "To watch",
+  "Vistas o empezadas": "Watched or started",
+  "Terminadas": "Finished",
+  "Siguiendo": "Watching",
+  "Abandonadas": "Dropped",
+  "ver todo →": "see all →",
+  "Tu año": "Your year",
+  "¿De dónde es lo que ves?": "Where is what you watch from?",
+  "¿De dónde es?": "Where is it from?",
+  "país principal de producción ·": "main production country ·",
+  "pellizca para acercar, arrastra para moverte, toca un país para ver qué tienes de él": "pinch to zoom, drag to move, tap a country to see what you have from it",
+  "rueda para acercar, arrastra para moverte, doble clic para volver": "scroll to zoom, drag to move, double-click to reset",
+  "mundo entero": "whole world",
+  "nada": "nothing",
+  "¿Cuándo ves series y anime?": "When do you watch series and anime?",
+  "episodios por día y hora en que los marcaste (sin los marcados de golpe)": "episodes by the day and hour you marked them (without batch marks)",
+  "películas": "films",
+  "episodios": "episodes",
+  "series y animes": "series and anime",
+  "empezadas este año": "started this year",
+  "Películas y episodios por mes": "Films and episodes per month",
+  "Curiosidades": "Curiosities",
+  "Aún no hay estadísticas": "No statistics yet",
+  "Haz una revisión (rápida o completa): se calculan solas después. La primera vez tardan unos minutos en descargar las fichas de cada título.": "Run a review (quick or full): they are calculated afterwards by themselves. The first time it takes a few minutes to download each title's details.",
+  "recalcular": "recalculate",
+  "Calculando estadísticas…": "Calculating statistics…",
+  "ene": "Jan",
+  "feb": "Feb",
+  "mar": "Mar",
+  "abr": "Apr",
+  "may": "May",
+  "jun": "Jun",
+  "jul": "Jul",
+  "ago": "Aug",
+  "sep": "Sep",
+  "oct": "Oct",
+  "nov": "Nov",
+  "dic": "Dec",
+  "lun": "Mon",
+  "mié": "Wed",
+  "jue": "Thu",
+  "vie": "Fri",
+  "sáb": "Sat",
+  "dom": "Sun",
+  "Directores que más ves": "Directors you watch most",
+  "Actores que más te encuentras": "Actors you come across most",
+  "5 primeros del reparto": "top 5 of the cast",
+  "Géneros": "Genres",
+  "Tus favoritas": "Your favourites",
+  "Qué tienen tus favoritas": "What your favourites have in common",
+  "géneros de tus películas favoritas": "genres of your favourite films",
+  "Directores de tus favoritas": "Directors of your favourites",
+  "Películas por año": "Films per year",
+  "diario de Letterboxd (sin las importadas de golpe)": "Letterboxd diary (without the batch imports)",
+  "diario de Letterboxd": "Letterboxd diary",
+  "Joyas ocultas": "Hidden gems",
+  "las menos votadas en IMDb de las que has visto": "the least rated on IMDb among the ones you watched",
+  "Las más populares": "The most popular",
+  "las más votadas en IMDb": "the most rated on IMDb",
+  "Te gustaron más que a la gente": "You liked them more than people did",
+  "Te gustaron menos que a la gente": "You liked them less than people did",
+  "tu nota frente a la de IMDb": "your rating vs IMDb's",
+  "tu nota frente a la media de AniList": "your rating vs AniList's average",
+  "tu nota frente a la media de TVmaze": "your rating vs TVmaze's average",
+  "Sagas y franquicias": "Franchises",
+  "películas vistas de cada colección": "films watched from each collection",
+  "Las más caras": "The most expensive",
+  "presupuesto": "budget",
+  "Las más taquilleras": "Highest grossing",
+  "taquilla mundial": "worldwide box office",
+  "Mejor negocio": "Best deals",
+  "veces que recaudó lo que costó": "times what it cost, grossed",
+  "Fracasos en taquilla": "Box-office flops",
+  "recaudaron menos de lo que costaron": "grossed less than they cost",
+  "Directores con mejor nota": "Best-rated directors",
+  "tu nota media, con 3 pelis o más": "your average rating, with 3 films or more",
+  "Estudios": "Studios",
+  "Idiomas": "Languages",
+  "idioma original": "original language",
+  "Por década de estreno": "By release decade",
+  "minutos": "minutes",
+  "Tus notas": "Your ratings",
+  "Dixmax": "Dixmax",
+  "Actores de doblaje que más oyes": "Voice actors you hear most",
+  "Reparto que más ves": "Cast you watch most",
+  "Cadenas y plataformas": "Networks and platforms",
+  "Series con más episodios": "Series with the most episodes",
+  "Animes con más episodios": "Anime with the most episodes",
+  "las menos populares en AniList de las que has visto": "the least popular on AniList among the ones you watched",
+  "las menos populares en TVmaze de las que has visto": "the least popular on TVmaze among the ones you watched",
+  "en AniList": "on AniList",
+  "en TVmaze (0-100); a igualdad, las más votadas en Dixmax": "on TVmaze (0-100); ties broken by Dixmax votes",
+  "En qué punto estás": "Where you are",
+  "según tu marca en Dixmax": "according to your Dixmax mark",
+  "Temas y franquicias": "Topics and franchises",
+  "etiquetas de Dixmax": "Dixmax tags",
+  "Dirección": "Direction",
+  "animes y episodios: voz japonesa de personajes principales y secundarios (AniList)": "anime and episodes: Japanese voice of main and supporting characters (AniList)",
+  "series y episodios en los que sale: reparto oficial e invitados de lo que has visto (TVmaze)": "series and episodes they appear in: main cast and credited guests of what you watched (TVmaze)",
+  "Tu día más peliculero": "Your biggest film day",
+  "Racha más larga": "Longest streak",
+  "La peli más larga": "The longest film",
+  "La más cara que has visto": "The most expensive you watched",
+  "La más barata": "The cheapest",
+  "El mejor negocio": "The best deal",
+  "Tu peli más de nicho": "Your most niche film",
+  "La más vista por el mundo": "The most watched in the world",
+  "Tu defensa más firme": "Your strongest defence",
+  "Tu crítica más dura": "Your harshest criticism",
+  "Tu director": "Your director",
+  "El actor que más te encuentras": "The actor you come across most",
+  "El director que mejor te cae": "The director you like best",
+  "La más antigua": "The oldest",
+  "La más reciente": "The most recent",
+  "El más antiguo": "The oldest",
+  "El más reciente": "The most recent",
+  "Fuera del inglés": "Beyond English",
+  "Tu mayor maratón": "Your biggest marathon",
+  "Racha con una misma serie": "Streak with the same series",
+  "Racha con un mismo anime": "Streak with the same anime",
+  "Noctámbulo": "Night owl",
+  "Tu mes más intenso": "Your most intense month",
+  "Tu serie más larga": "Your longest series",
+  "Tu anime más largo": "Your longest anime",
+  "Tu serie más de nicho": "Your most niche series",
+  "Tu anime más de nicho": "Your most niche anime",
+  "La serie más popular que has visto": "The most popular series you watched",
+  "El anime más popular que has visto": "The most popular anime you watched",
+  "Tu cadena": "Your network",
+  "Tu estudio": "Your studio",
+  "El actor que más ves": "The actor you watch most",
+  "La voz que más oyes": "The voice you hear most",
+  "Tu género": "Your genre",
+  "Horas de serie": "Series hours",
+  "Horas de anime": "Anime hours",
+  "Frente a la pantalla": "In front of the screen",
+  "Diario de Serializd": "Serializd diary",
+  "registros de episodios y series": "episode and series entries",
+  "la de estreno más nuevo que has visto": "the newest release you watched",
+  "registros/notas": "entries/ratings",
+  "Solo en Dixmax": "Only on Dixmax",
+  "Solo en Letterboxd": "Only on Letterboxd",
+  "Solo en AniList": "Only on AniList",
+  "Vista en Dixmax, no en Letterboxd": "Watched on Dixmax, not on Letterboxd",
+  "Vista en Letterboxd, pendiente en Dixmax": "Watched on Letterboxd, to watch on Dixmax",
+  "Pendiente en Dixmax, no en watchlist de Letterboxd": "To watch on Dixmax, not in the Letterboxd watchlist",
+  "Sin entrada en el diario de Letterboxd": "No Letterboxd diary entry",
+  "Nota distinta": "Different rating",
+  "Favorita en Dixmax, sin me gusta en Letterboxd": "Favourite on Dixmax, no like on Letterboxd",
+  "Episodios sin subir a Serializd": "Episodes not on Serializd",
+  "Episodios en Serializd que no están en Dixmax": "Episodes on Serializd that aren't on Dixmax",
+  "Episodios sin equivalencia (revisar reglas)": "Episodes without a match (check the rules)",
+  "Estado distinto": "Different status",
+  "Varios estados a la vez en Serializd": "Several statuses at once on Serializd",
+  "Favorita en Dixmax, sin ♥ en Serializd": "Favourite on Dixmax, no ♥ on Serializd",
+  "♥ en Serializd, no favorita en Dixmax": "♥ on Serializd, not favourite on Dixmax",
+  "Terminada en Dixmax sin registro de serie en Serializd": "Finished on Dixmax with no series entry on Serializd",
+  "Nota de serie distinta": "Different series rating",
+  "Nota de serie sin subir a Serializd": "Series rating not on Serializd",
+  "Falta en AniList": "Missing on AniList",
+  "En AniList, no en Serializd": "On AniList, not on Serializd",
+  "Registrar en Letterboxd (diario con fecha y nota de Dixmax)": "Log on Letterboxd (diary with the Dixmax date and rating)",
+  "Añadir a la watchlist de Letterboxd": "Add to the Letterboxd watchlist",
+  "Marcar como vista en Dixmax": "Mark as watched on Dixmax",
+  "Poner la nota de Dixmax en Letterboxd": "Use the Dixmax rating on Letterboxd",
+  "Poner la nota de Letterboxd en Dixmax": "Use the Letterboxd rating on Dixmax",
+  "Poner la nota de Dixmax en Serializd": "Use the Dixmax rating on Serializd",
+  "Poner la nota de Serializd en Dixmax": "Use the Serializd rating on Dixmax",
+  "Subir a Serializd con fecha de Dixmax": "Upload to Serializd with the Dixmax date",
+  "Marcarlos como vistos en Dixmax": "Mark them as watched on Dixmax",
+  "Subir la nota a Serializd": "Upload the rating to Serializd",
+  "Poner ♥ al registro de serie en Serializd": "Add ♥ to the series entry on Serializd",
+  "Marcar como favorita en Dixmax": "Mark as favourite on Dixmax",
+  "Marcar terminada en Serializd (temporadas + registro + nota)": "Mark finished on Serializd (seasons + entry + rating)",
+  "Añadir en Dixmax (a mano, con el enlace)": "Add on Dixmax (by hand, with the link)",
+  "Añadir en Dixmax (enlace de búsqueda)": "Add on Dixmax (search link)",
+  "Añadir en Dixmax (te doy el enlace de búsqueda)": "Add on Dixmax (I'll give you the search link)",
+  "vista": "watched",
+  "pendiente": "to watch",
+  "watchlist": "watchlist",
+  "viendo": "watching",
+  "abandonada": "dropped",
+  "terminada": "finished",
+  "Película": "Film",
+  "Serie": "Series",
+  "Acción": "Action",
+  "Aventura": "Adventure",
+  "Aventuras": "Adventure",
+  "Animación": "Animation",
+  "Comedia": "Comedy",
+  "Crimen": "Crime",
+  "Documental": "Documentary",
+  "Drama": "Drama",
+  "Familia": "Family",
+  "Fantasía": "Fantasy",
+  "Fantástico": "Fantasy",
+  "Historia": "History",
+  "Terror": "Horror",
+  "Música": "Music",
+  "Musical": "Musical",
+  "Misterio": "Mystery",
+  "Intriga": "Mystery",
+  "Romance": "Romance",
+  "Ciencia ficción": "Science fiction",
+  "Película de TV": "TV movie",
+  "Suspense": "Thriller",
+  "Thriller": "Thriller",
+  "Bélica": "War",
+  "Bélico": "War",
+  "Western": "Western",
+  "Deporte": "Sports",
+  "Deportes": "Sports",
+  "Recuentos de la vida": "Slice of life",
+  "Sobrenatural": "Supernatural",
+  "Psicológico": "Psychological",
+  "Mecha": "Mecha",
+  "Ecchi": "Ecchi",
+  "Mahou Shoujo": "Mahou Shoujo",
+  "Kids": "Kids",
+  "Infantil": "Kids",
+  "Biografía": "Biography",
+  "inglés": "English",
+  "español": "Spanish",
+  "japonés": "Japanese",
+  "francés": "French",
+  "coreano": "Korean",
+  "italiano": "Italian",
+  "alemán": "German",
+  "chino": "Chinese",
+  "portugués": "Portuguese",
+  "ruso": "Russian",
+  "hindi": "Hindi",
+  "sueco": "Swedish",
+  "danés": "Danish",
+  "noruego": "Norwegian",
+  "neerlandés": "Dutch",
+  "polaco": "Polish",
+  "turco": "Turkish",
+  "persa": "Persian",
+  "tailandés": "Thai",
+  "griego": "Greek",
+  "finés": "Finnish",
+  "letón": "Latvian",
+  "catalán": "Catalan",
+  "árabe": "Arabic",
+  "Leyendo export de Dixmax…": "Reading the Dixmax export…",
+  "Leyendo export de Letterboxd…": "Reading the Letterboxd export…",
+  "Dixmax: leyendo estado actual por la API…": "Dixmax: reading the current state through the API…",
+  "Cruzando películas…": "Matching films…",
+  "Serializd: leyendo diario, listas y notas a la vez…": "Serializd: reading diary, lists and ratings at once…",
+  "AniList: leyendo tu lista de anime…": "AniList: reading your anime list…",
+  "Estadísticas: calculando…": "Statistics: calculating…",
+  "Esto es Tri-Sync": "This is Tri-Sync",
+  "Mantiene tu historial igual en Dixmax, Letterboxd, Serializd y AniList: busca lo que no cuadra y lo arregla con un clic.": "It keeps your history the same on Dixmax, Letterboxd, Serializd and AniList: it finds whatever doesn't match and fixes it in one click.",
+  "Conecta tus apps": "Connect your apps",
+  "En Configuración → Tus aplicaciones. Dixmax es imprescindible; las demás, solo si las usas. Lo que no conectes no aparece.": "In Settings → Your apps. Dixmax is required; the others only if you use them. Whatever you don't connect doesn't show up.",
+  "Revisa y aplica": "Review and apply",
+  "Haz una revisión rápida (unos segundos) o completa. Elige qué hacer con cada diferencia, pulsa Simular para ver qué pasaría y Aplicar para hacerlo.": "Run a quick review (a few seconds) or a full one. Choose what to do with each difference, press Simulate to see what would happen and Apply to do it.",
+  "Mira tus estadísticas": "Check your statistics",
+  "Mapa del mundo, rachas, maratones, reparto, curiosidades… En el móvil, desliza a los lados para cambiar de pestaña.": "World map, streaks, marathons, cast, curiosities… On the phone, swipe sideways to change tab.",
+  "Anterior": "Back",
+  "Siguiente": "Next",
+  "Empezar": "Get started",
+  "Saltar": "Skip",
+  "¿Cancelar? Se termina la acción en curso y no se hace nada más. Lo ya aplicado se queda (con sus fechas correctas).": "Cancel? The current action finishes and nothing else is done. What was already applied stays (with its correct dates).",
+  "¿Actualizar Tri-Sync ahora?\n\nSe descarga el APK de la versión nueva y se abre el instalador de Android. Tu configuración, claves e historial no se tocan.": "Update Tri-Sync now?\n\nThe new version's APK is downloaded and the Android installer opens. Your settings, keys and history are not touched.",
+  "¿Actualizar Tri-Sync ahora?\n\nSe descarga la versión nueva, se guarda una copia de la actual en la carpeta logs y se reinicia solo en unos segundos. Tu configuración, claves e historial no se tocan.": "Update Tri-Sync now?\n\nThe new version is downloaded, a copy of the current one is kept in the logs folder and it restarts by itself in a few seconds. Your settings, keys and history are not touched.",
+  "Hay una revisión o aplicación en marcha": "A review or application is running",
+  "Tri-Sync apagado": "Tri-Sync shut down",
+  "Ya puedes cerrar esta pestaña. Para volver a usarlo, abre el acceso directo Tri-Sync.": "You can close this tab now. To use it again, open the Tri-Sync shortcut.",
+  "Abriendo el instalador de Android…": "Opening the Android installer…",
+  "Reiniciando con la versión nueva…": "Restarting with the new version…",
+  "No se pudo actualizar: ": "Couldn't update: ",
+  "Versión instalada:": "Installed version:",
+  "⭐ Mejor nota del año:": "⭐ Best rating of the year:",
+  "país principal de producción · rueda para acercar, arrastra para moverte, doble clic para volver": "main production country · scroll to zoom, drag to move, double-click to reset",
+  "país principal de producción · pellizca para acercar, arrastra para moverte, toca un país para ver qué tienes de él": "main production country · pinch to zoom, drag to move, tap a country to see what you have from it",
+  "Miniserie de TV": "TV miniseries",
+  "Cómic": "Comics",
+  "Superhéroes": "Superheroes",
+  "Animación para adultos": "Adult animation",
+  "Comedia romántica": "Romantic comedy",
+  "Comedia negra": "Dark comedy",
+  "Precuela": "Prequel",
+  "Secuela": "Sequel",
+  "Spin-off": "Spin-off",
+  "Colegios & Universidad": "School & university",
+  "Artes marciales": "Martial arts",
+  "Manga": "Manga",
+  "Isekai": "Isekai",
+  "Remake": "Remake",
+  "Basado en un libro": "Based on a book",
+  "Basada en hechos reales": "Based on true events",
+  "Novela": "Novel",
+  "Videojuego": "Video game",
+  "Zombis": "Zombies",
+  "Vampiros": "Vampires",
+  "Robots": "Robots",
+  "Viajes en el tiempo": "Time travel",
+  "Distopía": "Dystopia",
+  "Postapocalíptico": "Post-apocalyptic",
+  "Policíaco": "Police",
+  "Ladrones": "Heists",
+  "Espacio": "Space",
+  "Mitología": "Mythology",
+  "Magia": "Magic",
+  "Samuráis": "Samurai",
+  "Militar": "Military",
+  "Medicina": "Medicine",
+  "Política": "Politics",
+  "Familia disfuncional": "Dysfunctional family",
+  "Adolescencia": "Adolescence",
+  "Sitcom": "Sitcom"
+ },
+ "patrones": [
+  [
+   "^¿Aplicar (\\d+) acciones de verdad\\?\n\n(.+) se cambian directamente; para Letterboxd se genera el CSV\\.$",
+   "Apply $1 actions for real?\n\n$2 are changed directly; for Letterboxd the CSV is created."
+  ],
+  [
+   "^¿Quitar (.+) de Tri-Sync\\?\n\nSe borran sus claves de este (móvil|PC) y deja de revisarse\\. En (.+) no se toca nada\\.$",
+   "Remove $1 from Tri-Sync?\n\nIts keys are deleted from this device and it stops being reviewed. Nothing is touched on $3."
+  ],
+  [
+   "^Última revisión: (.+)$",
+   "Last review: $1"
+  ],
+  [
+   "^(\\d+) acciones seleccionadas$",
+   "$1 actions selected"
+  ],
+  [
+   "^(\\d+) cambios? aplicados? y quitados? de la lista\\.",
+   "$1 change(s) applied and removed from the list."
+  ],
+  [
+   "^(\\d+) de (\\d+) aplicadas$",
+   "$1 of $2 applied"
+  ],
+  [
+   "^(\\d+) de (\\d+) · ",
+   "$1 of $2 · "
+  ],
+  [
+   "Revisión terminada \\((.+)\\)",
+   "Review finished ($1)"
+  ],
+  [
+   "^✓ Export de (Dixmax|Letterboxd) importado$",
+   "✓ $1 export imported"
+  ],
+  [
+   "^Importando (.+)…$",
+   "Importing $1…"
+  ],
+  [
+   "^Error: ",
+   "Error: "
+  ],
+  [
+   "^Versión instalada: ",
+   "Installed version: "
+  ],
+  [
+   "hay una nueva: ",
+   "there is a new one: "
+  ],
+  [
+   "^Conectado como (.+) \\(permiso hasta el (.+)\\)$",
+   "Connected as $1 (permission until $2)"
+  ],
+  [
+   "^✓ conectada como (.+)$",
+   "✓ connected as $1"
+  ],
+  [
+   "^Conectado como (.+)$",
+   "Connected as $1"
+  ],
+  [
+   "permiso: caduca en (\\d+) días",
+   "permission: expires in $1 days"
+  ],
+  [
+   "permiso: caducado",
+   "permission: expired"
+  ],
+  [
+   "^(\\d[\\d.,]*) películas?$",
+   "$1 films"
+  ],
+  [
+   "^(\\d[\\d.,]*) series$",
+   "$1 series"
+  ],
+  [
+   "^(\\d[\\d.,]*) animes?$",
+   "$1 anime"
+  ],
+  [
+   "^(\\d[\\d.,]*) películas vistas$",
+   "$1 films watched"
+  ],
+  [
+   "^(\\d[\\d.,]*) series vistas$",
+   "$1 series watched"
+  ],
+  [
+   "^(\\d[\\d.,]*) animes vistos$",
+   "$1 anime watched"
+  ],
+  [
+   "^(\\d[\\d.,]*) episodios$",
+   "$1 episodes"
+  ],
+  [
+   "^(\\d[\\d.,]*) episodios vistos$",
+   "$1 episodes watched"
+  ],
+  [
+   "^(\\d[\\d.,]*) días seguidos$",
+   "$1 days in a row"
+  ],
+  [
+   "^(\\d[\\d.,]*) días$",
+   "$1 days"
+  ],
+  [
+   "^unos (\\d[\\d.,]*) días seguidos$",
+   "about $1 days non-stop"
+  ],
+  [
+   "^(\\d[\\d.,]*) horas \\(aprox\\.\\)$",
+   "$1 hours (approx.)"
+  ],
+  [
+   "^(\\d[\\d.,]*) h$",
+   "$1 h"
+  ],
+  [
+   "^en (\\d[\\d.,]*) (películas|pelis)$",
+   "in $1 films"
+  ],
+  [
+   "^en (\\d[\\d.,]*) series$",
+   "in $1 series"
+  ],
+  [
+   "^en (\\d[\\d.,]*) animes$",
+   "in $1 anime"
+  ],
+  [
+   "^(\\d[\\d.,]*) series · (\\d[\\d.,]*) eps$",
+   "$1 series · $2 eps"
+  ],
+  [
+   "^(\\d[\\d.,]*) serie · (\\d[\\d.,]*) eps$",
+   "$1 series · $2 eps"
+  ],
+  [
+   "^(\\d[\\d.,]*) animes? · (\\d[\\d.,]*) eps$",
+   "$1 anime · $2 eps"
+  ],
+  [
+   "^(\\d[\\d.,]*) \\((\\d+) pelis\\)$",
+   "$1 ($2 films)"
+  ],
+  [
+   "^(\\d[\\d.,]*) votos en IMDb$",
+   "$1 votes on IMDb"
+  ],
+  [
+   "^solo (\\d[\\d.,]*) votos en IMDb$",
+   "only $1 votes on IMDb"
+  ],
+  [
+   "^(\\d[\\d.,]*) votos?$",
+   "$1 votes"
+  ],
+  [
+   "^(\\d[\\d.,]*) en AniList$",
+   "$1 on AniList"
+  ],
+  [
+   "^solo (\\d[\\d.,]*) personas lo tienen en AniList$",
+   "only $1 people have it on AniList"
+  ],
+  [
+   "^(\\d+)/100 en TVmaze$",
+   "$1/100 on TVmaze"
+  ],
+  [
+   "^popularidad (\\d+)/100 en TVmaze$",
+   "popularity $1/100 on TVmaze"
+  ],
+  [
+   "^tú ([\\d.]+) · ",
+   "you $1 · "
+  ],
+  [
+   "^le das un ([\\d.]+); IMDb, un ([\\d.]+)$",
+   "you give it $1; IMDb, $2"
+  ],
+  [
+   "^nota media ([\\d.,]+) en (\\d+) pelis$",
+   "average rating $1 over $2 films"
+  ],
+  [
+   "^(\\d+) minutos$",
+   "$1 minutes"
+  ],
+  [
+   "^presupuesto de (.+)$",
+   "budget of $1"
+  ],
+  [
+   "^costó (.+), recaudó (.+)$",
+   "cost $1, grossed $2"
+  ],
+  [
+   "^costó (.+)$",
+   "cost $1"
+  ],
+  [
+   "^recaudó (\\d+) veces lo que costó$",
+   "grossed $1 times what it cost"
+  ],
+  [
+   "^lo que costaron juntas (\\d+) de tus pelis$",
+   "what $1 of your films cost together"
+  ],
+  [
+   "^hace (\\d+) años$",
+   "$1 years ago"
+  ],
+  [
+   "^se estrenó hace (\\d+) años$",
+   "released $1 years ago"
+  ],
+  [
+   "^viendo alguna película cada día, hasta el (.+)$",
+   "watching a film every day, until $1"
+  ],
+  [
+   "^viendo alguna serie cada día, hasta el (.+)$",
+   "watching a series every day, until $1"
+  ],
+  [
+   "^viendo algún anime cada día, hasta el (.+)$",
+   "watching some anime every day, until $1"
+  ],
+  [
+   "^con (.+), hasta el (.+)$",
+   "with $1, until $2"
+  ],
+  [
+   "^(.+) · sobre todo (.+)$",
+   "$1 · mostly $2"
+  ],
+  [
+   "^(\\d+) películas con ♥ en Dixmax · las de mejor nota$",
+   "$1 films with ♥ on Dixmax · best rated first"
+  ],
+  [
+   "^(\\d+) con ♥ \\(favorita en Dixmax\\)$",
+   "$1 with ♥ (favourite on Dixmax)"
+  ],
+  [
+   "^Las horas son aproximadas: si no se sabe la duración de un episodio, cuenta (\\d+) min \\((\\d+) en anime\\)\\.$",
+   "Hours are approximate: if an episode's length is unknown, it counts $1 min ($2 for anime)."
+  ],
+  [
+   "^Notas de AniList: media ([\\d.]+) en (\\d+) animes\\.$",
+   "AniList ratings: average $1 over $2 anime."
+  ],
+  [
+   "^(.+): (\\d[\\d.,]*) títulos?",
+   "$1: $2 titles"
+  ],
+  [
+   "^(.+): nada$",
+   "$1: nothing"
+  ],
+  [
+   "^(\\d+) series vistas$",
+   "$1 series watched"
+  ],
+  [
+   "^Dixmax: comprobando por la API (.+)…$",
+   "Dixmax: checking through the API $1…"
+  ],
+  [
+   "^AniList: leyendo (\\d+) animes \\(solo la primera vez\\)…$",
+   "AniList: reading $1 anime (first time only)…"
+  ],
+  [
+   "^Estadísticas: (.+)$",
+   "Statistics: $1"
+  ],
+  [
+   "^Dixmax: (\\d+) ([^ ]+)",
+   "Dixmax: $1 $2"
+  ],
+  [
+   "^(dixmax|letterboxd): sin export$",
+   "$1: no export"
+  ],
+  [
+   "\\bhace (\\d+) min\\b",
+   "$1 min ago"
+  ],
+  [
+   "\\bhace (\\d+) h\\b",
+   "$1 h ago"
+  ],
+  [
+   "\\bhace (\\d+) días\\b",
+   "$1 days ago"
+  ],
+  [
+   "^export de (.+)$",
+   "export from $1"
+  ],
+  [
+   "^solo anime · ",
+   "anime only · "
+  ],
+  [
+   "^(.+) están sincronizados\\.$",
+   "$1 are in sync."
+  ],
+  [
+   "^de los episodios de serie los marcas entre las 0 y las 6$",
+   "of the series episodes are marked between midnight and 6 am"
+  ],
+  [
+   "^de los episodios de anime los marcas entre las 0 y las 6$",
+   "of the anime episodes are marked between midnight and 6 am"
+  ],
+  [
+   "^de (.+) in ([A-Z][a-z]+ \\d{4})$",
+   "of $1 in $2"
+  ],
+  [
+   "^de tus pelis; sobre todo en (.+)$",
+   "of your films; mostly in ⟦$1⟧"
+  ],
+  [
+   "^Con los datos de la revisión del (.+) ·$",
+   "With the data from the review of $1 ·"
+  ],
+  [
+   "^El (.+) importaste (\\d+) pelis de golpe a Letterboxd: no cuentan para fechas\\.$",
+   "On $1 you imported $2 films at once to Letterboxd: they don't count for dates."
+  ],
+  [
+   "(\\d{4}) y el ",
+   "$1 and "
+  ],
+  [
+   "^▶ Primera peli: ",
+   "▶ First film: "
+  ],
+  [
+   "^⏹ Última: ",
+   "⏹ Last: "
+  ],
+  [
+   "^(.+): (\\d[\\d.,]*) episodios$",
+   "$1: $2 episodes"
+  ]
+ ]
+}

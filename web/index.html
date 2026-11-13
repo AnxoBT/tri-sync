@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="i18n-espera">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,6 +13,7 @@
     --dx:#ff8000; --lb:#40bcf4; --sz:#00e054; --al:#4a63e8; --r:10px;
   }
   * { box-sizing:border-box; }
+  html.i18n-espera body { visibility:hidden; }
   body { margin:0; font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
   a { color:var(--acc); text-decoration:none; } a:hover { text-decoration:underline; }
   button { font:inherit; border:0; border-radius:8px; padding:8px 14px; cursor:pointer; background:var(--panel2); color:var(--text); border:1px solid var(--line); }
@@ -168,6 +169,18 @@
   #vRev .chips, #vStats .stsel, #vStats .chips, #vHist table { touch-action:pan-x pan-y; }
   .entra-d { animation:entraD .22s ease-out; } .entra-i { animation:entraI .22s ease-out; }
   @keyframes entraD { from { transform:translateX(60px); opacity:0; } } @keyframes entraI { from { transform:translateX(-60px); opacity:0; } }
+  .idioma { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line);
+            border-radius:var(--r); padding:12px 14px; margin-top:18px; } .idioma .h { color:var(--muted); font-size:12px; }
+  .seg2 { display:inline-flex; gap:4px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:3px; }
+  .seg2 button { border:0; background:none; color:var(--muted); padding:7px 14px; } .seg2 button.on { background:var(--panel2); color:var(--text); }
+  .guia { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; place-items:center; z-index:30; padding:16px; }
+  .guia.on { display:grid; }
+  .gcaja { background:var(--panel); border:1px solid var(--line); border-radius:16px; width:min(440px,100%); padding:26px 22px 16px; text-align:center; position:relative; }
+  .gpaso { display:none; } .gpaso.on { display:block; animation:entraD .25s ease-out; }
+  .gico { font-size:40px; } .gpaso h2 { margin:6px 0 8px; font-size:20px; } .gpaso p { color:var(--muted); margin:0 0 14px; line-height:1.5; }
+  .gpuntos { display:flex; gap:6px; justify-content:center; margin:6px 0 14px; } .gpuntos i { width:7px; height:7px; border-radius:50%; background:var(--line); }
+  .gpuntos i.on { background:var(--acc); width:18px; border-radius:4px; transition:width .2s; }
+  .gbotones { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .gsaltar { display:inline-block; margin-top:12px; color:var(--muted); font-size:13px; }
   /* ---- móvil (la app de Android y pantallas estrechas) ---- */
   .movil #bOff, .movil .solo-pc { display:none !important; }
   @media (max-width:700px) {
@@ -253,6 +266,8 @@
 
 <!-- ============ CONFIGURACIÓN ============ -->
 <div id="vCfg" class="wrap hidden">
+  <div class="idioma"><div><b>Idioma</b><div class="h">La app en español o en inglés.</div></div>
+    <div class="seg2 no-i18n"><button id="lEs" onclick="cambiarIdioma('es')">Español</button><button id="lEn" onclick="cambiarIdioma('en')">English</button></div></div>
   <h3 class="sttit">Tus aplicaciones</h3>
   <p class="nota" style="color:var(--muted);margin:-4px 0 12px">Conecta solo las que uses. Dixmax es el centro (todo se compara con lo que tienes allí);
     las demás son opcionales y, si no están conectadas, no aparecen ni se revisan.</p>
@@ -266,6 +281,7 @@
   <div id="probar"></div>
   <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <span id="verInfo">Versión…</span><button onclick="version(true)">Buscar actualizaciones</button></div>
+  <div style="margin-top:18px"><button onclick="abrirGuia(0)">Ver la guía de inicio</button></div>
   <div class="solo-pc" style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button onclick="pasarMovil()" title="Por el cable USB (adb), nunca por internet">📱 Pasar al móvil</button>
     <span id="movInfo" style="color:var(--muted);font-size:12.5px">Instala o actualiza Tri-Sync en el móvil conectado por USB y le pasa tu configuración, la caché y los últimos exports.</span></div>
@@ -276,6 +292,21 @@
   <button onclick="todas('ignorar')" title="Quitar todo lo seleccionado">Limpiar</button>
   <button onclick="ejecutar(true)">Simular</button>
   <button class="danger" onclick="ejecutar(false)">Aplicar</button>
+</div></div>
+
+<div class="guia" id="guia"><div class="gcaja">
+  <div class="gpaso" data-i="0"><div class="gico">👋</div><h2>Esto es Tri-Sync</h2>
+    <p>Mantiene tu historial igual en Dixmax, Letterboxd, Serializd y AniList: busca lo que no cuadra y lo arregla con un clic.</p>
+    <div class="seg2 no-i18n"><button onclick="cambiarIdioma('es')" id="gEs">Español</button><button onclick="cambiarIdioma('en')" id="gEn">English</button></div></div>
+  <div class="gpaso" data-i="1"><div class="gico">🔌</div><h2>Conecta tus apps</h2>
+    <p>En Configuración → Tus aplicaciones. Dixmax es imprescindible; las demás, solo si las usas. Lo que no conectes no aparece.</p></div>
+  <div class="gpaso" data-i="2"><div class="gico">🔍</div><h2>Revisa y aplica</h2>
+    <p>Haz una revisión rápida (unos segundos) o completa. Elige qué hacer con cada diferencia, pulsa Simular para ver qué pasaría y Aplicar para hacerlo.</p></div>
+  <div class="gpaso" data-i="3"><div class="gico">📊</div><h2>Mira tus estadísticas</h2>
+    <p>Mapa del mundo, rachas, maratones, reparto, curiosidades… En el móvil, desliza a los lados para cambiar de pestaña.</p></div>
+  <div class="gpuntos" id="gPuntos"></div>
+  <div class="gbotones"><button id="gAtras" onclick="pasoGuia(-1)">Anterior</button><button class="pri" id="gSig" onclick="pasoGuia(1)">Siguiente</button></div>
+  <a href="#" class="gsaltar" onclick="cerrarGuia();return false">Saltar</a>
 </div></div>
 
 <div class="modal" id="modal"><div class="box">
@@ -289,6 +320,61 @@
 
 <script>
 const $ = id => document.getElementById(id);
+// ---------- idioma: la web está escrita en español; en inglés se traduce al mostrar (web/i18n_en.json) ----------
+// Así vale para todo: lo fijo de la página, lo que pinta el JS y lo que llega de Python (revisión, estadísticas…).
+let LANG = 'es', I18N = {exactos: {}}, PATRONES = [];
+const MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const MESES_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const RE_MES = MESES_ES.join('|'), mesEn = m => MESES_EN[MESES_ES.indexOf(m)];
+function enIngles(s) {
+  if (LANG !== 'en' || !s || !/[a-záéíóúñ]/i.test(s)) return s;
+  const k = s.trim().replace(/\s+/g, ' ');
+  if (!k) return s;
+  const ex = I18N.exactos[k];
+  if (ex != null) return s.trim() === k ? s.replace(k, ex) : ex;
+  let r = k
+    .replace(new RegExp(`\\b(\\d{1,2}) de (${RE_MES}) de (\\d{4})`, 'g'), (_, d, m, y) => `${mesEn(m)} ${d}, ${y}`)
+    .replace(new RegExp(`\\ben (${RE_MES}) de (\\d{4})`, 'g'), (_, m, y) => `in ${mesEn(m)} ${y}`)
+    .replace(new RegExp(`\\b(${RE_MES}) de (\\d{4})`, 'g'), (_, m, y) => `${mesEn(m)} ${y}`)
+    .replace(/(\d+(?:,\d+)?) mil M\$/g, (_, n) => '$' + n.replace(',', '.') + ' B').replace(/(\d[\d.]*) M\$/g, '$$$1 M').replace(/(\d[\d.]*) mil \$/g, '$$$1 K');
+  for (const [re, sust] of PATRONES) r = r.replace(re, sust);
+  r = r.replace(/⟦(.+?)⟧/g, (_, x) => I18N.exactos[x] ?? x)  // partes que son a su vez textos conocidos (idiomas, géneros…)
+       .replace(/^([^:\n]+): /, (m, x) => I18N.exactos[x] != null ? I18N.exactos[x] + ': ' : m);  // «Acción: 273», «Pendientes: 93»
+  r = r.replace(/(\d),(\d{1,2})\b(?!\d)/g, '$1.$2').replace(/\b\d{1,3}(?:\.\d{3})+\b/g, x => x.replace(/\./g, ','));  // 7,5 → 7.5 · 1.121 → 1,121
+  return r === k ? s : (s.trim() === k ? s.replace(k, r) : r);
+}
+const t = (s, v = {}) => enIngles(s).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');  // para avisos y textos del JS
+function traducir(n) {
+  if (LANG !== 'en' || !n) return;
+  if (n.nodeType === 3) { if (!n.parentElement || n.parentElement.closest('script,style,.no-i18n')) return; const v = enIngles(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; return; }
+  if (n.nodeType !== 1 || n.closest('script,style,.no-i18n')) return;
+  const w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+  for (let x; (x = w.nextNode());) traducir(x);
+  for (const el of [n, ...n.querySelectorAll('[title],[placeholder],[data-tip]')])
+    for (const a of ['title', 'placeholder', 'data-tip']) if (el.hasAttribute(a)) { const v = el.getAttribute(a), e = enIngles(v); if (e !== v) el.setAttribute(a, e); }
+}
+const nombrePais = (c, n) => { try { return LANG === 'en' ? new Intl.DisplayNames(['en'], {type: 'region'}).of(c) || n : n; } catch (e) { return n; } };
+const IDIOMA_LISTO = (async () => {
+  let c = {};
+  try { c = await (await fetch('/api/config')).json(); } catch (e) {}
+  LANG = c.IDIOMA || ((navigator.language || 'es').toLowerCase().startsWith('es') ? 'es' : 'en');
+  document.documentElement.lang = LANG;
+  if (LANG === 'en') {
+    try {
+      I18N = await (await fetch('/i18n_en.json')).json();
+      PATRONES = (I18N.patrones || []).map(([re, sust]) => [new RegExp(re), sust]);
+    } catch (e) { LANG = 'es'; }
+    for (const f of ['confirm', 'alert']) { const orig = window[f].bind(window); window[f] = m => orig(enIngles(String(m))); }
+    traducir(document.body);
+    new MutationObserver(ms => { for (const m of ms) m.type === 'childList' ? m.addedNodes.forEach(traducir) : traducir(m.target); })
+      .observe(document.body, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'placeholder', 'data-tip']});
+  }
+  document.documentElement.classList.remove('i18n-espera');
+})();
+async function cambiarIdioma(l) {
+  await fetch('/api/config', {method: 'POST', body: JSON.stringify({IDIOMA: l})});
+  location.reload();
+}
 const ANDROID = !!window.TriSyncAndroid;  // la app de Android (WebView)
 let IOS = false;  // la app del iPhone (lo dice el servidor)
 if (ANDROID) document.body.classList.add('movil');
@@ -330,6 +416,27 @@ function vista(v, anim = true) {
   if (antes !== v) scrollTo({top: 0});
   cargarVista(v);
 }
+// ---------- guía de bienvenida: la primera vez (y desde Configuración) ----------
+let GUIA = 0;
+function abrirGuia(i = 0) { GUIA = i; $('guia').classList.add('on'); pintarGuia(); }
+function pintarGuia() {
+  document.querySelectorAll('.gpaso').forEach(p => p.classList.toggle('on', +p.dataset.i === GUIA));
+  $('gPuntos').innerHTML = [0, 1, 2, 3].map(i => `<i class="${i === GUIA ? 'on' : ''}"></i>`).join('');
+  $('gAtras').style.visibility = GUIA ? 'visible' : 'hidden';
+  $('gSig').textContent = t(GUIA === 3 ? 'Empezar' : 'Siguiente');
+  ['gEs', 'lEs'].forEach(id => $(id).classList.toggle('on', LANG === 'es')); ['gEn', 'lEn'].forEach(id => $(id).classList.toggle('on', LANG === 'en'));
+}
+function pasoGuia(d) { if (GUIA + d > 3) return cerrarGuia(); GUIA = Math.max(0, GUIA + d); pintarGuia(); }
+function cerrarGuia() {
+  $('guia').classList.remove('on');
+  try { localStorage.setItem('trisync_guia', '1'); } catch (e) {}
+  if (!APPS.dixmax) vista('cfg');  // sin nada conectado, a configurarlo
+}
+IDIOMA_LISTO.then(() => {
+  ['lEs', 'gEs'].forEach(id => $(id).classList.toggle('on', LANG === 'es')); ['lEn', 'gEn'].forEach(id => $(id).classList.toggle('on', LANG === 'en'));
+  let vista_ = null; try { vista_ = localStorage.getItem('trisync_guia'); } catch (e) {}
+  if (!vista_) abrirGuia(0);
+});
 // Deslizar el dedo a un lado cambia de pestaña, como en las redes sociales: la pestaña sigue al dedo y la de al lado
 // va entrando; al soltar, si has pasado del 30 % o lo has hecho rápido, termina de cambiar; si no, vuelve. En los
 // extremos cede un poco (efecto goma). No cuando deslizas algo que ya se mueve de lado (mapa, pestañas, chips…).
@@ -357,7 +464,7 @@ function vista(v, anim = true) {
   };
   addEventListener('touchstart', e => {
     const el = e.target;
-    t = (e.touches.length !== 1 || $('modal').classList.contains('on') || el.closest('.mapa, input, select, textarea, pre, header') || desplazable(el))
+    t = (e.touches.length !== 1 || $('modal').classList.contains('on') || $('guia').classList.contains('on') || el.closest('.mapa, input, select, textarea, pre, header') || desplazable(el))
       ? null : {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), lock: null, dir: 0, vec: null, cargadas: new Set()};
   }, {passive: true});
   addEventListener('touchmove', e => {
@@ -400,7 +507,7 @@ function vista(v, anim = true) {
 const NOMBRES = {dixmax: 'Dixmax', letterboxd: 'Letterboxd', serializd: 'Serializd', anilist: 'AniList'};
 const COLOR = {dixmax: 'dx', letterboxd: 'lb', serializd: 'sz', anilist: 'al'};
 let ANILIST = false, APPS = {}, WEBS = 'tus apps';
-const lista = xs => xs.length > 1 ? xs.slice(0, -1).join(', ') + ' y ' + xs[xs.length - 1] : xs.join('');
+const lista = xs => xs.length > 1 ? xs.slice(0, -1).join(', ') + (LANG === 'en' ? ' and ' : ' y ') + xs[xs.length - 1] : xs.join('');
 async function estado() {
   const e = await (await fetch('/api/estado')).json();
   APPS = e.apps || {};
@@ -447,8 +554,8 @@ async function historial() {
           <td>${r.aplicadas} de ${r.total} aplicadas</td><td>${(r.acciones || []).slice(0, 3).map(a => esc(a.t)).join(' · ')}${r.total > 3 ? ' …' : ''}</td></tr>`;
       const prev = h.slice(i + 1).find(x => x.stats), s = r.stats || {};
       const deltas = prev ? Object.keys(STAT_TXT).filter(k => s[k] != null && prev.stats?.[k] != null && s[k] !== prev.stats[k])
-        .map(k => `<span class="delta">${s[k] > prev.stats[k] ? '+' : ''}${s[k] - prev.stats[k]}</span> ${STAT_TXT[k]}`).join(' · ') : '';
-      const cats = Object.entries(r.categorias || {}).map(([c, n]) => `${n} ${esc(c)}`).join('<br>');
+        .map(k => `<span class="delta">${s[k] > prev.stats[k] ? '+' : ''}${s[k] - prev.stats[k]}</span> ${t(STAT_TXT[k])}`).join(' · ') : '';
+      const cats = Object.entries(r.categorias || {}).map(([c, n]) => `${n} ${esc(t(c))}`).join('<br>');
       return `<tr class="fila" onclick="detalleHist(this, ${i})"><td>${esc(r.fecha)}</td><td>${esc(r.modo)}</td><td>${r.segundos} s</td><td>${r.diferencias ? cats : '✓ todo cuadra'}</td>
         <td>${deltas || (prev ? 'sin cambios' : '—')}</td></tr>`;
     }).join('') + '</table>';
@@ -569,7 +676,7 @@ function curiosidades(xs) {
   return `<h3 class="sttit">Curiosidades</h3><div class="curiosg">` + xs.map(x => `<div class="curio" style="--c:var(--${x.c})"><div class="k">${esc(x.t)}</div><div class="v">${esc(x.v)}</div>${x.d ? `<div class="d">${esc(x.d)}</div>` : ''}</div>`).join('') + '</div>';
 }
 function calor(m) {
-  const max = Math.max(1, ...m.flat()), dias = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+  const max = Math.max(1, ...m.flat()), dias = LANG === 'en' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
   return `<div class="calor"><div></div>${[...Array(24).keys()].map(h => `<div class="h">${h % 3 ? '' : h + 'h'}</div>`).join('')}` +
     m.map((fila, d) => `<div class="h" style="text-align:right;padding-right:6px">${dias[d]}</div>` + fila.map((v, h) =>
       `<div class="c" data-tip="${dias[d]} ${h}:00–${h + 1}:00: ${v} episodios" style="background:${v ? mezcla('sz', v / max) : 'var(--panel2)'}"></div>`).join('')).join('') + '</div>';
@@ -601,7 +708,7 @@ async function pintaMapa() {
   const puntos = [];
   for (const m of MUNDO.paises) {
     const d = datos[m.c];
-    const tip = d ? `${m.n}: ${d.n} título${d.n > 1 ? 's' : ''}\n${d.top.join(' · ')}` : `${m.n}: nada`;
+    const np = nombrePais(m.c, m.n), tip = d ? `${np}: ${d.n} título${d.n > 1 ? 's' : ''}\n${d.top.join(' · ')}` : `${np}: nada`;
     if (m.d) { const p = sv('path', {d: m.d, fill: d ? color(d.n) : 'var(--panel2)', 'vector-effect': 'non-scaling-stroke'}); p.dataset.tip = tip; g.append(p); }
     let pt = m.p;
     if (!pt && d && m.d) {  // países diminutos en el mapa (Hong Kong…): un punto encima para que se vean
@@ -642,7 +749,7 @@ async function pintaMapa() {
   g.addEventListener('dblclick', () => { vb = {...base}; aplicar(); });
   const grad = `linear-gradient(90deg, ${[0, .25, .5, .75, 1].map(t => mezcla(c, 0.15 + 0.85 * t)).join(',')})`;
   const top = Object.entries(datos).sort((a, b) => b[1].n - a[1].n).slice(0, 8);
-  const nombre = k => (MUNDO.paises.find(p => p.c === k) || {}).n || k;
+  const nombre = k => nombrePais(k, (MUNDO.paises.find(p => p.c === k) || {}).n || k);
   $('mapaBox').innerHTML = '';
   $('mapaBox').append(g);
   $('mapaBox').insertAdjacentHTML('beforeend', `<div class="leyenda"><span><i style="background:var(--panel2);border:1px solid var(--line)"></i>nada</span>
@@ -799,7 +906,7 @@ async function importar(inp) {
   const f = inp.files[0]; inp.value = '';
   if (!f) return;
   $('prog').textContent = `Importando ${f.name}…`;
-  const r = await (await fetch('/api/importar', {method: 'POST', headers: {'X-Nombre': encodeURIComponent(f.name)}, body: f})).json();
+  const r = await (await fetch('/api/importar', {method: 'POST', headers: {'X-Nombre': encodeURIComponent(f.name), 'X-Fecha': String(f.lastModified || '')}, body: f})).json();
   $('prog').innerHTML = r.ok ? `<span class="ok">✓ Export de ${r.tipo === 'dixmax' ? 'Dixmax' : 'Letterboxd'} importado</span>` : `<span class="bad">${esc(r.texto)}</span>`;
   estado();
 }
