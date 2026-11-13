@@ -22,7 +22,9 @@ android {
         applicationId = "com.anxobt.trisync"
         minSdk = 26
         targetSdk = 35
-        versionCode = ma * 10000 + mi * 100 + pa
+        // +100000: la numeración se reinició en 1.0.0 (antes llegó a 1.11.1 = 11101); así cada versión sigue siendo
+        // mayor que la instalada y Android la deja instalar encima.
+        versionCode = 100000 + ma * 10000 + mi * 100 + pa
         versionName = version
         ndk {
             abiFilters += listOf("arm64-v8a")  // móviles actuales; x86 solo haría falta para el emulador
