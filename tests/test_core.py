@@ -241,6 +241,28 @@ class Wifi(unittest.TestCase):
         self.assertEqual(recibido, [b"mis datos", b"mis datos"])  # cada lado recibió los datos del otro
         self.assertFalse(wifi.ESTADO["esperando"])  # tras sincronizar se cierra sola
 
+    def test_conexion_muda_no_bloquea_la_buena(self):
+        """Alguien de la red abre una conexión y no manda el cuerpo: la buena entra igual al cortarse por tiempo."""
+        import socket
+        from core import wifi
+        with mock.patch.object(sincro, "datos", lambda: b"x"), mock.patch.object(sincro, "recibir", lambda d: []),                 mock.patch.object(wifi, "ip_local", lambda: "127.0.0.1"), mock.patch.object(wifi._Manejador, "timeout", 1):
+            e = wifi.esperar()
+            muda = socket.create_connection(("127.0.0.1", int(e["direccion"].rsplit(":", 1)[1])))
+            try:
+                muda.sendall(b"POST /wifi HTTP/1.1
+Host: x
+Content-Length: 100
+
+")
+                time.sleep(0.2)
+                t = time.time()
+                res = wifi.conectar(e["direccion"], e["codigo"], log=lambda m: None)
+                self.assertLess(time.time() - t, 15)
+                self.assertEqual(res["aqui"], [])
+            finally:
+                muda.close()
+                wifi.parar()
+
     def test_se_cierra_con_intentos_fallidos(self):
         from core import wifi
         with mock.patch.object(wifi, "ip_local", lambda: "127.0.0.1"):

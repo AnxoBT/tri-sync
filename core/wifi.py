@@ -96,6 +96,8 @@ def _atender(cab, carga):
 
 
 class _Manejador(BaseHTTPRequestHandler):
+    timeout = 30  # quien abre una conexión y no manda nada no deja esperando a la buena (va de una en una)
+
     def log_message(self, *a):
         pass
 

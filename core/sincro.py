@@ -53,13 +53,6 @@ def datos():
     return buf.getvalue()
 
 
-def version_de(paquete):
-    """Lo que dice el manifiesto del otro (versión, si es Android…) sin fusionar nada."""
-    with zipfile.ZipFile(io.BytesIO(paquete)) as zf:
-        m = json.loads(zf.read(MANIFIESTO))
-    return {k: m.get(k) for k in ("version", "android", "ios")}
-
-
 # ---------- fusión ----------
 
 def fusionar_reglas(aqui, otro):

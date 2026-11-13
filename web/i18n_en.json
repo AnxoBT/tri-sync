@@ -528,7 +528,13 @@
   "No hay ningún puerto libre para esperar la conexión": "No free port to wait for the connection",
   "La app del móvil no responde: ábrela a mano y vuelve a probar": "The phone app isn't responding: open it manually and try again",
   "La app del móvil es antigua: compila el APK nuevo para que se actualice al sincronizar": "The phone app is old: build the new APK so it gets updated when syncing",
-  "No veo ningún móvil: conéctalo por USB con la depuración USB activada y acepta el aviso": "I can't see any phone: connect it by USB with USB debugging on and accept the prompt"
+  "No veo ningún móvil: conéctalo por USB con la depuración USB activada y acepta el aviso": "I can't see any phone: connect it by USB with USB debugging on and accept the prompt",
+  "está revisando o aplicando cambios; vuelve a probar cuando acabe": "it's reviewing or applying changes; try again when it finishes",
+  "Paquete de sincronización no válido": "Invalid sync package",
+  "operación desconocida": "unknown operation",
+  "Respuesta que no corresponde a la petición": "Response doesn't match the request",
+  "código incorrecto o mensaje alterado": "wrong code or tampered message",
+  "mensaje incompleto": "incomplete message"
  },
  "patrones": [
   [
@@ -953,7 +959,11 @@
   ],
   [
    "^El otro dispositivo dice: (.+)$",
-   "The other device says: $1"
+   "The other device says: ⟦$1⟧"
+  ],
+  [
+   "^Archivo no permitido: (.+)$",
+   "File not allowed: $1"
   ]
  ]
 }

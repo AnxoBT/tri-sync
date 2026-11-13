@@ -10,6 +10,7 @@
   <img alt="Android 8.0+" src="https://img.shields.io/badge/Android-8.0%2B-34A853?style=flat-square&logo=android&logoColor=white">
   <img alt="iPhone (test)" src="https://img.shields.io/badge/iPhone-test-555555?style=flat-square&logo=apple&logoColor=white">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white">
+  <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square"></a>
 </p>
 
 <br>
