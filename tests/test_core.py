@@ -249,11 +249,7 @@ class Wifi(unittest.TestCase):
             e = wifi.esperar()
             muda = socket.create_connection(("127.0.0.1", int(e["direccion"].rsplit(":", 1)[1])))
             try:
-                muda.sendall(b"POST /wifi HTTP/1.1
-Host: x
-Content-Length: 100
-
-")
+                muda.sendall(b"POST /wifi HTTP/1.1\r\nHost: x\r\nContent-Length: 100\r\n\r\n")
                 time.sleep(0.2)
                 t = time.time()
                 res = wifi.conectar(e["direccion"], e["codigo"], log=lambda m: None)
