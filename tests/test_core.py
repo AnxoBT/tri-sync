@@ -148,6 +148,18 @@ class Idioma(unittest.TestCase):
         self.assertTrue(all(isinstance(v, str) and v for v in d["exactos"].values()))
 
 
+class Novedades(unittest.TestCase):
+    def test_hay_novedades_de_la_version_actual(self):
+        """Al subir VERSION hay que escribir sus novedades (se enseñan al actualizar), en español e inglés."""
+        raiz = Path(__file__).resolve().parent.parent
+        v = (raiz / "VERSION").read_text(encoding="utf-8").strip()
+        d = json.loads((raiz / "web" / "novedades.json").read_text(encoding="utf-8"))
+        self.assertIn(v, d, f"Falta la entrada {v} en web/novedades.json")
+        for idioma in ("es", "en"):
+            self.assertTrue(d[v].get(idioma) and all(isinstance(x, str) and x for x in d[v][idioma]), idioma)
+        self.assertEqual(len(d[v]["es"]), len(d[v]["en"]))
+
+
 class Estadisticas(unittest.TestCase):
     def test_racha(self):
         from datetime import date

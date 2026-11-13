@@ -180,6 +180,10 @@
   .gico { font-size:40px; } .gpaso h2 { margin:6px 0 8px; font-size:20px; } .gpaso p { color:var(--muted); margin:0 0 14px; line-height:1.5; }
   .gpuntos { display:flex; gap:6px; justify-content:center; margin:6px 0 14px; } .gpuntos i { width:7px; height:7px; border-radius:50%; background:var(--line); }
   .gpuntos i.on { background:var(--acc); width:18px; border-radius:4px; transition:width .2s; }
+  .novl { text-align:left; max-height:52vh; overflow:auto; margin:4px 0 16px; }
+  .novl h3 { font-size:13px; color:var(--muted); margin:10px 0 4px; font-weight:600; }
+  .novl ul { margin:0; padding-left:18px; } .novl li { margin:5px 0; line-height:1.45; }
+  #nov .gcaja > button { width:100%; }
   .gbotones { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .gsaltar { display:inline-block; margin-top:12px; color:var(--muted); font-size:13px; }
   /* ---- móvil (la app de Android y pantallas estrechas) ---- */
   .movil #bOff, .movil .solo-pc { display:none !important; }
@@ -280,7 +284,8 @@
   <div id="probar"></div>
   <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <span id="verInfo">Versión…</span><button onclick="version(true)">Buscar actualizaciones</button></div>
-  <div style="margin-top:18px"><button onclick="abrirGuia(0)">Ver la guía de inicio</button></div>
+  <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="abrirGuia(0)">Ver la guía de inicio</button>
+    <button onclick="novedades(true)">Novedades de esta versión</button></div>
   <div class="solo-pc" style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button onclick="pasarMovil()" title="Por el cable USB (adb), nunca por internet">📱 Pasar al móvil</button>
     <span id="movInfo" style="color:var(--muted);font-size:12.5px">Instala o actualiza Tri-Sync en el móvil conectado por USB y le pasa tu configuración, la caché y los últimos exports.</span></div>
@@ -292,6 +297,9 @@
   <button onclick="ejecutar(true)">Simular</button>
   <button class="danger" onclick="ejecutar(false)">Aplicar</button>
 </div></div>
+
+<div class="guia" id="nov"><div class="gcaja no-i18n"><div class="gico">✨</div><h2 id="novT"></h2>
+  <div class="novl" id="novL"></div><button class="pri" id="novOk" onclick="cerrarNov()"></button></div></div>
 
 <div class="guia" id="guia"><div class="gcaja">
   <div class="gpaso" data-i="0"><div class="gico">👋</div><h2>Esto es Tri-Sync</h2>
@@ -436,7 +444,32 @@ IDIOMA_LISTO.then(() => {
   ['lEs', 'gEs'].forEach(id => $(id).classList.toggle('on', LANG === 'es')); ['lEn', 'gEn'].forEach(id => $(id).classList.toggle('on', LANG === 'en'));
   let vista_ = null; try { vista_ = localStorage.getItem('trisync_guia'); } catch (e) {}
   if (!vista_) abrirGuia(0);
+  novedades(false, !vista_);
 });
+
+// Novedades: al abrir una versión más nueva que la última que viste, un resumen de lo que trae (web/novedades.json,
+// en los dos idiomas). La primera vez que se instala no sale (ya está la guía). todas=true: desde Configuración.
+const cmpVer = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); return 0; };
+async function novedades(todas, nueva) {
+  let visto = null; try { visto = localStorage.getItem('trisync_version'); } catch (e) {}
+  let v, notas;
+  try { v = (await (await fetch('/api/ping')).json()).version; notas = await (await fetch('/novedades.json')).json(); } catch (e) { return; }
+  if (!v) return;
+  try { localStorage.setItem('trisync_version', v); } catch (e) {}
+  const vers = Object.keys(notas).filter(x => /^\d/.test(x)).sort(cmpVer).reverse();
+  const ver = todas ? vers.filter(x => cmpVer(x, v) <= 0).slice(0, 1)
+    : nueva || visto === v ? [] : vers.filter(x => cmpVer(x, v) <= 0 && (!visto || cmpVer(x, visto) > 0)).slice(0, 5);
+  if (!ver.length) return;
+  const en = LANG === 'en';
+  $('novT').textContent = todas ? (en ? `What's new in ${ver[0]}` : `Novedades de la ${ver[0]}`)
+    : en ? `Updated to ${v}` : `Actualizado a la ${v}`;
+  $('novL').innerHTML = ver.map(x => (ver.length > 1 ? `<h3>${esc(x)}</h3>` : '') +
+    `<ul>${(notas[x][en ? 'en' : 'es'] || notas[x].es || []).map(l => `<li>${esc(l)}</li>`).join('')}</ul>`).join('');
+  $('novOk').textContent = en ? 'Got it' : 'Entendido';
+  $('nov').classList.add('on');
+}
+function cerrarNov() { $('nov').classList.remove('on'); }
 // Deslizar el dedo a un lado cambia de pestaña, como en las redes sociales: la pestaña sigue al dedo y la de al lado
 // va entrando; al soltar, si has pasado del 30 % o lo has hecho rápido, termina de cambiar; si no, vuelve. En los
 // extremos cede un poco (efecto goma). No cuando deslizas algo que ya se mueve de lado (mapa, pestañas, chips…).
@@ -464,7 +497,7 @@ IDIOMA_LISTO.then(() => {
   };
   addEventListener('touchstart', e => {
     const el = e.target;
-    t = (e.touches.length !== 1 || $('modal').classList.contains('on') || $('guia').classList.contains('on') || el.closest('.mapa, input, select, textarea, pre, header') || desplazable(el))
+    t = (e.touches.length !== 1 || $('modal').classList.contains('on') || $('guia').classList.contains('on') || $('nov').classList.contains('on') || el.closest('.mapa, input, select, textarea, pre, header') || desplazable(el))
       ? null : {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), lock: null, dir: 0, vec: null, cargadas: new Set()};
   }, {passive: true});
   addEventListener('touchmove', e => {

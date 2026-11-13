@@ -51,6 +51,7 @@
   official API you don't even need its export). **Without Dixmax**, AniList is matched with Serializd (anime
   series) and Letterboxd (anime films); Letterboxd and Serializd have nothing in common (films vs series)
 - With a **single app** there is nothing to compare, but you already get statistics
+- After each **update**, a short **what's new** summary of the version (also in Settings)
 - The first time, a short **welcome guide** (4 steps) explains how it works, and a welcome screen takes you to
   **Settings → Your apps**, with a card per app explaining what it does and how to connect it
 - **English and Spanish**: it follows your device's language, and you can change it in Settings. Everything is
@@ -234,6 +235,7 @@ released under the same licence, with its source code.
   siquiera hace falta su export). **Sin Dixmax**, AniList se cruza con Serializd (series de anime) y con
   Letterboxd (pelis de anime); Letterboxd y Serializd no tienen nada en común (pelis frente a series)
 - Con **una sola app** no hay nada que comparar, pero ya tienes estadísticas
+- Tras cada **actualización**, un pequeño resumen de **novedades** de la versión (también en Configuración)
 - La primera vez, una **guía de bienvenida** de 4 pasos explica cómo funciona, y una bienvenida te lleva a
   **Configuración → Tus aplicaciones**, con una tarjeta por app que explica qué hace y cómo conectarla
 - **Español e inglés**: sigue el idioma del dispositivo y se cambia en Configuración. Se traduce todo (revisión,

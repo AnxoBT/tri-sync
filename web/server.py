@@ -305,6 +305,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, (WEB / "logo.svg").read_bytes(), "image/svg+xml")
         if self.path == "/api/estadisticas":
             return self._send(200, {"datos": config.cache_json("estadisticas.json", {}), "job": ESTAD})
+        if self.path == "/novedades.json":  # qué trae cada versión (se enseña al actualizar)
+            return self._send(200, (WEB / "novedades.json").read_bytes(), "application/json; charset=utf-8")
         if self.path == "/i18n_en.json":  # traducciones al inglés (la web traduce al mostrar)
             return self._send(200, (WEB / "i18n_en.json").read_bytes(), "application/json; charset=utf-8")
         if self.path == "/mundo.json":
@@ -321,7 +323,9 @@ class Handler(BaseHTTPRequestHandler):
             from core.actualizar import comprobar
             return self._send(200, comprobar())
         if self.path == "/api/ping":
-            return self._send(200, {"ok": True, "android": config.ANDROID, "ios": config.IOS, "movil": config.MOVIL})
+            from core.actualizar import actual
+            return self._send(200, {"ok": True, "android": config.ANDROID, "ios": config.IOS, "movil": config.MOVIL,
+                                    "version": actual()})
         if self.path.startswith("/api/descargar/"):  # CSV de Letterboxd (en el móvil se baja a Descargas)
             p = (LOGS / self.path.rsplit("/", 1)[1]).resolve()
             if p.parent == LOGS.resolve() and p.is_file():
