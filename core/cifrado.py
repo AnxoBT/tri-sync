@@ -33,9 +33,8 @@ def claves(codigo, sal):
 
 
 def _flujo(k, nonce, n):
-    partes = [hashlib.blake2b(nonce + i.to_bytes(8, "big"), key=k, digest_size=BLOQUE).digest()
-              for i in range((n + BLOQUE - 1) // BLOQUE)]
-    return b"".join(partes)[:n]
+    # SHAKE-256 con clave y nonce: el flujo entero en una sola llamada (rápido también con el APK, decenas de MB).
+    return hashlib.shake_256(k + nonce).digest(n) if n else b""
 
 
 def _xor(a, b):

@@ -32,7 +32,8 @@ def _claves_env():
 def datos():
     """Zip con lo de este dispositivo: sincro.json (ajustes, mtimes) + cache/*.json + rules.json + importados/."""
     sellos = config.cache_json(config.SELLOS)
-    man = {"version": (config.ROOT / "VERSION").read_text(encoding="utf-8").strip(),
+    from .actualizar import actual  # el iPhone no lleva el archivo VERSION
+    man = {"version": actual(),
            "android": config.ANDROID, "ios": config.IOS,
            "env": {k: [config.ENV.get(k, ""), sellos.get(k, 0)] for k in _claves_env()}, "mtimes": {}}
     buf = io.BytesIO()
@@ -94,10 +95,13 @@ def fusionar_historial(aqui, otro):
 def _env(otro_env, cambios):
     sellos = config.cache_json(config.SELLOS)
     nuevos, tomar = {}, {}
+    validas = set(_claves_env())  # solo ajustes conocidos: otro dispositivo no puede añadir claves (p. ej. ADB)
     for k, par in (otro_env or {}).items():
-        if k in NO_VIAJAN or not isinstance(par, list) or len(par) != 2:
+        if k not in validas or not isinstance(par, list) or len(par) != 2:
             continue
-        v, t = str(par[0] or ""), float(par[1] or 0)
+        # sin saltos de línea ni espacios raros: cada clave, una línea del .env (como en config.guardar_config)
+        v = "".join(str(par[0] or "").split()) if k in config.SECRETOS else " ".join(str(par[0] or "").split())
+        t = float(par[1] or 0)
         aqui, ta = config.ENV.get(k, ""), float(sellos.get(k) or 0)
         if v == aqui:
             continue

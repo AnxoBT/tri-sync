@@ -20,6 +20,8 @@ PUERTOS = (8767, 8768, 8769)
 ESPERA = 120  # segundos que se queda abierto
 MAX_FALLOS = 5
 MAX_CUERPO = 300_000_000
+MAX_INICIAL = 1_000_000  # antes de la primera petición autenticada
+_UNA = threading.Lock()
 GANCHOS = {"bloqueo": threading.Lock()}  # web/server.py: que no se fusione a mitad de una revisión
 ESTADO = {"esperando": False, "direccion": "", "codigo": "", "hasta": 0, "fallos": 0, "conectando": False,
           "log": [], "error": None, "resultado": None, "apk_listo": None}
@@ -27,7 +29,8 @@ _SRV = {"srv": None, "ks": None, "sal": b"", "ultimo_id": 0}
 
 
 def _version():
-    return (config.ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    from .actualizar import actual  # el iPhone no lleva el archivo VERSION
+    return actual()
 
 
 def _num(v):
@@ -109,8 +112,15 @@ class _Manejador(BaseHTTPRequestHandler):
         self._responder(404, b"")
 
     def do_POST(self):
+        # Una petición cada vez (el protocolo va por turnos): nadie de la red puede llenar la memoria con muchas a la vez.
+        with _UNA:
+            self._post()
+
+    def _post(self):
         n = int(self.headers.get("Content-Length") or 0)
-        if self.path != "/wifi" or not ESTADO["esperando"] or not 0 < n <= MAX_CUERPO or time.time() > ESTADO["hasta"]:
+        # Hasta que llegue la primera petición con el código bueno, solo cuerpos pequeños (el "hola" ocupa poco).
+        tope = MAX_CUERPO if _SRV["ultimo_id"] else MAX_INICIAL
+        if self.path != "/wifi" or not ESTADO["esperando"] or not 0 < n <= tope or time.time() > ESTADO["hasta"]:
             return self._responder(404, b"")
         ks = _SRV["ks"]
         if not ks:
@@ -124,7 +134,9 @@ class _Manejador(BaseHTTPRequestHandler):
                 threading.Thread(target=parar, daemon=True).start()
             return self._responder(403, b"")
         # contra repeticiones: cada petición lleva un número mayor que la anterior y la hora
-        if not isinstance(cab.get("id"), int) or cab["id"] <= _SRV["ultimo_id"] or abs(time.time() - cab.get("ts", 0)) > 300:
+        ts = cab.get("ts")
+        if not isinstance(cab.get("id"), int) or cab["id"] <= _SRV["ultimo_id"] or not isinstance(ts, (int, float)) \
+                or abs(time.time() - ts) > 300:
             return self._responder(409, b"")
         _SRV["ultimo_id"] = cab["id"]
         ESTADO["hasta"] = max(ESTADO["hasta"], time.time() + 60)  # mientras se sincroniza no se corta
