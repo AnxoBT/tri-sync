@@ -441,23 +441,52 @@ class Handler(BaseHTTPRequestHandler):
                                                                              self.headers.get("X-Fecha", ""))})
             except Exception as e:
                 return self._send(200, {"ok": False, "texto": str(e)})
-        if self.path == "/api/sincro/recibir":  # el PC pasa al móvil tu configuración y caché (por USB)
-            if not config.MOVIL:
+        if self.path in ("/api/sincro/datos", "/api/sincro/recibir"):  # el PC sincroniza con el móvil por USB
+            if not config.ANDROID:
                 return self._send(403, {"error": "solo en el móvil"})
-            from core import movil
+            from core import sincro
+            if self.path.endswith("/datos"):
+                return self._send(200, sincro.datos(), "application/zip")
+            if _ocupado():
+                return self._send(200, {"ok": False, "texto": _ocupado()})
             try:
-                return self._send(200, {"ok": True, **movil.recibir(self._crudo)})
+                return self._send(200, {"ok": True, "cambios": sincro.recibir(self._crudo)})
             except Exception as e:
                 return self._send(200, {"ok": False, "texto": str(e)})
-        if self.path == "/api/movil":  # PC: instala/actualiza la app del móvil y le pasa los datos (adb)
-            from core import movil
+        if self.path == "/api/movil":  # PC: instala/actualiza la app del móvil y sincroniza los datos (adb)
             if MOV["activo"]:
-                return self._send(200, {"ok": False, "texto": "Ya se está pasando al móvil"})
+                return self._send(200, {"ok": False, "texto": "Ya se está sincronizando con el móvil"})
+            if _ocupado():
+                return self._send(200, {"ok": False, "texto": _ocupado()})
             MOV.update(activo=True, mensajes=[], error=None, fin=False)
             threading.Thread(target=_movil, daemon=True).start()
             return self._send(200, {"ok": True})
         if self.path == "/api/movil/estado":
             return self._send(200, MOV)
+        if self.path == "/api/wifi":  # sincronizar por Wi-Fi: espera abierta, progreso y resultado
+            from core import wifi
+            return self._send(200, wifi.estado())
+        if self.path in ("/api/wifi/esperar", "/api/wifi/parar", "/api/wifi/conectar"):
+            from core import wifi
+            if self.path.endswith("/parar"):
+                wifi.parar()
+                return self._send(200, wifi.estado())
+            if wifi.ESTADO["conectando"]:
+                return self._send(200, {"ok": False, "texto": "Ya hay una sincronización por Wi-Fi en marcha"})
+            if _ocupado():
+                return self._send(200, {"ok": False, "texto": _ocupado()})
+            if self.path.endswith("/esperar"):
+                try:
+                    return self._send(200, {"ok": True, **wifi.esperar()})
+                except RuntimeError as e:
+                    return self._send(200, {"ok": False, "texto": str(e)})
+            b = self._body()
+            direccion, codigo = str(b.get("direccion") or "").strip(), str(b.get("codigo") or "")
+            if not direccion or len(wifi.cifrado.normalizar(codigo)) != 10:
+                return self._send(200, {"ok": False, "texto": "Escribe la dirección y el código de 10 caracteres que enseña el otro dispositivo"})
+            wifi.ESTADO.update(conectando=True, log=[], error=None, resultado=None)
+            threading.Thread(target=_wifi, args=(direccion, codigo), daemon=True).start()
+            return self._send(200, {"ok": True})
         self._send(404, {"error": "no existe"})
 
 
@@ -466,10 +495,40 @@ ANILIST_PEDIDO = {"t": 0}
 MOV = {"activo": False, "mensajes": [], "error": None, "fin": False}
 
 
+def _ocupado():
+    """No se mezclan datos de otro dispositivo a mitad de una revisión, aplicación o cálculo."""
+    if JOB["activo"] or RUN["activo"] or ESTAD["activo"]:
+        return "Espera a que termine la revisión o lo que se está aplicando y vuelve a sincronizar"
+    return None
+
+
+def _wifi(direccion, codigo):
+    from core import wifi
+    try:
+        wifi.ESTADO["resultado"] = wifi.conectar(direccion, codigo, wifi.ESTADO["log"].append)
+    except Exception as e:  # noqa: BLE001
+        wifi.ESTADO["error"] = str(e)
+    finally:
+        wifi.ESTADO["conectando"] = False
+
+
+def _ganchos_wifi():  # quien espera tampoco mezcla datos a mitad de una revisión
+    from core import wifi
+
+    class _Cerrojo:
+        def __enter__(self):
+            if _ocupado():
+                raise RuntimeError("está revisando o aplicando cambios; vuelve a probar cuando acabe")
+
+        def __exit__(self, *a):
+            return False
+    wifi.GANCHOS["bloqueo"] = _Cerrojo()
+
+
 def _movil():
     from core import movil
     try:
-        movil.pasar_al_movil(MOV["mensajes"].append)
+        movil.sincronizar_movil(MOV["mensajes"].append)
         MOV["fin"] = True
     except Exception as e:
         MOV["error"] = str(e)
@@ -509,7 +568,9 @@ def _vigilante():
         for k, t in list(PESTANAS.items()):
             if ahora - t > PERDIDA_S:
                 PESTANAS.pop(k, None)
-        ocupado = JOB["activo"] or RUN["activo"] or ESTAD["activo"] or MOV["activo"] or UPD["activo"]
+        from core import wifi
+        ocupado = (JOB["activo"] or RUN["activo"] or ESTAD["activo"] or MOV["activo"] or UPD["activo"]
+                   or wifi.ESTADO["esperando"] or wifi.ESTADO["conectando"])
         if not PESTANAS and not ocupado and ahora - LATIDO["t"] > GRACIA_S:
             print("Pestaña cerrada: apagando Tri-Sync")
             apagar()
@@ -520,6 +581,7 @@ def serve(port=8765, auto_apagar=True):
     """auto_apagar: en el PC se apaga al cerrar la pestaña; en el móvil vive lo que viva la app."""
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     SRV["srv"] = srv
+    _ganchos_wifi()
     if auto_apagar:
         threading.Thread(target=_vigilante, daemon=True).start()
     print(f"Web local en http://127.0.0.1:{port}")

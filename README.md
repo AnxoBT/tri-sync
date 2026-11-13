@@ -104,8 +104,12 @@ and closes by itself when you close the tab.
 **Android**: the same app inside an APK (Python included with Chaquopy). It works on its own, without
 the PC.
 
-- **📱 Send to phone** (on the PC, Settings): over the USB cable (adb), installs or updates the app and
-  copies your settings, cache and latest exports. Nothing goes over the internet
+- **Sync with your other devices** (Settings), both ways: settings, rules, cache, history and the newest
+  export of each site; if the same thing changed on both, the most recent change wins. Nothing goes over the internet
+  - **📱 By USB** (on the PC): over the cable (adb); it also installs or updates the app on the phone
+  - **📶 By Wi-Fi** (PC ↔ Android, iPhone or another PC): one waits and shows an address and a one-time code,
+    the other types them in. Encrypted with that code, open 2 minutes, closed after 5 wrong attempts. If the
+    PC has a newer APK built, the Android gets it with an Install button
 - **Import export…**: Android doesn't let apps read Downloads, so you pick the zip
 - Swipe sideways to change tab; the screen stays on while it reviews or applies
 
@@ -122,7 +126,7 @@ From the [latest release](https://github.com/AnxoBT/tri-sync/releases/latest):
   *Source code* zip, unzip it and double-click **`Abrir Tri-Sync.bat`**. The first time it installs what
   it needs (`tzdata`), creates a **Tri-Sync** shortcut on the desktop and opens the web page.
 - **Android**: `Tri-Sync-vX.Y.Z.apk`; open it on your phone (Android 8.0 or later; allow installing from
-  unknown sources when asked). Or use **Send to phone** from the PC.
+  unknown sources when asked). Or use **Sync → By USB** from the PC.
 - **iPhone (test)**: `Tri-Sync-X.Y.Z-iOS.ipa`, unsigned; install it with Sideloadly or AltStore.
 
 **Updates**: a green bar tells you when there is a new release. On the PC it downloads and installs it
@@ -285,8 +289,12 @@ y se cierra sola al cerrar la pestaña.
 
 **Android**: la misma app dentro de un APK (con Python, gracias a Chaquopy). Funciona sola, sin el PC.
 
-- **📱 Pasar al móvil** (en el PC, Configuración): por el cable USB (adb), instala o actualiza la app y le
-  pasa tu configuración, la caché y los últimos exports. Nada pasa por internet
+- **Sincronizar con tus otros dispositivos** (Configuración), en los dos sentidos: ajustes, reglas, caché,
+  historial y el export más nuevo de cada web; si lo mismo cambió en los dos, gana el cambio más reciente. Nada pasa por internet
+  - **📱 Por USB** (en el PC): por el cable (adb); además instala o actualiza la app del móvil
+  - **📶 Por Wi-Fi** (PC ↔ Android, iPhone u otro PC): uno espera y enseña una dirección y un código de un solo
+    uso, y el otro los escribe. Cifrado con ese código, abierto 2 minutos y se cierra con 5 intentos fallidos. Si
+    el PC tiene un APK más nuevo compilado, el Android lo recibe con un botón Instalar
 - **Importar export…**: Android no deja a las apps leer Descargas, así que eliges el zip
 - Desliza a un lado para cambiar de pestaña; la pantalla no se apaga mientras revisa o aplica
 
@@ -304,7 +312,7 @@ Desde la [última release](https://github.com/AnxoBT/tri-sync/releases/latest):
   *Source code*, descomprímelo y haz doble clic en **`Abrir Tri-Sync.bat`**. La primera vez instala lo
   necesario (`tzdata`), crea el acceso directo **Tri-Sync** en el escritorio y abre la web.
 - **Android**: `Tri-Sync-vX.Y.Z.apk`; ábrelo en el móvil (Android 8.0 o superior; permite instalar de
-  orígenes desconocidos cuando lo pida). O usa **Pasar al móvil** desde el PC.
+  orígenes desconocidos cuando lo pida). O usa **Sincronizar → Por USB** desde el PC.
 - **iPhone (prueba)**: `Tri-Sync-X.Y.Z-iOS.ipa`, sin firmar; instálalo con Sideloadly o AltStore.
 
 **Actualizar**: una barra verde avisa cuando hay una release nueva. En el PC la descarga, la instala

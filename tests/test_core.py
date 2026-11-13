@@ -23,7 +23,7 @@ for k in ("DIXMAX_API_KEY", "DIXMAX_AUTH_KEY", "SERIALIZD_TOKEN", "LETTERBOXD_US
     os.environ.pop(k, None)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from core import config, estadisticas, letterboxd_api, movil  # noqa: E402
+from core import config, estadisticas, letterboxd_api, movil, sincro  # noqa: E402
 
 
 def zip_de(archivos):
@@ -114,27 +114,146 @@ class Exports(unittest.TestCase):
         self.assertTrue((config.IMPORTADOS / "letterboxd-malo.zip").exists())
 
 
-class PasarAlMovil(unittest.TestCase):
-    def test_recibe_y_conserva_la_fecha(self):
-        buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w") as zf:
-            zi = zipfile.ZipInfo("cache/prueba.json", date_time=(2024, 5, 1, 12, 0, 0))
-            zf.writestr(zi, "{}")
-        movil.recibir(buf.getvalue())
-        p = config.CACHE / "prueba.json"
-        self.assertTrue(p.exists())
-        self.assertEqual(time.localtime(p.stat().st_mtime)[:3], (2024, 5, 1))
+def paquete(env=None, archivos=None, mtimes=None):
+    """Lo que manda otro Tri-Sync (sincro.datos())."""
+    man = {"version": "1.0.0", "android": True, "ios": False, "env": env or {}, "mtimes": mtimes or {}}
+    return zip_de({"sincro.json": json.dumps(man), **(archivos or {})})
+
+
+class Sincronizar(unittest.TestCase):
+    def setUp(self):
+        for n in ("prueba.json", "historial.json", "diff.json", config.SELLOS):
+            (config.CACHE / n).unlink(missing_ok=True)
+        self.antes = dict(config.ENV)
+
+    def tearDown(self):  # sin dejar exports ni ajustes que cambien otras pruebas
+        for v in config.IMPORTADOS.glob("*"):
+            v.unlink()
+        (config.DATOS / "rules.json").unlink(missing_ok=True)
+        config.ENV.clear()
+        config.ENV.update(self.antes)
+        config._escribir_env()
+
+    def test_ajustes_gana_el_cambio_mas_reciente(self):
+        config.guardar_config({"SERIALIZD_USER": "aqui", "ANILIST_USER": "viejo"})
+        t = config.cache_json(config.SELLOS)["SERIALIZD_USER"]
+        cambios = sincro.recibir(paquete({"SERIALIZD_USER": ["alli", t - 100], "ANILIST_USER": ["nuevo", t + 100],
+                                          "DATA_DIR": ["C:/otro", t + 100]}))
+        self.assertEqual(config.env("SERIALIZD_USER"), "aqui")  # lo de aquí es más nuevo
+        self.assertEqual(config.env("ANILIST_USER"), "nuevo")
+        self.assertNotEqual(config.ENV.get("DATA_DIR"), "C:/otro")  # es de cada dispositivo
+        self.assertEqual(config.cache_json(config.SELLOS)["ANILIST_USER"], t + 100)  # conserva su momento
+        self.assertIn("ajustes", cambios)
+
+    def test_ajustes_sin_fechas_solo_rellena(self):
+        config.ENV.pop("LETTERBOXD_USER", None)
+        config.guardar_config({"SERIALIZD_USER": "aqui"})
+        config.save_cache(config.SELLOS, {})
+        sincro.recibir(paquete({"SERIALIZD_USER": ["alli", 0], "LETTERBOXD_USER": ["lb", 0]}))
+        self.assertEqual(config.env("SERIALIZD_USER"), "aqui")
+        self.assertEqual(config.env("LETTERBOXD_USER"), "lb")
+
+    def test_reglas_y_cache_se_juntan(self):
+        (config.DATOS / "rules.json").write_text(json.dumps({"series": {"excluir_tmdb": [1], "mapa": {"a": 1}}}), encoding="utf-8")
+        config.save_cache("prueba.json", {"x": 1, "y": "error"})
+        sincro.recibir(paquete(archivos={
+            "rules.json": json.dumps({"series": {"excluir_tmdb": [1, 2], "mapa": {"a": 9, "b": 2}}, "peliculas": {}}),
+            "cache/prueba.json": json.dumps({"x": 5, "y": 7, "z": 3})}))
+        self.assertEqual(config.rules(), {"series": {"excluir_tmdb": [1, 2], "mapa": {"a": 1, "b": 2}}, "peliculas": {}})
+        self.assertEqual(config.cache_json("prueba.json"), {"x": 1, "y": 7, "z": 3})
+
+    def test_resultados_gana_el_mas_reciente_e_historial_se_une(self):
+        config.save_cache("diff.json", {"de": "aqui"})
+        config.save_cache("historial.json", [{"fecha": "01/01/2026 10:00", "modo": "rapida"}])
+        ahora = time.time()
+        sincro.recibir(paquete(archivos={"cache/diff.json": json.dumps({"de": "alli"}),
+                                         "cache/historial.json": json.dumps([{"fecha": "02/01/2026 10:00", "modo": "completa"}])},
+                               mtimes={"cache/diff.json": ahora - 3600}))
+        self.assertEqual(config.cache_json("diff.json"), {"de": "aqui"})  # el de allí es más viejo
+        self.assertEqual([h["modo"] for h in config.cache_json("historial.json")], ["rapida", "completa"])
+        sincro.recibir(paquete(archivos={"cache/diff.json": json.dumps({"de": "alli"})}, mtimes={"cache/diff.json": ahora + 60}))
+        self.assertEqual(config.cache_json("diff.json"), {"de": "alli"})
+
+    def test_export_mas_nuevo_pasa(self):
+        for v in config.IMPORTADOS.glob("letterboxd-*"):
+            v.unlink()
+        lb = io.BytesIO()
+        with zipfile.ZipFile(lb, "w") as zf:
+            for n, t in LB.items():
+                zf.writestr(n, t)
+        cambios = sincro.recibir(paquete(archivos={"importados/letterboxd-yo-2026.zip": lb.getvalue()},
+                                         mtimes={"importados/letterboxd-yo-2026.zip": 1715000000}))
+        self.assertIn("export de Letterboxd", cambios)
+        self.assertEqual(int((config.IMPORTADOS / "letterboxd-yo-2026.zip").stat().st_mtime), 1715000000)
+        self.assertNotIn("export de Letterboxd", sincro.recibir(sincro.datos()))  # el mismo: no cambia nada
+
+    def test_ida_y_vuelta_no_cambia_nada(self):
+        config.guardar_config({"SERIALIZD_USER": "yo"})
+        config.save_cache("prueba.json", {"x": 1})
+        self.assertEqual(sincro.recibir(sincro.datos()), [])
 
     def test_solo_acepta_configuracion_cache_y_exports(self):
-        for malo in ("core/diff.py", "web/server.py", "apk/Tri-Sync.apk", "cache/sub/x.json"):
+        for malo in ("core/diff.py", "web/server.py", "apk/Tri-Sync.apk", "cache/sub/x.json", ".env", "../fuera.txt"):
             with self.assertRaises(ValueError, msg=malo):
-                movil.recibir(zip_de({malo: "x"}))
-        movil.recibir(zip_de({".env": "SERIALIZD_USER=yo\n", "rules.json": "{}", "importados/letterboxd-a.zip": "z"}))
-
-    def test_zip_con_rutas_hacia_fuera_se_rechaza(self):
-        with self.assertRaises(ValueError):
-            movil.recibir(zip_de({"../fuera.txt": "x"}))
+                sincro.recibir(paquete(archivos={malo: "x"}))
+        with self.assertRaises(ValueError):  # sin manifiesto
+            sincro.recibir(zip_de({"rules.json": "{}"}))
         self.assertFalse((Path(TMP).parent / "fuera.txt").exists())
+
+
+class Wifi(unittest.TestCase):
+    def test_cifrado(self):
+        from core import cifrado
+        codigo = cifrado.codigo_nuevo()
+        self.assertEqual(len(cifrado.normalizar(codigo)), 10)
+        ks = cifrado.claves(codigo.lower(), b"s" * 16)  # da igual mayúsculas y guion
+        datos = bytes(range(256)) * 300
+        p = cifrado.sellar(ks, b"c", datos)
+        self.assertNotIn(datos[:64], p)  # no viaja en claro
+        self.assertEqual(cifrado.abrir(ks, b"c", p), datos)
+        with self.assertRaises(ValueError):  # al revés (respuesta usada como petición)
+            cifrado.abrir(ks, b"s", p)
+        alterado = bytearray(p)
+        alterado[-1] ^= 1
+        with self.assertRaises(ValueError):
+            cifrado.abrir(ks, b"c", bytes(alterado))
+        with self.assertRaises(ValueError):  # otro código
+            cifrado.abrir(cifrado.claves("AAAAA-AAAAA", b"s" * 16), b"c", p)
+
+    def test_sincronizar_de_verdad(self):
+        """Dos Tri-Sync en este PC (uno espera y otro conecta) por una conexión de red real."""
+        from core import wifi
+        recibido = []
+        with mock.patch.object(sincro, "datos", lambda: b"mis datos"), \
+                mock.patch.object(sincro, "recibir", lambda d: recibido.append(d) or ["caché"]), \
+                mock.patch.object(wifi, "ip_local", lambda: "127.0.0.1"):
+            e = wifi.esperar()
+            try:
+                self.assertTrue(e["esperando"])
+                with self.assertRaises(RuntimeError):  # código equivocado
+                    wifi.conectar(e["direccion"], "ZZZZZ-ZZZZZ", log=lambda m: None)
+                self.assertEqual(wifi.ESTADO["fallos"], 1)
+                res = wifi.conectar(e["direccion"], e["codigo"], log=lambda m: None)
+            finally:
+                wifi.parar()
+        self.assertEqual(res["aqui"], ["caché"])
+        self.assertEqual(res["alli"], ["caché"])
+        self.assertEqual(recibido, [b"mis datos", b"mis datos"])  # cada lado recibió los datos del otro
+        self.assertFalse(wifi.ESTADO["esperando"])  # tras sincronizar se cierra sola
+
+    def test_se_cierra_con_intentos_fallidos(self):
+        from core import wifi
+        with mock.patch.object(wifi, "ip_local", lambda: "127.0.0.1"):
+            e = wifi.esperar()
+            try:
+                for _ in range(wifi.MAX_FALLOS):
+                    with self.assertRaises(RuntimeError):
+                        wifi.conectar(e["direccion"], "ZZZZZ-ZZZZZ", log=lambda m: None)
+                time.sleep(0.5)
+                self.assertFalse(wifi.ESTADO["esperando"])
+                self.assertIn("intentos", wifi.ESTADO["error"])
+            finally:
+                wifi.parar()
 
 
 class Idioma(unittest.TestCase):
@@ -198,6 +317,8 @@ class Revision(unittest.TestCase):
     def setUp(self):
         config.ENV.clear()
         (config.DATOS / ".env").unlink(missing_ok=True)
+        for v in config.IMPORTADOS.glob("*"):  # los exports que dejan otras pruebas
+            v.unlink()
 
     def test_sin_apps_avisa(self):
         from core import diff

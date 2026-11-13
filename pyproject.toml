@@ -21,3 +21,5 @@ requires = ["tzdata", "certifi"]
 requires = ["toga-iOS~=0.5.0", "std-nslog~=1.0.3"]
 # el servidor de Tri-Sync va por http en el propio iPhone (127.0.0.1)
 info."NSAppTransportSecurity" = { NSAllowsLocalNetworking = true, NSAllowsArbitraryLoadsInWebContent = true }
+# sincronizar por Wi-Fi con el PC (core/wifi.py): iOS pide permiso para la red local
+info."NSLocalNetworkUsageDescription" = "Para sincronizar Tri-Sync por Wi-Fi con tu PC u otro dispositivo de tu red de casa."

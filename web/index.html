@@ -171,6 +171,13 @@
   @keyframes entraD { from { transform:translateX(60px); opacity:0; } } @keyframes entraI { from { transform:translateX(-60px); opacity:0; } }
   .idioma { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line);
             border-radius:var(--r); padding:12px 14px; margin-top:18px; } .idioma .h { color:var(--muted); font-size:12px; }
+  .sinc { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:12px 14px; margin-top:18px; }
+  .sinc .h { color:var(--muted); font-size:12px; margin-top:4px; line-height:1.45; }
+  .sinc .fila { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+  .sinc input { width:auto; flex:1 1 150px; min-width:0; }
+  .codigoWifi { display:flex; flex-wrap:wrap; gap:8px 22px; align-items:baseline; margin-top:10px; padding:12px 14px;
+    border:1px dashed var(--ok); border-radius:10px; }
+  .codigoWifi b { display:block; font-size:22px; letter-spacing:.06em; font-family:ui-monospace, Consolas, monospace; }
   .seg2 { display:inline-flex; gap:4px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:3px; }
   .seg2 button { border:0; background:none; color:var(--muted); padding:7px 14px; } .seg2 button.on { background:var(--panel2); color:var(--text); }
   .guia { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; place-items:center; z-index:30; padding:16px; }
@@ -286,9 +293,16 @@
     <span id="verInfo">Versión…</span><button onclick="version(true)">Buscar actualizaciones</button></div>
   <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="abrirGuia(0)">Ver la guía de inicio</button>
     <button onclick="novedades(true)">Novedades de esta versión</button></div>
-  <div class="solo-pc" style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <button onclick="pasarMovil()" title="Por el cable USB (adb), nunca por internet">📱 Pasar al móvil</button>
-    <span id="movInfo" style="color:var(--muted);font-size:12.5px">Instala o actualiza Tri-Sync en el móvil conectado por USB y le pasa tu configuración, la caché y los últimos exports.</span></div>
+  <div class="sinc"><b>Sincronizar con tus otros dispositivos</b><div class="h">Junta en los dos sentidos tus ajustes, reglas, caché, historial y el export más nuevo de cada web. Si cambias lo mismo en los dos, gana el cambio más reciente. Nunca pasa por internet.</div>
+    <div class="fila solo-pc"><button onclick="pasarMovil()" title="Por el cable USB (adb), nunca por internet">📱 Por USB</button>
+      <span id="movInfo" class="h" style="flex:1 1 220px;margin:0">Android conectado por cable, con la depuración USB activada. Si aquí hay una versión más nueva compilada, se la instala.</span></div>
+    <div class="fila"><button id="wfEsperar" onclick="wifiEsperar()">📶 Esperar por Wi-Fi (2 min)</button></div>
+    <div id="wfEspera"></div>
+    <div class="fila"><input id="wfDir" placeholder="192.168.1.20:8767" autocomplete="off">
+      <input id="wfCod" placeholder="código" autocomplete="off" autocapitalize="characters" style="flex-basis:120px">
+      <button class="pri" id="wfConectar" onclick="wifiConectar()">Conectar por Wi-Fi</button></div>
+    <div id="wfEstado" class="h"></div>
+    <div class="h" style="margin-top:8px">Uno espera y el otro escribe la dirección y el código que enseña. Mejor que espere el móvil y conecte el PC. Va cifrado con el código, que solo sirve esos 2 minutos; con 5 intentos fallidos se cierra. Úsalo en tu Wi-Fi de casa, no en redes públicas.</div></div>
 </div>
 
 <div class="actionbar" id="abar"><div class="wrap">
@@ -407,7 +421,7 @@ const VISTAS = [['rev', 'Rev'], ['hist', 'Hist'], ['stats', 'Stats'], ['cfg', 'C
 let VISTA_ACT = 'rev';
 const elVista = v => $('v' + VISTAS.find(x => x[0] === v)[1]);
 const idx = v => VISTAS.findIndex(x => x[0] === v);
-const cargarVista = v => { if (v === 'cfg') cargarCfg(); if (v === 'hist') historial(); if (v === 'stats') estadisticas(); };
+const cargarVista = v => { if (v === 'cfg') { cargarCfg(); pintarWifi(); } if (v === 'hist') historial(); if (v === 'stats') estadisticas(); };
 // anim: al tocar una pestaña, la nueva entra deslizando desde su lado (al arrastrar con el dedo ya se ha deslizado)
 function vista(v, anim = true) {
   const antes = VISTA_ACT;
@@ -959,9 +973,48 @@ async function pasarMovil() {
   const t = setInterval(async () => {
     const m = await (await fetch('/api/movil/estado', {method: 'POST'})).json();
     $('movInfo').innerHTML = m.error ? `<span class="bad">${esc(m.error)}</span>` : m.fin ? `<span class="ok">✓ ${esc(m.mensajes.slice(-1)[0] || 'Hecho')}</span>` : esc(m.mensajes.slice(-1)[0] || 'Empezando…');
-    if (!m.activo) clearInterval(t);
+    if (!m.activo) { clearInterval(t); if (m.fin) { estado(); cargarDiff(); cargarCfg(); } }
   }, 800);
 }
+
+// ---------- sincronizar por Wi-Fi (core/wifi.py): uno espera con dirección + código, el otro conecta ----------
+let WIFI_VIGILAR = false;
+const apiW = async (ruta, cuerpo) => (await fetch(ruta, {method: 'POST', body: JSON.stringify(cuerpo || {})})).json();
+const CAMBIOS_EN = {'ajustes': 'settings', 'reglas': 'rules', 'caché': 'cache', 'historial': 'history',
+  'export de Dixmax': 'Dixmax export', 'export de Letterboxd': 'Letterboxd export'};
+const listaCambios = l => !l.length ? (LANG === 'en' ? 'nothing new' : 'nada nuevo')
+  : l.map(x => LANG === 'en' ? (CAMBIOS_EN[x] || x.replace('(pulsa Instalar allí)', '(tap Install there)').replace('(pulsa Instalar)', '(tap Install)')) : x).join(', ');
+async function pintarWifi() {
+  let w; try { w = await apiW('/api/wifi'); } catch (e) { return; }
+  $('wfEsperar').textContent = w.esperando ? 'Cancelar la espera' : '📶 Esperar por Wi-Fi (2 min)';
+  $('wfEspera').innerHTML = w.esperando ? `<div class="codigoWifi"><div><span class="h">Dirección</span><b class="no-i18n">${esc(w.direccion)}</b></div>
+    <div><span class="h">Código</span><b class="no-i18n">${esc(w.codigo)}</b></div><div class="h">Escríbelos en el otro dispositivo · quedan ${w.quedan} s</div></div>` : '';
+  $('wfConectar').disabled = w.conectando || w.esperando;
+  const r = w.resultado;
+  $('wfEstado').innerHTML = (w.conectando ? `<div>${esc(w.log.slice(-1)[0] || 'Conectando…')}</div>` : '')
+    + (w.error ? `<div class="bad">${esc(w.error)}</div>` : '')
+    + (r && !w.conectando ? `<div><span class="ok">✓ Sincronizado</span> ${esc(r.t)} · aquí: ${esc(listaCambios(r.aqui))} · allí: ${esc(listaCambios(r.alli))}</div>` : '')
+    + (w.apk_listo && ANDROID ? `<div style="margin-top:8px"><button class="pri" onclick="location.href='/android/instalar'">Instalar Tri-Sync ${esc(w.apk_listo)}</button></div>` : '');
+  const vivo = w.esperando || w.conectando;
+  pantalla(vivo);  // que el móvil no se duerma esperando
+  if (vivo) { WIFI_VIGILAR = true; setTimeout(pintarWifi, 1000); }
+  else if (WIFI_VIGILAR) { WIFI_VIGILAR = false; if (r) { estado(); cargarDiff(); cargarCfg(); } }
+}
+async function wifiEsperar() {
+  const w = await apiW('/api/wifi');
+  const r = await apiW(w.esperando ? '/api/wifi/parar' : '/api/wifi/esperar');
+  if (r.ok === false) $('wfEstado').innerHTML = `<span class="bad">${esc(r.texto)}</span>`;
+  else pintarWifi();
+}
+async function wifiConectar() {
+  const direccion = $('wfDir').value.trim(), codigo = $('wfCod').value.trim();
+  try { localStorage.setItem('trisync_wifi_dir', direccion); } catch (e) {}
+  const r = await apiW('/api/wifi/conectar', {direccion, codigo});
+  if (r.ok === false) { $('wfEstado').innerHTML = `<span class="bad">${esc(r.texto)}</span>`; return; }
+  $('wfCod').value = '';
+  pintarWifi();
+}
+try { $('wfDir').value = localStorage.getItem('trisync_wifi_dir') || ''; } catch (e) {}
 
 // ---------- configuración ----------
 // cada app: qué es, sus campos y cómo se conecta
@@ -1005,7 +1058,7 @@ async function cargarCfg() {
   $('cfgForm').innerHTML = CAMPOS().map(f => `<div>${campo(c, f)}</div>`).join('');
 }
 async function quitarApp(k) {
-  if (!confirm(`¿Quitar ${NOMBRES[k]} de Tri-Sync?\n\nSe borran sus claves de este ${document.body.classList.contains('movil') ? 'móvil' : 'PC'} y deja de revisarse. En ${NOMBRES[k]} no se toca nada.`)) return;
+  if (!confirm(`¿Quitar ${NOMBRES[k]} de Tri-Sync?\n\nSe borran sus claves de este ${document.body.classList.contains('movil') ? 'móvil' : 'PC'} (y de tus otros dispositivos cuando sincronices) y deja de revisarse. En ${NOMBRES[k]} no se toca nada.`)) return;
   await fetch('/api/app/quitar', {method: 'POST', body: JSON.stringify({app: k})});
   cargarCfg();
 }

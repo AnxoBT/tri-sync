@@ -158,9 +158,7 @@
   "Versión…": "Version…",
   "Buscar actualizaciones": "Check for updates",
   "es la última": "it's the latest",
-  "📱 Pasar al móvil": "📱 Send to phone",
-  "Por el cable USB (adb), nunca por internet": "Over the USB cable (adb), never over the internet",
-  "Instala o actualiza Tri-Sync en el móvil conectado por USB y le pasa tu configuración, la caché y los últimos exports.": "Installs or updates Tri-Sync on the phone connected by USB and copies your settings, cache and latest exports.",
+  "Por el cable USB (adb), nunca por internet": "Over the USB cable (adb), never through the internet",
   "Pulsa «Authorize» en AniList; al volver, esto se actualiza solo.": "Press «Authorize» on AniList; when you come back, this updates by itself.",
   "Autoriza Tri-Sync en Letterboxd; al volver, esto se actualiza solo.": "Authorise Tri-Sync on Letterboxd; when you come back, this updates by itself.",
   "Idioma": "Language",
@@ -273,7 +271,7 @@
   "según tu marca en Dixmax": "according to your Dixmax mark",
   "Temas y franquicias": "Topics and franchises",
   "etiquetas de Dixmax": "Dixmax tags",
-  "Dirección": "Direction",
+  "Dirección": "Address",
   "animes y episodios: voz japonesa de personajes principales y secundarios (AniList)": "anime and episodes: Japanese voice of main and supporting characters (AniList)",
   "series y episodios en los que sale: reparto oficial e invitados de lo que has visto (TVmaze)": "series and episodes they appear in: main cast and credited guests of what you watched (TVmaze)",
   "Tu día más peliculero": "Your biggest film day",
@@ -502,7 +500,35 @@
   "según tu marca en tus apps": "according to your mark in your apps",
   "tus apps": "your apps",
   "en TVmaze (0-100)": "on TVmaze (0-100)",
-  "Novedades de esta versión": "What's new in this version"
+  "Novedades de esta versión": "What's new in this version",
+  "Sincronizar con tus otros dispositivos": "Sync with your other devices",
+  "Junta en los dos sentidos tus ajustes, reglas, caché, historial y el export más nuevo de cada web. Si cambias lo mismo en los dos, gana el cambio más reciente. Nunca pasa por internet.": "Merges your settings, rules, cache, history and the newest export of each site both ways. If you change the same thing on both, the most recent change wins. It never goes through the internet.",
+  "Android conectado por cable, con la depuración USB activada. Si aquí hay una versión más nueva compilada, se la instala.": "Android connected by cable, with USB debugging on. If a newer version is built here, it installs it.",
+  "Uno espera y el otro escribe la dirección y el código que enseña. Mejor que espere el móvil y conecte el PC. Va cifrado con el código, que solo sirve esos 2 minutos; con 5 intentos fallidos se cierra. Úsalo en tu Wi-Fi de casa, no en redes públicas.": "One waits and the other types in the address and code it shows. Best: the phone waits and the PC connects. It's encrypted with the code, which only works for those 2 minutes; 5 wrong attempts close it. Use it on your home Wi-Fi, not on public networks.",
+  "📱 Por USB": "📱 By USB",
+  "📶 Esperar por Wi-Fi (2 min)": "📶 Wait on Wi-Fi (2 min)",
+  "Cancelar la espera": "Stop waiting",
+  "código": "code",
+  "Conectar por Wi-Fi": "Connect by Wi-Fi",
+  "Código": "Code",
+  "Conectando…": "Connecting…",
+  "✓ Sincronizado": "✓ Synced",
+  "Leyendo sus datos…": "Reading its data…",
+  "Pasándole los datos juntos…": "Sending it the merged data…",
+  "Leyendo los datos del móvil…": "Reading the phone's data…",
+  "Pasando los datos juntos al móvil…": "Sending the merged data to the phone…",
+  "Abriendo Tri-Sync en el móvil…": "Opening Tri-Sync on the phone…",
+  "Código incorrecto": "Wrong code",
+  "Ya se está sincronizando con el móvil": "Already syncing with the phone",
+  "Ya hay una sincronización por Wi-Fi en marcha": "A Wi-Fi sync is already running",
+  "Escribe la dirección y el código de 10 caracteres que enseña el otro dispositivo": "Type the address and the 10-character code the other device shows",
+  "Espera a que termine la revisión o lo que se está aplicando y vuelve a sincronizar": "Wait for the review or whatever is being applied to finish and sync again",
+  "Se acabó el tiempo sin que se conectara nadie": "Time ran out and nobody connected",
+  "Demasiados intentos con un código incorrecto: se ha cerrado la espera": "Too many attempts with a wrong code: waiting has been closed",
+  "No hay ningún puerto libre para esperar la conexión": "No free port to wait for the connection",
+  "La app del móvil no responde: ábrela a mano y vuelve a probar": "The phone app isn't responding: open it manually and try again",
+  "La app del móvil es antigua: compila el APK nuevo para que se actualice al sincronizar": "The phone app is old: build the new APK so it gets updated when syncing",
+  "No veo ningún móvil: conéctalo por USB con la depuración USB activada y acepta el aviso": "I can't see any phone: connect it by USB with USB debugging on and accept the prompt"
  },
  "patrones": [
   [
@@ -516,10 +542,6 @@
   [
    "Para Letterboxd se genera el CSV\\.$",
    "For Letterboxd the CSV is created."
-  ],
-  [
-   "^¿Quitar (.+) de Tri-Sync\\?\n\nSe borran sus claves de este (móvil|PC) y deja de revisarse\\. En (.+) no se toca nada\\.$",
-   "Remove $1 from Tri-Sync?\n\nIts keys are deleted from this device and it stops being reviewed. Nothing is touched on $3."
   ],
   [
    "^Última revisión: (.+)$",
@@ -880,6 +902,58 @@
   [
    "^⚠ revisa: en Serializd hay (\\d+) episodios y AniList cuenta (\\d+)",
    "⚠ check: Serializd has $1 episodes and AniList counts $2"
+  ],
+  [
+   "^¿Quitar (.+) de Tri-Sync\\?\n\nSe borran sus claves de este (móvil|PC) \\(y de tus otros dispositivos cuando sincronices\\) y deja de revisarse\\. En (.+) no se toca nada\\.$",
+   "Remove $1 from Tri-Sync?\n\nIts keys are deleted from this device (and from your other devices when you sync) and it stops being reviewed. Nothing is touched on $3."
+  ],
+  [
+   "^Escríbelos en el otro dispositivo · quedan (\\d+) s$",
+   "Type them on the other device · $1 s left"
+  ],
+  [
+   "^(.+) · aquí: (.+) · allí: (.+)$",
+   "$1 · here: $2 · there: $3"
+  ],
+  [
+   "^Listo · aquí: (.+) · en el móvil: (.+)$",
+   "Done · here: $1 · on the phone: $2"
+  ],
+  [
+   "^Conectando con (.+)…$",
+   "Connecting to $1…"
+  ],
+  [
+   "^Móvil conectado \\((.+)\\)$",
+   "Phone connected ($1)"
+  ],
+  [
+   "^Instalando Tri-Sync (.+) en el móvil(.*)…$",
+   "Installing Tri-Sync $1 on the phone…"
+  ],
+  [
+   "^Pasándole Tri-Sync (.+)…$",
+   "Sending it Tri-Sync $1…"
+  ],
+  [
+   "^Trayendo Tri-Sync (.+)…$",
+   "Fetching Tri-Sync $1…"
+  ],
+  [
+   "^Instalar Tri-Sync (.+)$",
+   "Install Tri-Sync $1"
+  ],
+  [
+   "^No encuentro Tri-Sync esperando en (.+): comprueba la dirección, que los dos estéis en el mismo Wi-Fi y que el otro siga esperando$",
+   "I can't find Tri-Sync waiting at $1: check the address, that both are on the same Wi-Fi and that the other one is still waiting"
+  ],
+  [
+   "^Se cortó la conexión \\((.+)\\)$",
+   "The connection dropped ($1)"
+  ],
+  [
+   "^El otro dispositivo dice: (.+)$",
+   "The other device says: $1"
   ]
  ]
 }

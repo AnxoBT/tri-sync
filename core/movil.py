@@ -1,7 +1,7 @@
-"""Tri-Sync en el móvil: importar exports desde la web y pasar los datos del PC al móvil por USB (adb).
+"""Tri-Sync en el móvil: importar exports desde la web y sincronizar el PC con el móvil por USB (adb).
 
-Nada pasa por internet: el PC habla con la app del móvil por el cable (adb forward) y le manda tu .env,
-rules.json, la caché (fichas, estadísticas, historial…) y los últimos exports de Dixmax y Letterboxd.
+Nada pasa por internet: el PC habla con la app del móvil por el cable (adb forward), le pide sus datos, los junta con
+los suyos y le devuelve el resultado (sincro.py: ajustes, reglas, caché e historial, y el export más nuevo de cada web).
 """
 import io
 import json
@@ -9,12 +9,13 @@ import os
 import shutil
 import subprocess
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
 
-from . import config
-from .config import CACHE, DATOS, IMPORTADOS, REQUIRED, ROOT, find_exports
+from . import config, sincro
+from .config import IMPORTADOS, REQUIRED, ROOT
 
 PAQUETE = "com.anxobt.trisync"
 PUERTO_MOVIL = 8765  # el servidor de la app en el móvil (el mismo que en el PC: así vale el permiso de AniList)
@@ -67,39 +68,7 @@ def importar_export(nombre, datos, fecha_ms=""):
     return {"tipo": "dixmax" if pre.startswith("playmax") else "letterboxd", "nombre": nombre}
 
 
-# ---------------- móvil: recibir datos del PC ----------------
-
-def recibir(datos):
-    """Zip del PC con .env, rules.json, cache/ e importados/: se escribe en la carpeta de datos de la app."""
-    zf = zipfile.ZipFile(io.BytesIO(datos))
-    n = 0
-    raiz = DATOS.resolve()
-    for nombre in zf.namelist():
-        if nombre.endswith("/"):
-            continue
-        destino = (DATOS / nombre).resolve()
-        if raiz not in destino.parents:  # zip con rutas raras
-            raise ValueError(f"Ruta no válida: {nombre}")
-        partes = Path(nombre).parts
-        permitido = nombre in (".env", "rules.json") or (len(partes) == 2 and (
-            (partes[0] == "cache" and nombre.endswith(".json")) or (partes[0] == "importados" and nombre.endswith(".zip"))))
-        if not permitido:  # nada de código ni de otros archivos: solo configuración, caché y exports
-            raise ValueError(f"Archivo no permitido: {nombre}")
-        if nombre.startswith("importados/"):  # el export nuevo sustituye al anterior del mismo tipo
-            for pre in REQUIRED:
-                if Path(nombre).name.startswith(pre):
-                    for viejo in IMPORTADOS.glob(pre + "*"):
-                        viejo.unlink()
-        destino.parent.mkdir(parents=True, exist_ok=True)
-        destino.write_bytes(zf.read(nombre))
-        t = time.mktime(zf.getinfo(nombre).date_time + (0, 0, -1))  # la fecha del PC: la edad de los exports cuenta
-        os.utime(destino, (t, t))
-        n += 1
-    config.recargar_env()
-    return {"archivos": n}
-
-
-# ---------------- PC: pasar al móvil ----------------
+# ---------------- PC: sincronizar con el móvil por USB ----------------
 
 def adb():
     for c in (config.env("ADB"), shutil.which("adb"),
@@ -132,22 +101,6 @@ def _version_movil():
     return None
 
 
-def _zip_datos():
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for n in (".env", "rules.json"):
-            if (DATOS / n).exists():
-                zf.write(DATOS / n, n)
-        for p in CACHE.glob("*.json"):
-            if p.name not in OBSOLETOS:
-                zf.write(p, f"cache/{p.name}")
-        for pre in REQUIRED:  # el último export de cada web, esté en Descargas o importado
-            x = next(iter(find_exports(pre)), None)
-            if x and x.zip:
-                zf.write(x.path, f"importados/{x.name}")
-    return buf.getvalue()
-
-
 CLAVE_MOVIL = f"/sdcard/Android/data/{PAQUETE}/files/clave-sincro.txt"  # la escribe la app en cada arranque
 
 
@@ -157,15 +110,15 @@ def _clave():
     return "" if code else txt.strip()
 
 
-def _post(url, datos, timeout=120):
+def _post(url, datos=b"", timeout=120, binario=False):
     req = urllib.request.Request(url, data=datos, method="POST",
                                  headers={"Content-Type": "application/zip", "X-TriSync-Clave": _clave()})
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read())
+        return r.read() if binario else json.loads(r.read())
 
 
-def pasar_al_movil(out=print):
-    """Instala o actualiza la app en el móvil (si hay APK más nuevo) y le pasa la configuración y la caché."""
+def sincronizar_movil(out=print):
+    """Instala o actualiza la app en el móvil (si hay APK más nuevo) y junta los datos de los dos (sincro.py)."""
     code, txt = _adb("devices")
     moviles = [l.split()[0] for l in txt.splitlines()[1:] if l.strip().endswith("device")]
     moviles.sort(key=lambda m: m.startswith("emulator-"))  # mejor el móvil de verdad que un emulador abierto
@@ -198,11 +151,20 @@ def pasar_al_movil(out=print):
             time.sleep(0.5)
         else:
             raise RuntimeError("La app del móvil no responde: ábrela a mano y vuelve a probar")
-        datos = _zip_datos()
-        out(f"Pasando configuración, caché y exports ({len(datos) / 1e6:.1f} MB)…")
-        r = _post(base + "/api/sincro/recibir", datos)
+        out("Leyendo los datos del móvil…")
+        try:
+            suyo = _post(base + "/api/sincro/datos", timeout=300, binario=True)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                raise RuntimeError("La app del móvil es antigua: compila el APK nuevo para que se actualice al sincronizar")
+            raise
+        aqui = sincro.recibir(suyo)
+        out("Pasando los datos juntos al móvil…")
+        r = _post(base + "/api/sincro/recibir", sincro.datos(), timeout=300)
         if not r.get("ok"):
             raise RuntimeError(r.get("texto") or "El móvil no aceptó los datos")
-        out(f"Listo: {r['archivos']} archivos en el móvil")
+        alli = r.get("cambios", [])
+        out("Listo · aquí: " + (", ".join(aqui) or "nada nuevo") + " · en el móvil: " + (", ".join(alli) or "nada nuevo"))
     finally:
         _adb("forward", "--remove", f"tcp:{PUERTO_PUENTE}")
+    return {"aqui": aqui, "alli": alli}

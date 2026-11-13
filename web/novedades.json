@@ -1,5 +1,17 @@
 {
  "_info": "Novedades que ve el usuario al actualizar (la más nueva arriba). Al subir VERSION, añade aquí la entrada de esa versión: 3-5 frases cortas en español e inglés.",
+ "1.1.0": {
+  "es": [
+   "Sincroniza el PC y el móvil en los dos sentidos: ajustes, reglas, caché, historial y el export más nuevo. Si cambias lo mismo en los dos, gana el cambio más reciente.",
+   "Ahora también por Wi-Fi, sin cable: uno espera y el otro escribe la dirección y el código que enseña. Va cifrado y nunca pasa por internet.",
+   "Por Wi-Fi funciona con Android, iPhone u otro PC; el Android recibe del PC la versión nueva de la app."
+  ],
+  "en": [
+   "Sync the PC and the phone both ways: settings, rules, cache, history and the newest export. If you change the same thing on both, the most recent change wins.",
+   "Now also over Wi-Fi, no cable: one waits and the other types in the address and code it shows. It's encrypted and never goes through the internet.",
+   "Wi-Fi works with Android, iPhone or another PC; the Android gets the new app version from the PC."
+  ]
+ },
  "1.0.0": {
   "es": [
    "Primera versión pública.",

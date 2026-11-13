@@ -1,6 +1,7 @@
 """Configuración: .env, rutas y reglas (casos especiales)."""
 import json
 import os
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent  # código (en Android va dentro del APK: de solo lectura)
@@ -73,10 +74,23 @@ def config_publica():
     return {k: ({"puesto": bool(ENV.get(k))} if k in SECRETOS else ENV.get(k, "")) for k in EDITABLES}
 
 
-def _escribir_env():
+SELLOS = "ajustes_cambiados.json"  # en cache/: cuándo cambió cada clave del .env (al sincronizar gana la más reciente)
+
+
+def _escribir_env(sellos=None):
+    """sellos: {clave: momento} de las claves que vienen de otro dispositivo (conservan su momento); las demás
+    que cambien se sellan ahora."""
+    antes = _load_env()
+    s = cache_json(SELLOS)
+    for k in set(antes) | set(ENV):
+        if (sellos or {}).get(k):
+            s[k] = sellos[k]
+        elif antes.get(k, "") != ENV.get(k, ""):
+            s[k] = time.time()
     otras = [k for k in ENV if k not in EDITABLES]  # p. ej. ADB: se conservan
     lines = [f"{k}={ENV.get(k, '')}" for k in EDITABLES + otras]
     (DATOS / ".env").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    save_cache(SELLOS, s)
 
 
 def guardar_config(cambios):
@@ -105,7 +119,7 @@ def quitar_app(app):
 
 
 def recargar_env():
-    """Tras recibir un .env nuevo (pasar del PC al móvil)."""
+    """Tras recibir un .env nuevo (sincronizar con otro dispositivo)."""
     ENV.clear()
     ENV.update(_load_env())
 
