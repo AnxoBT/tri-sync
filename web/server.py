@@ -133,23 +133,30 @@ def _dias_permiso_anilist():
         return None
 
 
-ESTAD = {"activo": False, "mensaje": "", "error": None}
+ESTAD = {"activo": False, "mensaje": "", "error": None, "otra": False}
+_ESTAD_LOCK = threading.Lock()
 
 
 def lanzar_estadisticas():
     """Calcula las estadísticas en segundo plano (la primera vez descarga fichas: tarda unos minutos)."""
-    if ESTAD["activo"]:
-        return
-    ESTAD.update(activo=True, mensaje="Empezando…", error=None)
+    with _ESTAD_LOCK:
+        if ESTAD["activo"]:  # ya se están calculando con datos de antes: se repiten al acabar
+            ESTAD["otra"] = True
+            return
+        ESTAD.update(activo=True, mensaje="Empezando…", error=None, otra=False)
 
     def correr():
         from core import estadisticas
-        try:
-            estadisticas.calcular(progress=lambda m: ESTAD.update(mensaje=m))
-        except Exception as e:
-            ESTAD["error"] = str(e)
-        finally:
-            ESTAD["activo"] = False
+        while True:
+            try:
+                estadisticas.calcular(progress=lambda m: ESTAD.update(mensaje=m))
+            except Exception as e:
+                ESTAD["error"] = str(e)
+            with _ESTAD_LOCK:
+                if not ESTAD.get("otra"):
+                    ESTAD["activo"] = False
+                    return
+                ESTAD.update(otra=False, mensaje="Empezando…", error=None)
     threading.Thread(target=correr, daemon=True).start()
 
 

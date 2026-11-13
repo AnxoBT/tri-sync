@@ -164,10 +164,13 @@ def _lb_api(por, dry, out, tick, api):
             + (" · ♥" if m.get("favorite") and fecha else ""))
         if not dry:
             try:
+                from .letterboxd import recordar
                 if fecha:
                     api.registrar(m.get("tmdb"), fecha, estrellas, like=bool(m.get("favorite")))
+                    recordar(m, "log", fecha, estrellas, m.get("favorite"))
                 else:
                     api.nota(m.get("tmdb"), estrellas)
+                    recordar(m, "nota", None, estrellas)
             except api.LetterboxdError as e:
                 out(f"   ERROR {e}")
     for a in por["lb_watchlist"]:
@@ -177,6 +180,8 @@ def _lb_api(por, dry, out, tick, api):
         if not dry:
             try:
                 api.watchlist(m.get("tmdb"), True)
+                from .letterboxd import recordar
+                recordar(m, "watchlist")
             except api.LetterboxdError as e:
                 out(f"   ERROR {e}")
 
@@ -371,10 +376,18 @@ def _execute(por, dry, out, tick, archivos, ctl):
         if a["accion"] == "lb_log":
             row["WatchedDate"] = (m.get("date") or "")[:10]
         logs_rows.append(row)
+        if not dry:  # se da por hecho al importar el CSV: hasta el próximo export no vuelve a salir
+            from .letterboxd import recordar
+            estrellas = float(row["Rating"] or 0) or None
+            recordar(m, "log" if a["accion"] == "lb_log" else "nota", row.get("WatchedDate"), estrellas,
+                     a["accion"] == "lb_log" and m.get("favorite"))
     for a in por["lb_watchlist"]:
         tick(a)
         m = a["datos"]["dx"]
         wl_rows.append({"tmdbID": m.get("tmdb") or "", "Title": m["title"], "Year": m["year"]})
+        if not dry:
+            from .letterboxd import recordar
+            recordar(m, "watchlist")
     user = env("LETTERBOXD_USER", "")
     if dry:
         if logs_rows:

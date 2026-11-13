@@ -77,7 +77,6 @@
   "Abrir importador ↗": "Open importer ↗",
   "Descargar el CSV ↓": "Download the CSV ↓",
   "Compartir el CSV…": "Share the CSV…",
-  "Lo de Letterboxd sale de la lista al generar el CSV: si no lo importas, volverá a salir en la próxima revisión.": "Letterboxd items leave the list when the CSV is created: if you don't import it, they will show up again in the next review.",
   "Revisión terminada": "Review finished",
   "Empezando…": "Starting…",
   "Pulsa una fila para ver el detalle.": "Tap a row to see the details.",
@@ -534,7 +533,9 @@
   "operación desconocida": "unknown operation",
   "Respuesta que no corresponde a la petición": "Response doesn't match the request",
   "código incorrecto o mensaje alterado": "wrong code or tampered message",
-  "mensaje incompleto": "incomplete message"
+  "mensaje incompleto": "incomplete message",
+  "Lo de Letterboxd sale de la lista al generar el CSV: impórtalo en Letterboxd; si no, volverá a salir cuando descargues un export nuevo.": "Letterboxd items leave the list when the CSV is created: import it on Letterboxd; otherwise they'll show up again when you download a new export.",
+  "Actualizando la revisión y las estadísticas con lo aplicado…": "Updating the review and statistics with what was applied…"
  },
  "patrones": [
   [
@@ -964,6 +965,22 @@
   [
    "^Archivo no permitido: (.+)$",
    "File not allowed: $1"
+  ],
+  [
+   "^(\\d+) cambios aplicados y quitados de la lista\\. (.+)$",
+   "$1 changes applied and removed from the list. ⟦$2⟧"
+  ],
+  [
+   "^(\\d+) cambios aplicados y quitados de la lista\\.$",
+   "$1 changes applied and removed from the list."
+  ],
+  [
+   "^1 cambio aplicado y quitado de la lista\\. (.+)$",
+   "1 change applied and removed from the list. ⟦$1⟧"
+  ],
+  [
+   "^1 cambio aplicado y quitado de la lista\\.$",
+   "1 change applied and removed from the list."
   ]
  ]
 }

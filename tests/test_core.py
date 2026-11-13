@@ -274,6 +274,43 @@ class Wifi(unittest.TestCase):
                 wifi.parar()
 
 
+class LetterboxdAplicado(unittest.TestCase):
+    """Lo cambiado en Letterboxd sale ya en la siguiente revisión, aunque el export sea de antes."""
+    def setUp(self):
+        from core import letterboxd
+        for v in config.IMPORTADOS.glob("*"):
+            v.unlink()
+        (config.CACHE / letterboxd.APLICADO).unlink(missing_ok=True)
+        filas = {**LB, "letterboxd-yo-2026/watched.csv": "Date,Name,Year,Letterboxd URI\n2024-01-01,Dune,2021,https://boxd.it/dune\n"}
+        movil.importar_export("letterboxd-yo-2026.zip", zip_de(filas), "1715000000000")  # export de mayo de 2024
+        config.save_cache("lb_tmdb.json", {"https://boxd.it/dune": 438631})
+
+    def tearDown(self):
+        for v in config.IMPORTADOS.glob("*"):
+            v.unlink()
+
+    def test_se_aplica_encima_del_export_viejo(self):
+        from core import letterboxd
+        letterboxd.recordar({"tmdb": 438631, "title": "Dune", "year": 2021}, "log", "2026-11-01", 4.5, True)
+        letterboxd.recordar({"tmdb": 1, "title": "Nueva", "year": 2026}, "watchlist")
+        films = {f["name"]: f for f in letterboxd.load()["films"]}
+        self.assertEqual(films["Dune"]["rating"], 4.5)
+        self.assertTrue(films["Dune"]["like"])
+        self.assertEqual([d["date"] for d in films["Dune"]["diary"]], ["2026-11-01"])
+        self.assertTrue(films["Nueva"]["watchlist"])  # no estaba: se añade con el título de Dixmax
+
+    def test_un_export_mas_nuevo_ya_lo_trae(self):
+        from core import letterboxd
+        letterboxd.recordar({"tmdb": 438631, "title": "Dune", "year": 2021}, "nota", None, 2.0)
+        c = config.cache_json(letterboxd.APLICADO)
+        for v in c.values():
+            v["t"] = 1600000000  # cambiado antes de descargar el export
+        config.save_cache(letterboxd.APLICADO, c)
+        films = {f["name"]: f for f in letterboxd.load()["films"]}
+        self.assertIsNone(films["Dune"]["rating"])
+        self.assertEqual(config.cache_json(letterboxd.APLICADO), {})
+
+
 class Idioma(unittest.TestCase):
     def test_traducciones_validas(self):
         import re

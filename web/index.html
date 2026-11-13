@@ -832,13 +832,17 @@ async function revisar(modo) {
       if (j.error) { $('prog').innerHTML = `<span class="bad">Error: ${esc(j.error)}</span>`; return; }
       $('prog').innerHTML = `<span class="ok">Revisión terminada (${j.fin})</span>`;
       await estado(); await cargarDiff();
+      if (VISTA_ACT === 'hist') historial();  // si lo estás mirando, se actualiza ya
+      if (VISTA_ACT === 'stats') estadisticas();
     }
   }, 900);
 }
 
+// una app que acabas de quitar: sus diferencias dejan de salir ya, sin esperar a revisar
+const deAppQuitada = d => Object.keys(d.enlaces || {}).some(n => { const k = Object.keys(NOMBRES).find(k => NOMBRES[k] === n); return k && !APPS[k]; });
 function pintar() {
   const q = $('q').value.toLowerCase();
-  const all = DATA.diferencias || [];
+  const all = (DATA.diferencias || []).filter(d => !deAppQuitada(d));
   const cats = {};
   all.forEach(d => cats[d.categoria] = (cats[d.categoria] || 0) + 1);
   $('tools').classList.toggle('hidden', !all.length);
@@ -892,7 +896,7 @@ function elegir(id, v) { sel[id] = v; $('r_' + id).classList.toggle('sel', v !==
 function grupo(ids, v) { if (!v) return; ids.forEach(id => { const d = DATA.diferencias.find(x => x.id === id); if (d.opciones.some(o => o.clave === v)) sel[id] = v; }); pintar(); }
 function todas(v) { (DATA.diferencias || []).forEach(d => sel[d.id] = v); pintar(); }
 function elegidas() {
-  return (DATA.diferencias || []).filter(d => (sel[d.id] ?? 'ignorar') !== 'ignorar')
+  return (DATA.diferencias || []).filter(d => !deAppQuitada(d) && (sel[d.id] ?? 'ignorar') !== 'ignorar')
     .map(d => ({id: d.id, categoria: d.categoria, titulo: d.titulo, accion: sel[d.id], datos: d.datos,
                 texto: (d.opciones.find(o => o.clave === sel[d.id]) || {}).texto}));
 }
@@ -943,12 +947,15 @@ function fin(r) {
       <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
   const n = (res.hechas || []).length;
   if (!simulacion && n) {
-    const csv = (res.archivos || []).length ? ' Lo de Letterboxd sale de la lista al generar el CSV: si no lo importas, volverá a salir en la próxima revisión.' : '';
+    const csv = (res.archivos || []).length ? ' Lo de Letterboxd sale de la lista al generar el CSV: impórtalo en Letterboxd; si no, volverá a salir cuando descargues un export nuevo.' : '';
     $('mF').innerHTML += `<p class="ok">${n} ${n === 1 ? 'cambio aplicado y quitado' : 'cambios aplicados y quitados'} de la lista.${csv}</p>`;
     const ids = new Set(res.hechas);
     DATA.diferencias = (DATA.diferencias || []).filter(d => !ids.has(d.id));
     ids.forEach(i => delete sel[i]);
     pintar();
+    // el resto de apartados (tarjetas, historial, estadísticas…) al momento: revisión rápida en segundo plano
+    $('mF').innerHTML += `<p>Actualizando la revisión y las estadísticas con lo aplicado…</p>`;
+    revisar('rapida');
   }
 }
 async function cancelar() {
@@ -1043,7 +1050,10 @@ const campo = (c, [k, t, h, sec]) => `<label for="f_${k}">${t}</label><input id=
 let CFG = {};
 async function cargarCfg() {
   const c = CFG = await (await fetch('/api/config')).json();
+  const antes = JSON.stringify(APPS);
   await estado();
+  // conectas o quitas una app: la revisión y las estadísticas se rehacen solas con las que quedan
+  if (antes !== '{}' && antes !== JSON.stringify(APPS)) { pintar(); if (Object.values(APPS).some(Boolean)) revisar('rapida'); }
   $('appsG').innerHTML = Object.entries(APPCFG).map(([k, a]) => {
     const on = APPS[k];
     let acc = '';
