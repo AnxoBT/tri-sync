@@ -89,6 +89,7 @@ def guardar_base(dx, lb=None, sz_stats=None):
         "anime": {str(k): v for k, v in (dx.get("anime_al") or {}).items()},  # id de Dixmax -> id de AniList
         "sz": {k: v for k, v in (sz_stats or {}).items() if k.startswith("sz_")},
         "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+        "sin_dixmax": bool(dx.get("sin_dixmax")),  # historial montado con Letterboxd, Serializd y AniList
     }
     save_cache(BASE, base)
 
@@ -229,9 +230,12 @@ def calcular(progress=print):
     if not b:
         return None
     pelis, series, lbf = b["pelis"], b["series"], b["lb"]
+    sin = b.get("sin_dixmax")
+    FP, FS = ("Letterboxd", "tus apps") if sin else ("Dixmax", "Dixmax")  # de dónde salen notas y favoritas
     vistas = [m for m in pelis if m["st"] == "watched"]
     # fichas de Dixmax de todo (país principal, géneros, reparto…): la primera vez tarda, luego va de caché
-    md = metadatos.fichas_dixmax([m["id"] for m in pelis] + [s["id"] for s in series], progress)
+    from .config import dixmax_api
+    md = metadatos.fichas_dixmax([m["id"] for m in pelis] + [s["id"] for s in series], progress) if dixmax_api() else {}
     D = lambda s: md.get(str(s["id"])) or {}  # noqa: E731
     anime_ids = set(b["anime"])
     ASIA = {"Japón", "China", "Corea del Sur", "Taiwán", "Hong Kong"}
@@ -369,7 +373,7 @@ def calcular(progress=print):
             _bloque("cast", "Actores que más te encuentras", "barras", _barras(cast, 12, sub("a")), "5 primeros del reparto", "lb"),
             _bloque("gen", "Géneros", "barras", _barras(gen_p, 10), "", "lb", dest=True),
             _bloque("favs", "Tus favoritas", "lista", [{"k": tit(m), "v": f"{m['r']:g}" if m.get("r") else "♥"} for m in favs_p[:10]],
-                    f"{len(favs_p)} películas con ♥ en Dixmax · las de mejor nota", "lb"),
+                    f"{len(favs_p)} películas con ♥ en {FP} · las de mejor nota", "lb"),
             _bloque("favgen", "Qué tienen tus favoritas", "barras", _barras(gen_fav, 8), "géneros de tus películas favoritas", "lb"),
             _bloque("favdir", "Directores de tus favoritas", "barras", _barras(dir_fav, 8), "", "lb"),
             _bloque("anio", "Películas por año", "columnas", sorted(Counter(d[:4] for _, d, _ in diario).items()),
@@ -404,7 +408,7 @@ def calcular(progress=print):
                     sorted(Counter(f"{int(m['y']) // 10 * 10}s" for m in vistas if str(m.get("y") or "").isdigit()).items()), "", "lb", 2),
             _bloque("dur", "Duración", "columnas", [(k, sum(1 for x in durs if a <= x < z)) for k, a, z in tramos], "minutos", "lb"),
             _bloque("notas", "Tus notas", "columnas", [(str(k), sum(1 for m in vistas if m.get("r") and round(m["r"]) == k)) for k in range(1, 11)],
-                    "Dixmax", "lb"),
+                    FP, "lb"),
         ],
     }
 
@@ -477,26 +481,26 @@ def calcular(progress=print):
                 _bloque("nicho", "Joyas ocultas", "lista", [{"k": s["t"], "v": fmt_pop(s)} for s in pop[:8]],
                         f"las menos populares en {gente} de las que has visto", c, dest=True),
                 _bloque("masivas", "Las más populares", "lista", [{"k": s["t"], "v": fmt_pop(s)} for s in pop[::-1][:8]],
-                        "en AniList" if es_an else "en TVmaze (0-100); a igualdad, las más votadas en Dixmax", c),
+                        "en AniList" if es_an else "en TVmaze (0-100)" if sin else "en TVmaze (0-100); a igualdad, las más votadas en Dixmax", c),
                 _bloque("mas", "Te gustaron más que a la gente", "lista",
                         [{"k": s["t"], "v": f"tú {s['r']:g} · {gente} {g:.1f}"} for x, s, g in sorted(yo, key=lambda x: -x[0])[:8] if x > 0],
                         f"tu nota frente a la media de {gente}", c),
                 _bloque("menos", "Te gustaron menos que a la gente", "lista",
                         [{"k": s["t"], "v": f"tú {s['r']:g} · {gente} {g:.1f}"} for x, s, g in sorted(yo, key=lambda x: x[0])[:8] if x < 0], "", c),
                 _bloque("favs", "Tus favoritas", "lista", [{"k": s["t"], "v": f"{s['r']:g}" if s.get("r") else "♥"} for s in favs[:10]],
-                        f"{len(favs)} con ♥ (favorita en Dixmax)", c),
+                        f"{len(favs)} con ♥ (favorita en {FS})", c),
                 _bloque("estados", "En qué punto estás", "barras",
                         [{"k": k, "n": n} for k, n in (("Terminadas", sum(1 for s in todas if s["st"] == "finished")),
                                                        ("Siguiendo", sum(1 for s in todas if s["st"] == "watching")),
                                                        ("Pendientes", sum(1 for s in todas if s["st"] == "watchlist")),
                                                        ("Abandonadas", sum(1 for s in todas if s["st"] == "dropped"))) if n],
-                        "según tu marca en Dixmax", c),
+                        f"según tu marca en {FS}", c),
                 _bloque("temas", "Temas y franquicias", "barras", _barras(tem, 10, sb("t")), "etiquetas de Dixmax", c),
                 _bloque("dir", "Dirección", "barras", _barras(dire, 10, sb("d")), "Dixmax", c),
                 _bloque("dec", "Por década de estreno", "columnas",
                         sorted(Counter(f"{int(s['y']) // 10 * 10}s" for s in lista if str(s.get("y") or "").isdigit()).items()), "", c, 2),
                 _bloque("notas", "Tus notas", "columnas", [(str(k), sum(1 for s in lista if s.get("r") and round(s["r"]) == k)) for k in range(1, 11)],
-                        "Dixmax", c),
+                        FS, c),
             ],
         }
     tipos = {"pelis": pel, "series": tipo_series(ser, False), "anime": tipo_series(ani, True)}

@@ -44,14 +44,17 @@
 
 **Apps: connect only the ones you use**
 
-- **Dixmax / PlayMax** is the centre: everything is compared with it, so it is the only one required.
-  With its official API you don't even need its export
-- **Letterboxd** (films), **Serializd** (series) and **AniList** (anime) are optional; the ones you
-  don't connect don't show up anywhere and are not reviewed
+- **Any combination works**, and each app adds what it covers: **Letterboxd** films, **Serializd** series
+  (anime included), **AniList** anime (series and films), **Dixmax / PlayMax** everything. The ones you don't
+  connect don't show up anywhere, and neither do the statistics tabs no app feeds
+- With **Dixmax**, everything is compared with it (it's the only one with films, series and anime; with its
+  official API you don't even need its export). **Without Dixmax**, AniList is matched with Serializd (anime
+  series) and Letterboxd (anime films); Letterboxd and Serializd have nothing in common (films vs series)
+- With a **single app** there is nothing to compare, but you already get statistics
 - The first time, a short **welcome guide** (4 steps) explains how it works, and a welcome screen takes you to
   **Settings → Your apps**, with a card per app explaining what it does and how to connect it
 - **English and Spanish**: it follows your device's language, and you can change it in Settings. Everything is
-  translated (reviews, statistics, curiosities); only your film and series titles keep the names they have on Dixmax
+  translated (reviews, statistics, curiosities); only your film and series titles keep the names they have in your apps
 
 **Review**
 
@@ -224,14 +227,17 @@ released under the same licence, with its source code.
 
 **Apps: conecta solo las que uses**
 
-- **Dixmax / PlayMax** es el centro: todo se compara con él, así que es la única imprescindible. Con su
-  API oficial ni siquiera hace falta su export
-- **Letterboxd** (películas), **Serializd** (series) y **AniList** (anime) son opcionales; las que no
-  conectes no aparecen en ningún sitio ni se revisan
+- **Vale cualquier combinación**, y cada app suma lo suyo: **Letterboxd** películas, **Serializd** series
+  (anime incluido), **AniList** anime (series y películas), **Dixmax / PlayMax** todo. Las que no conectes no
+  aparecen en ningún sitio, y tampoco las pestañas de estadísticas que no alimenta ninguna app
+- Con **Dixmax**, todo se compara con ella (es la única con pelis, series y anime; con su API oficial ni
+  siquiera hace falta su export). **Sin Dixmax**, AniList se cruza con Serializd (series de anime) y con
+  Letterboxd (pelis de anime); Letterboxd y Serializd no tienen nada en común (pelis frente a series)
+- Con **una sola app** no hay nada que comparar, pero ya tienes estadísticas
 - La primera vez, una **guía de bienvenida** de 4 pasos explica cómo funciona, y una bienvenida te lleva a
   **Configuración → Tus aplicaciones**, con una tarjeta por app que explica qué hace y cómo conectarla
 - **Español e inglés**: sigue el idioma del dispositivo y se cambia en Configuración. Se traduce todo (revisión,
-  estadísticas, curiosidades); solo los títulos de tus películas y series se quedan como los tiene Dixmax
+  estadísticas, curiosidades); solo los títulos de tus películas y series se quedan como los tienen tus apps
 
 **Revisión**
 

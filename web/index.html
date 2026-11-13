@@ -107,7 +107,7 @@
   .stsel { display:inline-flex; gap:4px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:4px; }
   .stsel button { border:0; background:none; color:var(--muted); padding:7px 16px; border-radius:7px; position:relative; }
   .stsel button.on { background:var(--panel2); color:var(--text); box-shadow:inset 0 -2px 0 var(--c); }
-  .tres { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin-bottom:12px; }
+  .tres { display:grid; grid-template-columns:repeat(var(--n, 3), minmax(0,1fr)); gap:12px; margin-bottom:12px; }
   .tres .col { display:flex; flex-direction:column; gap:12px; min-width:0; }
   .colhead { display:flex; align-items:baseline; gap:10px; padding:8px 2px 2px; border-bottom:2px solid var(--c); cursor:pointer; }
   .colhead b { font-size:16px; } .colhead span { color:var(--muted); font-size:12.5px; } .colhead a { margin-left:auto; font-size:12px; }
@@ -269,8 +269,7 @@
   <div class="idioma"><div><b>Idioma</b><div class="h">La app en español o en inglés.</div></div>
     <div class="seg2 no-i18n"><button id="lEs" onclick="cambiarIdioma('es')">Español</button><button id="lEn" onclick="cambiarIdioma('en')">English</button></div></div>
   <h3 class="sttit">Tus aplicaciones</h3>
-  <p class="nota" style="color:var(--muted);margin:-4px 0 12px">Conecta solo las que uses. Dixmax es el centro (todo se compara con lo que tienes allí);
-    las demás son opcionales y, si no están conectadas, no aparecen ni se revisan.</p>
+  <p class="nota" style="color:var(--muted);margin:-4px 0 12px">Conecta solo las que uses, en cualquier combinación. Dixmax es la única que lleva pelis, series y anime: si la tienes, todo se compara con ella. Sin Dixmax, AniList se cruza con Serializd (series de anime) y con Letterboxd (pelis de anime); Letterboxd y Serializd no tienen nada en común (pelis frente a series). Con una sola app ya tienes estadísticas.</p>
   <div class="appsg" id="appsG"></div>
   <details class="avz"><summary>Avanzado</summary><div class="cfg" id="cfgForm"></div></details>
   <div style="display:flex;gap:10px;margin:14px 0;flex-wrap:wrap">
@@ -299,7 +298,7 @@
     <p>Mantiene tu historial igual en Dixmax, Letterboxd, Serializd y AniList: busca lo que no cuadra y lo arregla con un clic.</p>
     <div class="seg2 no-i18n"><button onclick="cambiarIdioma('es')" id="gEs">Español</button><button onclick="cambiarIdioma('en')" id="gEn">English</button></div></div>
   <div class="gpaso" data-i="1"><div class="gico">🔌</div><h2>Conecta tus apps</h2>
-    <p>En Configuración → Tus aplicaciones. Dixmax es imprescindible; las demás, solo si las usas. Lo que no conectes no aparece.</p></div>
+    <p>En Configuración → Tus aplicaciones. Conecta las que uses, en cualquier combinación; lo que no conectes no aparece.</p></div>
   <div class="gpaso" data-i="2"><div class="gico">🔍</div><h2>Revisa y aplica</h2>
     <p>Haz una revisión rápida (unos segundos) o completa. Elige qué hacer con cada diferencia, pulsa Simular para ver qué pasaría y Aplicar para hacerlo.</p></div>
   <div class="gpaso" data-i="3"><div class="gico">📊</div><h2>Mira tus estadísticas</h2>
@@ -431,7 +430,7 @@ function pasoGuia(d) { if (GUIA + d > 3) return cerrarGuia(); GUIA = Math.max(0,
 function cerrarGuia() {
   $('guia').classList.remove('on');
   try { localStorage.setItem('trisync_guia', '1'); } catch (e) {}
-  if (!APPS.dixmax) vista('cfg');  // sin nada conectado, a configurarlo
+  if (!Object.values(APPS).some(Boolean)) vista('cfg');  // sin nada conectado, a configurarlo
 }
 IDIOMA_LISTO.then(() => {
   ['lEs', 'gEs'].forEach(id => $(id).classList.toggle('on', LANG === 'es')); ['lEn', 'gEn'].forEach(id => $(id).classList.toggle('on', LANG === 'en'));
@@ -508,6 +507,7 @@ IDIOMA_LISTO.then(() => {
 const NOMBRES = {dixmax: 'Dixmax', letterboxd: 'Letterboxd', serializd: 'Serializd', anilist: 'AniList'};
 const COLOR = {dixmax: 'dx', letterboxd: 'lb', serializd: 'sz', anilist: 'al'};
 let ANILIST = false, APPS = {}, WEBS = 'tus apps';
+let CRUZAN = true;  // ¿las apps conectadas tienen algo en común que comparar?
 const lista = xs => xs.length > 1 ? xs.slice(0, -1).join(', ') + (LANG === 'en' ? ' and ' : ' y ') + xs[xs.length - 1] : xs.join('');
 async function estado() {
   const e = await (await fetch('/api/estado')).json();
@@ -515,15 +515,15 @@ async function estado() {
   const dx = e.exports.dixmax, lb = e.exports.letterboxd, act = Object.keys(NOMBRES).filter(k => APPS[k]);
   ANILIST = !!APPS.anilist;
   WEBS = lista(act.map(k => NOMBRES[k]));
-  // primera vez (o sin Dixmax, o sin nada con qué compararlo): bienvenida que lleva a Configuración
-  const listo = APPS.dixmax && act.length > 1;
+  // primera vez (sin ninguna app): bienvenida que lleva a Configuración. Cualquier combinación vale.
+  const listo = act.length > 0;
+  CRUZAN = APPS.dixmax ? act.length > 1 : APPS.anilist && (APPS.serializd || APPS.letterboxd);
   $('bienvenida').classList.toggle('hidden', listo);
   ['cards', 'pasos', 'tools', 'lista'].forEach(id => $(id).classList.toggle('hidden', !listo));
   $('abar').classList.toggle('hidden', !listo || !$('vCfg').classList.contains('hidden') || $('vRev').classList.contains('hidden'));
-  if (!listo) $('bienvenida').innerHTML = `<div class="bienv"><h2>${act.length ? 'Te falta poco' : 'Bienvenido a Tri-Sync'}</h2>
-    <p>Tri-Sync compara lo que ves en <b>Dixmax</b> con tus otras apps y te deja arreglar con un clic lo que no cuadra.
-    ${!APPS.dixmax ? 'Empieza conectando <b>Dixmax</b> y al menos otra app.' : 'Conecta al menos otra app para tener con qué comparar.'}</p>
-    <div class="logos">${Object.entries(NOMBRES).map(([k, n]) => `<span style="--c:var(--${COLOR[k]})">${APPS[k] ? '✓ ' : ''}${n}${k === 'dixmax' ? '' : ' <small style="color:var(--muted)">(opcional)</small>'}</span>`).join('')}</div>
+  if (!listo) $('bienvenida').innerHTML = `<div class="bienv"><h2>Bienvenido a Tri-Sync</h2>
+    <p>Tri-Sync compara tu historial entre Dixmax, Letterboxd, Serializd y AniList y te deja arreglar con un clic lo que no cuadra.</p><p>Conecta las que uses: con una ya tienes estadísticas; con dos o más, además las compara.</p>
+    <div class="logos">${Object.entries(NOMBRES).map(([k, n]) => `<span style="--c:var(--${COLOR[k]})">${n}</span>`).join('')}</div>
     <button class="pri" onclick="vista('cfg')">Configurar mis apps →</button></div>`;
   const card = (k, v, sub) => `<div class="card ${COLOR[k]}"><h3>${NOMBRES[k]}</h3><div class="v">${v}</div><div class="s">${sub}</div></div>`;
   $('cards').innerHTML = (APPS.dixmax ? card('dixmax', e.dixmax_api ? 'En directo (API)' : 'Export', `export: ${dx.fecha ? esc(dx.edad) : 'ninguno'}`) : '') +
@@ -584,6 +584,10 @@ function detalleHist(tr, i) {
 // ---------- estadísticas ----------
 // colores por tipo: pelis = celeste (Letterboxd), series = verde (Serializd), anime = azul (AniList), todo = naranja (Dixmax)
 const TIPO = {todo: ['Todo', 'dx'], pelis: ['Películas', 'lb'], series: ['Series', 'sz'], anime: ['Anime', 'al']};
+// solo los tipos que dan tus apps: Letterboxd pelis · Serializd series y anime · AniList anime (series y pelis) · Dixmax todo
+const tipoOn = k => k === 'todo' || (APPS.dixmax || {pelis: APPS.letterboxd || APPS.anilist, series: APPS.serializd,
+  anime: APPS.serializd || APPS.anilist}[k]);
+const TIPOS = () => Object.entries(TIPO).filter(([k]) => tipoOn(k));
 let ST = null, VISTA = 'todo', MAPA_TIPO = 'todo', MAPA_EST = 'vistas', ANIO = null, MUNDO = null, stPoll = null;
 const nfmt = n => Number(n).toLocaleString('es-ES');
 const mezcla = (c, t) => `color-mix(in oklab, var(--${c}) ${Math.round(12 + 88 * t)}%, var(--panel2))`;
@@ -611,7 +615,8 @@ const AYUDA_MAPA = matchMedia('(pointer:coarse)').matches ? 'pellizca para acerc
   : 'rueda para acercar, arrastra para moverte, doble clic para volver';
 function pintaStats() {
   const s = ST;
-  $('stSel').innerHTML = Object.entries(TIPO).map(([k, [t, c]]) =>
+  if (!tipoOn(VISTA)) VISTA = MAPA_TIPO = 'todo';
+  $('stSel').innerHTML = TIPOS().map(([k, [t, c]]) =>
     `<button class="${k === VISTA ? 'on' : ''}" style="--c:var(--${c})" onclick="VISTA='${k}';MAPA_TIPO='${k}';pintaStats()">${t}</button>`).join('');
   const T = VISTA === 'todo' ? null : s.tipos[VISTA], c = TIPO[VISTA][1];
   const tiles = (xs, col) => `<div class="stiles">` + xs.map(x => `<div class="stile ${x.c || col}"><div class="v">${esc(x.v)}</div><div class="t">${esc(x.t)}</div></div>`).join('') + '</div>';
@@ -619,7 +624,8 @@ function pintaStats() {
   if (!T) {
     h += tiles(s.resumen);
     // tres columnas temáticas: lo más destacado de cada tipo (en el móvil, debajo del mapa y de «Tu año»)
-    let cols = `<div class="tres">` + ['pelis', 'series', 'anime'].map(k => {
+    const on = ['pelis', 'series', 'anime'].filter(tipoOn);
+    let cols = `<div class="tres" style="--n:${on.length}">` + on.map(k => {
       const t = s.tipos[k], [nom, col] = TIPO[k];
       return `<div class="col"><div class="colhead" style="--c:var(--${col})" onclick="VISTA='${k}';MAPA_TIPO='${k}';pintaStats()">
           <b>${nom}</b><span>${esc(t.resumen[0].v)} · ${esc((t.resumen.find(x => x.t === 'Horas') || {}).v || '')} h</span><a>ver todo →</a></div>` +
@@ -651,7 +657,7 @@ function pintaStats() {
 function pintaMapaChips() {
   const m = ST.mapa, n = (k, e) => Object.keys((m[k] || {})[e] || {}).length;
   if (!estadosDe(MAPA_TIPO).includes(MAPA_EST)) MAPA_EST = 'vistas';
-  if ($('mapaTipos')) $('mapaTipos').innerHTML = Object.entries(TIPO).map(([k, [t]]) =>
+  if ($('mapaTipos')) $('mapaTipos').innerHTML = TIPOS().map(([k, [t]]) =>
     `<span class="chip ${k === MAPA_TIPO ? 'on' : ''}" onclick="MAPA_TIPO='${k}';pintaMapaChips();pintaMapa()">${t}<b>${n(k, MAPA_EST)}</b></span>`).join('');
   $('mapaEst').innerHTML = estadosDe(MAPA_TIPO).map(e =>
     `<span class="chip ${e === MAPA_EST ? 'on' : ''}" onclick="MAPA_EST='${e}';pintaMapaChips();pintaMapa()">${e === 'vistas' && MAPA_TIPO === 'pelis' ? 'Vistas' : ESTADOS[e]}<b>${n(MAPA_TIPO, e)}</b></span>`).join('');
@@ -793,6 +799,7 @@ function pintar() {
     Object.entries(cats).map(([c, n]) => `<span class="chip ${filtroCat === c ? 'on' : ''}" onclick='filtroCat=${JSON.stringify(c)};pintar()'>${esc(c)}<b>${n}</b></span>`).join('');
   const items = all.filter(d => (!filtroCat || d.categoria === filtroCat) && (!q || d.titulo.toLowerCase().includes(q)));
   if (!DATA.calculado && !all.length) { $('lista').innerHTML = `<div class="empty"><b>Aún no has revisado</b>Pulsa «Revisión rápida» (o «Completa» la primera vez).</div>`; return contar(); }
+  if (!all.length && !CRUZAN) { $('lista').innerHTML = `<div class="empty"><b>Con estas apps no hay nada que comparar</b>${Object.values(APPS).filter(Boolean).length < 2 ? 'Con una sola app no hay con qué comparar: conecta otra para revisar. Las estadísticas ya salen con lo que tienes.' : `Letterboxd lleva películas y Serializd series: no tienen nada en común. Conecta Dixmax o AniList para revisar; las estadísticas sí salen con lo que tienes.`}</div>`; return contar(); }
   if (!all.length) { $('lista').innerHTML = `<div class="empty"><b>✓ Todo cuadra</b>${esc(WEBS)} están sincronizados.</div>`; return contar(); }
   const g = {};
   items.forEach(d => (g[d.seccion + '|' + d.categoria] ??= []).push(d));
@@ -848,7 +855,9 @@ let runPoll = null;
 async function ejecutar(simulacion) {
   const acciones = elegidas();
   if (!acciones.length) return;
-  if (!simulacion && !confirm(`¿Aplicar ${acciones.length} acciones de verdad?\n\n${ANILIST ? 'Dixmax, Serializd y AniList' : 'Dixmax y Serializd'} se cambian directamente; para Letterboxd se genera el CSV.`)) return;
+  const directas = lista(['dixmax', 'serializd', 'anilist'].filter(k => APPS[k]).map(k => NOMBRES[k]));
+  if (!simulacion && !confirm(`¿Aplicar ${acciones.length} acciones de verdad?\n\n` + (directas ? `${directas} se cambian directamente. ` : '')
+    + (APPS.letterboxd ? 'Para Letterboxd se genera el CSV.' : ''))) return;
   await fetch('/api/run', {method: 'POST', body: JSON.stringify({acciones, simulacion})});
   seguirRun();
 }
@@ -924,7 +933,7 @@ async function pasarMovil() {
 // ---------- configuración ----------
 // cada app: qué es, sus campos y cómo se conecta
 const APPCFG = {
-  dixmax: {que: 'Tu historial de películas, series y anime (el centro: todo se compara con él).', campos: [
+  dixmax: {que: 'Tu historial de películas, series y anime. Si la conectas, todo se compara con ella.', campos: [
     ['DIXMAX_API_KEY', 'apiKey', 'playmax.mx/tusapps.php → Añadir App → copia la apiKey de tu app.', 1],
     ['DIXMAX_AUTH_KEY', 'authKey', 'Panel de Control → Aplicaciones autorizadas → autoriza tu app y copia la authKey.', 1]],
     nota: 'Con la API no hace falta el export: se lee todo en directo (la primera vez tarda unos minutos).'},
@@ -955,7 +964,7 @@ async function cargarCfg() {
     if (k === 'anilist') acc = `<button class="${on ? '' : 'pri'}" onclick="conectarAnilist()">${on ? 'Volver a conectar' : 'Conectar con AniList'}</button>`;
     const api = a.api ? `<details ${c.LETTERBOXD_CLIENT_ID ? 'open' : ''}><summary>API de Letterboxd (opcional)</summary>${a.api.map(f => campo(c, f)).join('')}
       <div class="acc"><button onclick="conectarLetterboxd()">${c.LETTERBOXD_TOKEN && c.LETTERBOXD_TOKEN.puesto ? '✓ Conectada · volver a conectar' : 'Conectar la API'}</button></div></details>` : '';
-    return `<div class="app" style="--c:var(--${COLOR[k]})"><div class="cab"><b>${NOMBRES[k]}</b>${k === 'dixmax' ? '<span class="pill">imprescindible</span>' : ''}
+    return `<div class="app" style="--c:var(--${COLOR[k]})"><div class="cab"><b>${NOMBRES[k]}</b>
         <span class="est ${on ? 'ok' : ''}">${on ? '✓ conectada' + (k === 'anilist' && c.ANILIST_USER ? ' como ' + esc(c.ANILIST_USER) : '') : 'sin conectar'}</span></div>
       <p class="que">${a.que}</p>${a.campos.map(f => campo(c, f)).join('')}${a.nota ? `<div class="h">${a.nota}</div>` : ''}${api}
       <div class="acc">${acc}${on ? `<button onclick="quitarApp('${k}')">Quitar</button>` : ''}</div></div>`;

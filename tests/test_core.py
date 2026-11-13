@@ -187,9 +187,9 @@ class Revision(unittest.TestCase):
         config.ENV.clear()
         (config.DATOS / ".env").unlink(missing_ok=True)
 
-    def test_sin_dixmax_avisa(self):
+    def test_sin_apps_avisa(self):
         from core import diff
-        with self.assertRaisesRegex(RuntimeError, "Conecta Dixmax"):
+        with self.assertRaisesRegex(RuntimeError, "al menos una app"):
             diff.compute(lambda *a: None)
 
     def test_letterboxd_sin_export_no_tumba_la_revision(self):
@@ -203,11 +203,83 @@ class Revision(unittest.TestCase):
                 diff.compute(avisos.append)
         self.assertTrue(any("Letterboxd: no hay export" in a for a in avisos))
 
-    def test_solo_dixmax_pide_otra_app(self):
+    def test_sin_dixmax_solo_serializd(self):
+        """Sin Dixmax: el historial sale de Serializd y, sin AniList, no hay con qué compararlo (pero sí estadísticas)."""
+        from concurrent.futures import Future
         from core import diff
-        config.guardar_config({"DIXMAX_API_KEY": "a", "DIXMAX_AUTH_KEY": "b"})
-        with self.assertRaisesRegex(RuntimeError, "al menos una app más"):
-            diff.compute(lambda *a: None)
+
+        def hecho(v):
+            f = Future()
+            f.set_result(v)
+            return f
+        config.guardar_config({"SERIALIZD_TOKEN": "t"})
+        pre = {"diario": hecho(DIARIO_SZ), "notas": hecho([]),
+               "listas": {k: hecho({1399: {"name": "Juego de Tronos"}} if k == "watched" else {}) for k in
+                          ("watched", "watchlist", "watching", "dropped")}}
+        with mock.patch.object(diff, "Serializd") as sz, mock.patch.object(diff, "leer_serializd", return_value=pre):
+            sz.return_value.user = "yo"
+            r = diff.compute(lambda *a: None)
+        self.assertTrue(r["sin_dixmax"])
+        self.assertEqual(r["diferencias"], [])
+        self.assertIn("no tienen nada en común", r["aviso"])
+        b = config.cache_json(estadisticas.BASE)
+        self.assertEqual([(x["t"], x["st"], len(x["eps"])) for x in b["series"]], [("Juego de Tronos", "finished", 2)])
+
+
+DIARIO_SZ = [
+    {"showId": 1399, "showName": "Juego de Tronos", "showPremiereDate": "2011-04-17", "seasonId": 10, "episodeNumber": 1,
+     "showSeasons": [{"id": 10, "seasonNumber": 1}], "backdate": "2020-01-02T21:00:00Z"},
+    {"showId": 1399, "showName": "Juego de Tronos", "showPremiereDate": "2011-04-17", "seasonId": 10, "episodeNumber": 2,
+     "showSeasons": [{"id": 10, "seasonNumber": 1}], "backdate": "2020-01-03T21:00:00Z"},
+    {"showId": 1399, "showName": "Juego de Tronos", "showPremiereDate": "2011-04-17", "seasonId": 10, "episodeNumber": 2,
+     "showSeasons": [{"id": 10, "seasonNumber": 1}], "backdate": "2021-05-05T21:00:00Z"},  # vista otra vez: cuenta la primera
+    {"showId": 1399, "showName": "Juego de Tronos", "seasonId": None, "episodeNumber": None, "rating": 9, "like": True,
+     "dateAdded": "2021-06-01T00:00:00Z"},
+]
+
+
+class HistorialSinDixmax(unittest.TestCase):
+    def test_series_de_serializd(self):
+        from core import base
+        listas = {"watched": {1399: {}}, "watching": {}, "watchlist": {66732: {"name": "Stranger Things"}}, "dropped": {}}
+        s = {x["title"]: x for x in base.series_serializd(DIARIO_SZ, listas, [])}
+        got = s["Juego de Tronos"]
+        self.assertEqual((got["status"], got["year"], got["rating10"], got["favorite"]), ("finished", 2011, 9, True))
+        self.assertEqual([(e["season"], e["episode"], e["date"][:10]) for e in got["episodes"]],
+                         [(1, 1, "2020-01-02"), (1, 2, "2020-01-03")])
+        self.assertEqual((s["Stranger Things"]["status"], s["Stranger Things"]["episodes"]), ("watchlist", []))
+
+    def test_pelis_de_letterboxd(self):
+        from core import base
+        lb = {"films": [{"name": "Perfect Blue", "year": "1997", "uri": "https://boxd.it/x", "watched": True, "watchlist": False,
+                         "rating": 4.5, "like": True, "diary": [{"date": "2023-02-01"}, {"date": "2024-03-01"}]},
+                        {"name": "Nada", "year": "2000", "uri": "https://boxd.it/y", "watched": False, "watchlist": False,
+                         "rating": None, "like": False, "diary": []}]}
+        with mock.patch.object(base, "tmdb_letterboxd", return_value={"https://boxd.it/x": 10494}):
+            pelis = base.pelis_letterboxd(lb)
+        self.assertEqual(len(pelis), 1)
+        p = pelis[0]
+        self.assertEqual((p["tmdb"], p["year"], p["rating10"], p["favorite"], p["date"]),
+                         (10494, 1997, 9.0, True, "2024-03-01T12:00:00"))
+
+    def test_anime_solo_en_anilist(self):
+        from core import base
+        mp = {"tv": {"37854": [[21, 1]]}, "mv": {"10494": [437]}}
+        dx = {"movies": [], "shows": [], "al_lista": {
+            21: {"status": "CURRENT", "progress": 3, "score": 9.0, "completedAt": {}},
+            437: {"status": "COMPLETED", "progress": 1, "score": 8.5, "completedAt": {"year": 2024, "month": 5, "day": 2}}}}
+        med = {"21": {"formato": "TV", "titulo": "One Piece", "inicio": [1999, 10, 20]},
+               "437": {"formato": "MOVIE", "titulo": "Perfect Blue", "inicio": [1997, 2, 28]}}
+        with mock.patch("core.anilist.medios", return_value=med):
+            base.anime_anilist(dx, mp)
+        (sh,), (pe,) = dx["shows"], dx["movies"]
+        self.assertEqual((sh["tmdb"], sh["status"], len(sh["episodes"]), dx["anime_al"][sh["id"]]), (37854, "watching", 3, 21))
+        self.assertEqual((pe["tmdb"], pe["status"], pe["date"], pe["rating10"]), (10494, "watched", "2024-05-02T12:00:00", 8.5))
+        # lo que ya está por Serializd no se duplica
+        dx2 = {"movies": [], "shows": [{"tmdb": 37854}], "al_lista": {21: dx["al_lista"][21]}}
+        with mock.patch("core.anilist.medios", return_value=med):
+            base.anime_anilist(dx2, mp)
+        self.assertEqual(len(dx2["shows"]), 1)
 
 
 class Servidor(unittest.TestCase):

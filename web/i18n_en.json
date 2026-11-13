@@ -19,7 +19,6 @@
   "Te falta poco": "Almost there",
   "Tri-Sync compara lo que ves en": "Tri-Sync compares what you watch on",
   "con tus otras apps y te deja arreglar con un clic lo que no cuadra.": "with your other apps and lets you fix whatever doesn't match in one click.",
-  "Empieza conectando": "Start by connecting",
   "y al menos otra app.": "and at least one other app.",
   "Conecta al menos otra app para tener con qué comparar.": "Connect at least one more app so there is something to compare with.",
   "(opcional)": "(optional)",
@@ -119,13 +118,10 @@
   "anime en AniList": "anime on AniList",
   "favoritos AniList": "AniList favourites",
   "Tus aplicaciones": "Your apps",
-  "Conecta solo las que uses. Dixmax es el centro (todo se compara con lo que tienes allí); las demás son opcionales y, si no están conectadas, no aparecen ni se revisan.": "Connect only the ones you use. Dixmax is the centre (everything is compared with what you have there); the others are optional and, if they aren't connected, they don't show up and aren't reviewed.",
-  "imprescindible": "required",
   "✓ conectada": "✓ connected",
   "sin conectar": "not connected",
   "Quitar": "Remove",
   "conectada": "connected",
-  "Tu historial de películas, series y anime (el centro: todo se compara con él).": "Your film, series and anime history (the centre: everything is compared with it).",
   "apiKey": "apiKey",
   "authKey": "authKey",
   "Usuario": "Username",
@@ -436,7 +432,6 @@
   "Esto es Tri-Sync": "This is Tri-Sync",
   "Mantiene tu historial igual en Dixmax, Letterboxd, Serializd y AniList: busca lo que no cuadra y lo arregla con un clic.": "It keeps your history the same on Dixmax, Letterboxd, Serializd and AniList: it finds whatever doesn't match and fixes it in one click.",
   "Conecta tus apps": "Connect your apps",
-  "En Configuración → Tus aplicaciones. Dixmax es imprescindible; las demás, solo si las usas. Lo que no conectes no aparece.": "In Settings → Your apps. Dixmax is required; the others only if you use them. Whatever you don't connect doesn't show up.",
   "Revisa y aplica": "Review and apply",
   "Haz una revisión rápida (unos segundos) o completa. Elige qué hacer con cada diferencia, pulsa Simular para ver qué pasaría y Aplicar para hacerlo.": "Run a quick review (a few seconds) or a full one. Choose what to do with each difference, press Simulate to see what would happen and Apply to do it.",
   "Mira tus estadísticas": "Check your statistics",
@@ -494,13 +489,32 @@
   "Familia disfuncional": "Dysfunctional family",
   "Adolescencia": "Adolescence",
   "Sitcom": "Sitcom",
-  "con tus otras apps y te deja arreglar con un clic lo que no cuadra. Empieza conectando": "with your other apps and lets you fix whatever doesn't match in one click. Start by connecting",
-  "con tus otras apps y te deja arreglar con un clic lo que no cuadra. Conecta al menos otra app para tener con qué comparar.": "with your other apps and lets you fix whatever doesn't match in one click. Connect at least one more app so there is something to compare with."
+  "Conecta solo las que uses, en cualquier combinación. Dixmax es la única que lleva pelis, series y anime: si la tienes, todo se compara con ella. Sin Dixmax, AniList se cruza con Serializd (series de anime) y con Letterboxd (pelis de anime); Letterboxd y Serializd no tienen nada en común (pelis frente a series). Con una sola app ya tienes estadísticas.": "Connect only the ones you use, in any combination. Dixmax is the only one with films, series and anime: if you have it, everything is compared with it. Without Dixmax, AniList is matched with Serializd (anime series) and with Letterboxd (anime films); Letterboxd and Serializd have nothing in common (films versus series). With a single app you already get statistics.",
+  "En Configuración → Tus aplicaciones. Conecta las que uses, en cualquier combinación; lo que no conectes no aparece.": "In Settings → Your apps. Connect the ones you use, in any combination; whatever you don't connect doesn't show up.",
+  "Tu historial de películas, series y anime. Si la conectas, todo se compara con ella.": "Your film, series and anime history. If you connect it, everything is compared with it.",
+  "Tri-Sync compara tu historial entre Dixmax, Letterboxd, Serializd y AniList y te deja arreglar con un clic lo que no cuadra.": "Tri-Sync compares your history across Dixmax, Letterboxd, Serializd and AniList and lets you fix whatever doesn't match in one click.",
+  "Conecta las que uses: con una ya tienes estadísticas; con dos o más, además las compara.": "Connect the ones you use: with one you already get statistics; with two or more, it also compares them.",
+  "Con estas apps no hay nada que comparar": "Nothing to compare with these apps",
+  "Letterboxd lleva películas y Serializd series: no tienen nada en común. Conecta Dixmax o AniList para revisar; las estadísticas sí salen con lo que tienes.": "Letterboxd has films and Serializd has series: they have nothing in common. Connect Dixmax or AniList to review; statistics still work with what you have.",
+  "Para Letterboxd se genera el CSV.": "For Letterboxd the CSV is created.",
+  "Letterboxd: buscando el id de TMDB de": "Letterboxd: looking up the TMDB id of",
+  "Con una sola app no hay con qué comparar: conecta otra para revisar. Las estadísticas ya salen con lo que tienes.": "With a single app there is nothing to compare with: connect another one to review. Statistics already work with what you have.",
+  "según tu marca en tus apps": "according to your mark in your apps",
+  "tus apps": "your apps",
+  "en TVmaze (0-100)": "on TVmaze (0-100)"
  },
  "patrones": [
   [
-   "^¿Aplicar (\\d+) acciones de verdad\\?\n\n(.+) se cambian directamente; para Letterboxd se genera el CSV\\.$",
-   "Apply $1 actions for real?\n\n$2 are changed directly; for Letterboxd the CSV is created."
+   "^¿Aplicar (\\d+) acciones de verdad\\?\n\n(.+) se cambian directamente\\. ",
+   "Apply $1 actions for real?\n\n$2 are changed directly. "
+  ],
+  [
+   "^¿Aplicar (\\d+) acciones de verdad\\?\n\n",
+   "Apply $1 actions for real?\n\n"
+  ],
+  [
+   "Para Letterboxd se genera el CSV\\.$",
+   "For Letterboxd the CSV is created."
   ],
   [
    "^¿Quitar (.+) de Tri-Sync\\?\n\nSe borran sus claves de este (móvil|PC) y deja de revisarse\\. En (.+) no se toca nada\\.$",
@@ -743,12 +757,12 @@
    "$1 · mostly $2"
   ],
   [
-   "^(\\d+) películas con ♥ en Dixmax · las de mejor nota$",
-   "$1 films with ♥ on Dixmax · best rated first"
+   "^(\\d+) películas con ♥ en (Dixmax|Letterboxd) · las de mejor nota$",
+   "$1 films with ♥ on $2 · best rated first"
   ],
   [
-   "^(\\d+) con ♥ \\(favorita en Dixmax\\)$",
-   "$1 with ♥ (favourite on Dixmax)"
+   "^(\\d+) con ♥ \\(favorita en (Dixmax|tus apps)\\)$",
+   "$1 with ♥ (favourite on ⟦$2⟧)"
   ],
   [
    "^Las horas son aproximadas: si no se sabe la duración de un episodio, cuenta (\\d+) min \\((\\d+) en anime\\)\\.$",
@@ -853,6 +867,18 @@
   [
    "^(.+): (\\d[\\d.,]*) episodios$",
    "$1: $2 episodes"
+  ],
+  [
+   "^Letterboxd: buscando el id de TMDB de (\\d+) pelis \\(solo la primera vez\\)…$",
+   "Letterboxd: looking up the TMDB id of $1 films (first time only)…"
+  ],
+  [
+   "^Letterboxd: ids de TMDB (.+)$",
+   "Letterboxd: TMDB ids $1"
+  ],
+  [
+   "^⚠ revisa: en Serializd hay (\\d+) episodios y AniList cuenta (\\d+)",
+   "⚠ check: Serializd has $1 episodes and AniList counts $2"
   ]
  ]
 }

@@ -175,6 +175,7 @@ def diferencias(dx, progress=print):
     dx["al_lista"] = cur
     dx["anime_ids"] = {s["id"] for s in shows}
     favs = anilist.favoritos() if env("ANILIST_TOKEN") else set()
+    sin = dx.get("sin_dixmax")  # historial montado con Serializd y Letterboxd
     out = []
 
     def add(item, des, enlaces, aviso=""):
@@ -206,8 +207,13 @@ def diferencias(dx, progress=print):
         total = sum(n or 0 for _, _, n in partes)
         vistos = sum(1 for e in s["episodes"] if e["season"] > 0)
         if s["status"] == "finished" and all(n for _, _, n in partes) and vistos != total:
-            aviso = f"⚠ revisa: en Dixmax hay {vistos} episodios y AniList cuenta {total}"
+            aviso = f"⚠ revisa: en {'Serializd' if sin else 'Dixmax'} hay {vistos} episodios y AniList cuenta {total}"
         des = _deseado_serie(s, partes)
+        if s.get("nota_entera"):  # Serializd solo da notas enteras: 8.5 en AniList y 8 en Serializd ya cuadran
+            for d in des:
+                ya = (cur.get(d["mediaId"]) or {}).get("score")
+                if ya and d.get("scoreRaw") and int(ya) == d["scoreRaw"] // 10:
+                    d["scoreRaw"] = None
         dx.setdefault("anime_al", {})[s["id"]] = min(partes, key=lambda p: med[str(p[0])]["inicio"])[0]
         if s.get("favorite") or s["tmdb"] in dx.get("sz_favs", set()):
             # favorita en Dixmax o ♥ en Serializd: en AniList se marca la primera temporada
@@ -215,9 +221,9 @@ def diferencias(dx, progress=print):
             for d in des:
                 if d["mediaId"] == primera:
                     d["favorito"] = True
-        add(s, des, {"Dixmax": s.get("url")}, aviso)
+        add(s, des, {("Serializd" if sin else "Dixmax"): s.get("url")}, aviso)
     for m in pelis:
-        add(m, _deseado_peli(m, mp["mv"][str(m["tmdb"])], med), {"Dixmax": m.get("url")})
+        add(m, _deseado_peli(m, mp["mv"][str(m["tmdb"])], med), {("Letterboxd" if sin else "Dixmax"): m.get("url")})
     # lo que tienes en AniList y no en Dixmax (ni es parte, OVA o secuela de algo que sí está)
     conocidos = ids | {e["mediaId"] for x in out for e in x["datos"]["entradas"]}
     solo = [i for i in cur if i not in conocidos]

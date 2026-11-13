@@ -252,17 +252,77 @@ def _stats_dx(dx):
             "dx_episodios": sum(len(s["episodes"]) for s in dx["shows"])}
 
 
+def _stats_lb(lb):
+    return {"lb_vistas": sum(1 for f in lb["films"] if f["watched"]), "lb_watchlist": sum(1 for f in lb["films"] if f["watchlist"]),
+            "lb_me_gusta": sum(1 for f in lb["films"] if f["like"]), "lb_diario": sum(len(f["diary"]) for f in lb["films"])}
+
+
+def _final(res, dx, lb, solo, progress):
+    res["stats"] = dict(STATS)
+    if solo is None:  # estadísticas y novedades solo con la revisión entera
+        from . import estadisticas
+        try:
+            estadisticas.guardar_base(dx, lb, STATS)  # las estadísticas se calculan luego, en segundo plano
+            res["novedades"] = estadisticas.novedades(dx)
+        except Exception as e:  # una curiosidad que falle no debe tumbar la revisión
+            progress(f"Estadísticas: no se pudieron calcular ({e})")
+    return res
+
+
+def _sin_dixmax(ap, solo, progress, rapida):
+    """Sin Dixmax: el historial sale de Letterboxd (pelis) y Serializd (series), y se cruza con AniList.
+    Letterboxd y Serializd no tienen nada en común entre sí (pelis frente a series)."""
+    from . import base
+    from .config import env
+    STATS.clear()
+    res = {"fuentes": {}, "diferencias": [], "modo": "rápida" if rapida else "completa", "sin_dixmax": True}
+    lb = szd = None
+    if ap["letterboxd"]:
+        progress("Leyendo export de Letterboxd…")
+        lb = letterboxd.load()
+        res["fuentes"]["letterboxd"] = lb["export"]
+        STATS.update(_stats_lb(lb))
+    if ap["serializd"]:
+        sz = Serializd()
+        sz.check()
+        progress("Serializd: leyendo diario, listas y notas a la vez…")
+        pre = leer_serializd(sz, rapida)
+        szd = {"diario": pre["diario"].result(), "listas": {k: f.result() for k, f in pre["listas"].items()},
+               "notas": pre["notas"].result()}
+        res["fuentes"]["serializd"] = sz.user
+        STATS.update(sz_diario=len(szd["diario"]), sz_vistas=len(szd["listas"]["watched"]),
+                     sz_favoritas=sum(1 for x in szd["notas"] + szd["diario"] if x.get("isLog") and x.get("like")))
+    dx = base.montar(lb, szd, progress)
+    if ap["anilist"] and solo in (None, "anime"):
+        from . import anime
+        try:
+            difs, st = anime.diferencias(dx, progress)
+            res["diferencias"] += [d for d in difs if d["categoria"] != "Solo en AniList"]  # sin Dixmax: nada que añadir
+            STATS.update(st)
+            res["fuentes"]["anilist"] = env("ANILIST_USER")
+            if solo is None:  # para las estadísticas: el anime que solo está en AniList
+                base.anime_anilist(dx, anime.mapa(progress), progress)
+        except Exception as e:
+            progress(f"AniList: no se pudo revisar ({e})")
+            res["fuentes"]["anilist"] = f"error: {e}"
+    elif solo is None:
+        res["aviso"] = ("Sin Dixmax, Letterboxd (películas) y Serializd (series) no tienen nada en común que comparar: "
+                        "conecta AniList o Dixmax para revisar. Las estadísticas sí salen con lo que tienes.")
+    return _final(res, dx, lb, solo, progress)
+
+
 def compute(progress=print, solo=None, rapida=False):
-    """Revisa solo las apps conectadas (Configuración). Dixmax es el centro: sin él no hay con qué comparar."""
+    """Revisa solo las apps conectadas (Configuración), en cualquier combinación. Con Dixmax todo se compara con él
+    (es la única que lleva pelis, series y anime); sin él, lo que se pueda cruzar entre las demás."""
     from .config import apps, dixmax_api as config_dixmax_api, find_exports
     ap = apps()
     if ap["letterboxd"] and solo in (None, "peliculas") and not find_exports("letterboxd-"):
         progress("Letterboxd: no hay export (descárgalo e impórtalo); de momento se revisa lo demás")
         ap["letterboxd"] = False
+    if not any(ap.values()):
+        raise RuntimeError("Conecta al menos una app en Configuración")
     if not ap["dixmax"]:
-        raise RuntimeError("Conecta Dixmax en Configuración: todo se compara con lo que tienes en Dixmax")
-    if solo is None and not (ap["letterboxd"] or ap["serializd"] or ap["anilist"]):
-        raise RuntimeError("Conecta al menos una app más (Letterboxd, Serializd o AniList) en Configuración")
+        return _sin_dixmax(ap, solo, progress, rapida)
     hacer = lambda k, app: solo in (None, k) and ap[app]  # noqa: E731
     sz = pre = None
     if hacer("series", "serializd"):  # Serializd se va leyendo mientras se lee Dixmax
@@ -287,8 +347,7 @@ def compute(progress=print, solo=None, rapida=False):
         res["fuentes"]["letterboxd"] = lb["export"]
         progress("Cruzando películas…")
         res["diferencias"] += peliculas(dx, lb)
-        STATS.update(lb_vistas=sum(1 for f in lb["films"] if f["watched"]), lb_watchlist=sum(1 for f in lb["films"] if f["watchlist"]),
-                     lb_me_gusta=sum(1 for f in lb["films"] if f["like"]), lb_diario=sum(len(f["diary"]) for f in lb["films"]))
+        STATS.update(_stats_lb(lb))
     if hacer("series", "serializd"):
         res["fuentes"]["serializd"] = sz.user
         res["diferencias"] += series(dx, sz, progress, rapida=rapida, pre=pre)
@@ -302,12 +361,4 @@ def compute(progress=print, solo=None, rapida=False):
         except Exception as e:  # AniList caído no debe estropear el resto de la revisión
             progress(f"AniList: no se pudo revisar ({e})")
             res["fuentes"]["anilist"] = f"error: {e}"
-    res["stats"] = dict(STATS)
-    if solo is None:  # estadísticas y novedades solo con la revisión entera
-        from . import estadisticas
-        try:
-            estadisticas.guardar_base(dx, lb, STATS)  # las estadísticas se calculan luego, en segundo plano
-            res["novedades"] = estadisticas.novedades(dx)
-        except Exception as e:  # una curiosidad que falle no debe tumbar la revisión
-            progress(f"Estadísticas: no se pudieron calcular ({e})")
-    return res
+    return _final(res, dx, lb, solo, progress)
