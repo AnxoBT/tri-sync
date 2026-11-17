@@ -41,8 +41,6 @@
   </tr>
 </table>
 
-<p align="center"><img src="docs/screenshots/en_welcome.gif" width="420" alt="Welcome guide: how Tri-Sync works"></p>
-
 <table>
   <tr>
     <td width="50%"><img src="docs/screenshots/en_review.png" alt="Review: every difference between your apps, grouped"></td>
@@ -254,8 +252,6 @@ released under the same licence, with its source code.
     </td>
   </tr>
 </table>
-
-<p align="center"><img src="docs/screenshots/es_welcome.gif" width="420" alt="Guía de bienvenida: cómo funciona Tri-Sync"></p>
 
 <table>
   <tr>
