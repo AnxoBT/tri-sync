@@ -1,6 +1,7 @@
 {
  "_info": "Traducciones al inglés de todo lo que se ve en Tri-Sync (la web traduce al mostrar). exactos: texto completo de un nodo o atributo; patrones: [expresión regular, sustitución] para lo que lleva números o nombres. Fechas, números, dinero y países los traduce index.html.",
  "exactos": {
+  "export: ninguno": "export: none",
   "Revisión": "Review",
   "Historial": "History",
   "Estadísticas": "Statistics",
@@ -612,6 +613,10 @@
   [
    "^(\\d+) acciones seleccionadas$",
    "$1 actions selected"
+  ],
+  [
+   "^(\\d+) acciones$",
+   "$1 actions"
   ],
   [
    "^(\\d+) cambios? aplicados? y quitados? de la lista\\.",

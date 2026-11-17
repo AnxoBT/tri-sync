@@ -43,6 +43,23 @@
 
 <p align="center"><img src="docs/screenshots/en_welcome.gif" width="420" alt="Welcome guide: how Tri-Sync works"></p>
 
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/en_review.png" alt="Review: every difference between your apps, grouped"></td>
+    <td width="50%"><img src="docs/screenshots/en_stats.png" alt="Statistics: films, series and anime at a glance"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/en_history.png" alt="History of reviews and applied changes"></td>
+    <td width="50%"><img src="docs/screenshots/en_settings.png" alt="Settings: connect only the apps you use"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/en_simulate.gif" alt="Choose what to do with each difference and simulate it"></td>
+    <td width="50%"><img src="docs/screenshots/en_stats.gif" alt="Statistics: world map, your year, when you watch and curiosities"></td>
+  </tr>
+</table>
+
+<p align="center"><sub>Demo data: well-known films, series and anime with invented dates and ratings.</sub></p>
+
 ### Features
 
 **Apps: connect only the ones you use**
@@ -181,6 +198,7 @@ python -m unittest discover -s tests -v     # tests (no network, temporary folde
 python sync.py                               # run it on the PC
 cd android && ./gradlew assembleRelease      # Android APK (JDK 17 + Android SDK; android/local.properties with sdk.dir)
 python -m tools.generar_icono_android        # Android and iPhone icons from web/logo.ico
+python -m tools.demo <empty folder>         # demo data for screenshots (TRISYNC_DATOS=<folder> python sync.py)
 ```
 
 iPhone (on a Mac; GitHub Actions does it on every change in `ios/` with `.github/workflows/ios.yml`):
@@ -238,6 +256,23 @@ released under the same licence, with its source code.
 </table>
 
 <p align="center"><img src="docs/screenshots/es_welcome.gif" width="420" alt="Guía de bienvenida: cómo funciona Tri-Sync"></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/es_review.png" alt="Revisión: todas las diferencias entre tus apps, por grupos"></td>
+    <td width="50%"><img src="docs/screenshots/es_stats.png" alt="Estadísticas: películas, series y anime de un vistazo"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/es_history.png" alt="Historial de revisiones y de cambios aplicados"></td>
+    <td width="50%"><img src="docs/screenshots/es_settings.png" alt="Configuración: conecta solo las apps que uses"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/es_simulate.gif" alt="Elige qué hacer con cada diferencia y simúlalo"></td>
+    <td width="50%"><img src="docs/screenshots/es_stats.gif" alt="Estadísticas: mapa del mundo, tu año, cuándo ves y curiosidades"></td>
+  </tr>
+</table>
+
+<p align="center"><sub>Datos de demostración: películas, series y anime conocidos con fechas y notas inventadas.</sub></p>
 
 ### Funciones
 
@@ -375,6 +410,7 @@ python -m unittest discover -s tests -v     # pruebas (sin red, en una carpeta t
 python sync.py                               # abrirlo en el PC
 cd android && ./gradlew assembleRelease      # APK de Android (JDK 17 + Android SDK; android/local.properties con sdk.dir)
 python -m tools.generar_icono_android        # iconos de Android y de iPhone a partir de web/logo.ico
+python -m tools.demo <carpeta vacía>        # datos de demo para capturas (TRISYNC_DATOS=<carpeta> python sync.py)
 ```
 
 iPhone (en un Mac; GitHub Actions lo hace en cada cambio de `ios/` con `.github/workflows/ios.yml`):

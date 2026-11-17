@@ -615,15 +615,15 @@ function detalleHist(tr, i) {
   const r = HIST[i], lista = (xs, f) => xs && xs.length ? '<ul>' + xs.map(f).join('') + '</ul>' : '<p>—</p>';
   let html;
   if (r.modo === 'aplicación') {
-    html = `<b>Qué se aplicó</b>` + lista(r.acciones, a => `<li>${a.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'} <b>${esc(a.t)}</b> · ${esc(a.a || '')} <span style="opacity:.7">(${esc(a.c || '')})</span></li>`);
+    html = `<b>Qué se aplicó</b>` + lista(r.acciones, a => `<li>${a.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'} <b>${esc(a.t)}</b> · ${esc(t(a.a || ''))} <span style="opacity:.7">(${esc(t(a.c || ''))})</span></li>`);
   } else {
     const nov = r.novedades;
     html = `<b>Novedades en tus webs desde la revisión anterior</b>` +
-      (nov == null ? '<p>No se guardaba en esta revisión (empieza a contar desde la versión 1.8).</p>' : nov.length ? lista(nov, x => `<li>${esc(x)}</li>`) : '<p>Nada nuevo.</p>');
+      (nov == null ? '<p>No se guardaba en esta revisión (empieza a contar desde la versión 1.8).</p>' : nov.length ? lista(nov, x => `<li>${esc(t(x))}</li>`) : '<p>Nada nuevo.</p>');
     const g = {};
     (r.detalle || []).forEach(d => (g[d.c] ??= []).push(d));
     html += `<b>Diferencias que encontró</b>` + (r.detalle == null ? '<p>No se guardaba en esta revisión.</p>' : !r.detalle.length ? '<p>Ninguna: todo cuadraba.</p>' :
-      Object.entries(g).map(([c, xs]) => `<div style="margin-top:6px">${esc(c)} (${xs.length})</div>` + lista(xs, d => `<li><b>${esc(d.t)}</b>${d.d ? ' · ' + esc(d.d) : ''}</li>`)).join(''));
+      Object.entries(g).map(([c, xs]) => `<div style="margin-top:6px">${esc(t(c))} (${xs.length})</div>` + lista(xs, d => `<li><b>${esc(d.t)}</b>${d.d ? ' · ' + esc(t(d.d)) : ''}</li>`)).join(''));
   }
   tr.insertAdjacentHTML('afterend', `<tr class="det"><td colspan="5">${html}</td></tr>`);
 }
@@ -890,7 +890,7 @@ function fila(d) {
       <div class="l">${Object.entries(d.enlaces || {}).filter(([, u]) => /^https?:/.test(u || '')).map(([k, u]) => `<a href="${esc(u)}" target="_blank">${esc(k)} ↗</a>`).join('')}</div>
     </div><div class="seg">${d.opciones.map(o => `<label class="${o.clave === 'ignorar' ? 'ign' : ''}">
       <input type="radio" name="${d.id}" value="${o.clave}" ${cur === o.clave ? 'checked' : ''} onchange="elegir('${d.id}', this.value)">
-      <span>${esc(o.texto)}${o.fase === 3 ? ' (CSV)' : ''}</span></label>`).join('')}</div></div>`;
+      <span>${esc(t(o.texto))}${o.fase === 3 ? ' (CSV)' : ''}</span></label>`).join('')}</div></div>`;
 }
 function elegir(id, v) { sel[id] = v; $('r_' + id).classList.toggle('sel', v !== 'ignorar'); contar(); }
 function grupo(ids, v) { if (!v) return; ids.forEach(id => { const d = DATA.diferencias.find(x => x.id === id); if (d.opciones.some(o => o.clave === v)) sel[id] = v; }); pintar(); }
@@ -940,7 +940,7 @@ function fin(r) {
   $('mP').classList.add('hidden'); $('bCancel').classList.add('hidden'); $('bCerrar').classList.remove('hidden');
   $('mL').classList.toggle('hidden', !(res.log || []).length);
   const cancelado = (res.log || []).some(l => l.includes('CANCELADO'));
-  $('mT').textContent = (simulacion ? 'Simulación' : cancelado ? 'Cancelado' : (res.ok ? 'Hecho' : 'Error')) + ` · ${r.total} acciones`;
+  $('mT').textContent = t(simulacion ? 'Simulación' : cancelado ? 'Cancelado' : (res.ok ? 'Hecho' : 'Error')) + ' · ' + t(`${r.total} acciones`);
   $('mL').textContent = (res.log || []).map(l => enIngles(l)).join('\n');  // línea a línea (no-i18n: el bloque entero no)
   $('mF').innerHTML = (res.archivos || []).map(f => `<div class="file">📄 ${esc(f.texto)}<br><small>${esc(f.archivo)}</small><br>
       ${IOS ? `<button onclick='compartir(${JSON.stringify(f.archivo)})'>Compartir el CSV…</button>` : ANDROID ? `<a href="/api/descargar/${encodeURIComponent(f.archivo.split(/[\\/]/).pop())}">Descargar el CSV ↓</a> ·` : `<button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button>`}

@@ -602,5 +602,18 @@ class Servidor(unittest.TestCase):
         self.assertNotIn(b"secreto", b)
 
 
+
+class Demo(unittest.TestCase):
+    def test_demo_para_capturas_sin_red_ni_datos_propios(self):
+        from tools import demo
+        d = Path(tempfile.mkdtemp(prefix="trisync-demo-"))
+        demo.generar(d)
+        st = json.loads((d / "cache" / "estadisticas.json").read_text(encoding="utf-8"))
+        self.assertTrue(st["mapa"]["todo"]["vistas"] and st["curiosidades"] and st["anios"])
+        self.assertTrue(json.loads((d / "cache" / "diff.json").read_text(encoding="utf-8"))["diferencias"])
+        env = (d / ".env").read_text(encoding="utf-8")
+        self.assertIn(f"DATA_DIR={d.resolve() / 'exports'}", env)  # nunca las Descargas de verdad
+
+
 if __name__ == "__main__":
     unittest.main()
