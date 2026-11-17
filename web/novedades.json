@@ -1,5 +1,15 @@
 {
   "_info": "Novedades que ve el usuario al actualizar (la más nueva arriba). Al subir VERSION, añade aquí la entrada de esa versión: 3-5 frases cortas en español e inglés.",
+  "1.0.2": {
+    "es": [
+      "Más textos en inglés: el detalle del Historial, las opciones de cada diferencia en Revisar y el resumen al aplicar.",
+      "Capturas y GIF nuevos en la página del proyecto, con datos de ejemplo."
+    ],
+    "en": [
+      "More text in English: History details, the options of each difference in Review and the summary after applying.",
+      "New screenshots and GIFs on the project page, with sample data."
+    ]
+  },
   "1.0.1": {
     "es": [
       "Lo que aplicas se ve al momento en Revisar, Historial y Estadísticas (también con un export viejo de Letterboxd y al quitar o conectar apps).",
