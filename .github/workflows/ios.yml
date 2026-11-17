@@ -22,9 +22,9 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -85,7 +85,7 @@ jobs:
           (cd build/ipa && zip -qry "../../Tri-Sync-$V-iOS.ipa" Payload)
           ls -l "Tri-Sync-$V-iOS.ipa"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: Tri-Sync-iOS
