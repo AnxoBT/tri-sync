@@ -213,10 +213,17 @@ def rules():
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
+def _en_cache(name):
+    """Ruta de un archivo de la caché: solo un nombre simple, nunca otra carpeta (defensa extra)."""
+    if not name or name != Path(name).name or name in (".", ".."):
+        raise ValueError(f"Nombre de caché no válido: {name!r}")
+    return CACHE / name
+
+
 def cache_json(name, default=None):
-    p = CACHE / name
+    p = _en_cache(name)
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else (default if default is not None else {})
 
 
 def save_cache(name, data):
-    (CACHE / name).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    _en_cache(name).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")

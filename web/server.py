@@ -338,7 +338,8 @@ class Handler(BaseHTTPRequestHandler):
             if p.parent == LOGS.resolve() and p.is_file():
                 self.send_response(200)
                 self.send_header("Content-Type", "text/csv; charset=utf-8")
-                self.send_header("Content-Disposition", f'attachment; filename="{p.name}"')
+                nombre = "".join(c for c in p.name if c.isprintable() and c not in '"\\')  # sin comillas ni saltos
+                self.send_header("Content-Disposition", f'attachment; filename="{nombre}"')
                 data = p.read_bytes()
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()

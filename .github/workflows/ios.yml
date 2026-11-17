@@ -12,6 +12,10 @@ on:
       - "pyproject.toml"
       - ".github/workflows/ios.yml"
 
+# Solo lee el código; el IPA sale como artefacto.
+permissions:
+  contents: read
+
 jobs:
   build:
     # Mac con chip Intel: en los de chip Apple GitHub a veces no tiene sitio y el trabajo no arranca (como en wallpaper-editor)
