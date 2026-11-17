@@ -75,7 +75,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core:1.15.0")  // FileProvider para instalar actualizaciones
+    implementation("androidx.core:core:1.19.1")  // FileProvider para instalar actualizaciones
 }
 
 // Solo el código: nunca .env, rules.json, caché, logs ni exports (todo eso es personal)
