@@ -41,22 +41,24 @@
   </tr>
 </table>
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/en_review.png" alt="Review: every difference between your apps, grouped"></td>
-    <td width="50%"><img src="docs/screenshots/en_stats.png" alt="Statistics: films, series and anime at a glance"></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/en_history.png" alt="History of reviews and applied changes"></td>
-    <td width="50%"><img src="docs/screenshots/en_settings.png" alt="Settings: connect only the apps you use"></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/en_simulate.gif" alt="Choose what to do with each difference and simulate it"></td>
-    <td width="50%"><img src="docs/screenshots/en_stats.gif" alt="Statistics: world map, your year, when you watch and curiosities"></td>
-  </tr>
-</table>
-
+<p align="center">
+  <img src="docs/screenshots/en_review.png" width="49%" alt="Review: every difference between your apps, grouped">
+  <img src="docs/screenshots/en_stats.png" width="49%" alt="Statistics: films, series and anime at a glance">
+</p>
+<p align="center">
+  <img src="docs/screenshots/en_history.png" width="49%" alt="History of reviews and applied changes">
+  <img src="docs/screenshots/en_settings.png" width="49%" alt="Settings: connect only the apps you use">
+</p>
 <p align="center"><sub>Demo data: well-known films, series and anime with invented dates and ratings.</sub></p>
+
+<details>
+<summary><b>Tour of the app (GIF)</b></summary>
+<br>
+<p align="center">
+  <img src="docs/screenshots/en_simulate.gif" width="49%" alt="Choose what to do with each difference and simulate it">
+  <img src="docs/screenshots/en_stats.gif" width="49%" alt="Statistics: world map, your year, when you watch and curiosities">
+</p>
+</details>
 
 ### Features
 
@@ -253,22 +255,24 @@ released under the same licence, with its source code.
   </tr>
 </table>
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/es_review.png" alt="Revisión: todas las diferencias entre tus apps, por grupos"></td>
-    <td width="50%"><img src="docs/screenshots/es_stats.png" alt="Estadísticas: películas, series y anime de un vistazo"></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/es_history.png" alt="Historial de revisiones y de cambios aplicados"></td>
-    <td width="50%"><img src="docs/screenshots/es_settings.png" alt="Configuración: conecta solo las apps que uses"></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/es_simulate.gif" alt="Elige qué hacer con cada diferencia y simúlalo"></td>
-    <td width="50%"><img src="docs/screenshots/es_stats.gif" alt="Estadísticas: mapa del mundo, tu año, cuándo ves y curiosidades"></td>
-  </tr>
-</table>
-
+<p align="center">
+  <img src="docs/screenshots/es_review.png" width="49%" alt="Revisión: todas las diferencias entre tus apps, por grupos">
+  <img src="docs/screenshots/es_stats.png" width="49%" alt="Estadísticas: películas, series y anime de un vistazo">
+</p>
+<p align="center">
+  <img src="docs/screenshots/es_history.png" width="49%" alt="Historial de revisiones y de cambios aplicados">
+  <img src="docs/screenshots/es_settings.png" width="49%" alt="Configuración: conecta solo las apps que uses">
+</p>
 <p align="center"><sub>Datos de demostración: películas, series y anime conocidos con fechas y notas inventadas.</sub></p>
+
+<details>
+<summary><b>Recorrido por la app (GIF)</b></summary>
+<br>
+<p align="center">
+  <img src="docs/screenshots/es_simulate.gif" width="49%" alt="Elige qué hacer con cada diferencia y simúlalo">
+  <img src="docs/screenshots/es_stats.gif" width="49%" alt="Estadísticas: mapa del mundo, tu año, cuándo ves y curiosidades">
+</p>
+</details>
 
 ### Funciones
 
