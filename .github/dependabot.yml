@@ -17,6 +17,10 @@ updates:
     groups:
       all:
         patterns: ["*"]
+    # Los saltos de versión mayor (Gradle 9, AGP 9…) piden cambiar la compilación: se hacen a mano.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
