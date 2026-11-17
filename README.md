@@ -134,6 +134,12 @@ From the [latest release](https://github.com/AnxoBT/tri-sync/releases/latest):
 (keeping a copy of the current version) and restarts; on Android it downloads the APK and opens the
 installer; on iPhone, install the new IPA.
 
+**Automatic updates on Android (optional)**: add it to [Obtainium](https://github.com/ImranR98/Obtainium)
+and every new release installs straight from GitHub, without looking for the APK. The app also tells
+you about new versions by itself.
+
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/AnxoBT/tri-sync"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="48" alt="Get it on Obtainium"></a>
+
 ### Connecting your apps
 
 | App | What you need |
@@ -319,6 +325,12 @@ Desde la [última release](https://github.com/AnxoBT/tri-sync/releases/latest):
 **Actualizar**: una barra verde avisa cuando hay una release nueva. En el PC la descarga, la instala
 (guardando una copia de la versión actual) y se reinicia; en Android descarga el APK y abre el
 instalador; en el iPhone, instala el IPA nuevo.
+
+**Actualizaciones automáticas en Android (opcional)**: añádela a [Obtainium](https://github.com/ImranR98/Obtainium)
+y cada versión nueva se instala directamente desde GitHub, sin buscar el APK. La app también avisa
+por sí sola cuando hay versión nueva.
+
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/AnxoBT/tri-sync"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="48" alt="Consíguela en Obtainium"></a>
 
 ### Conectar tus apps
 

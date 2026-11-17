@@ -1,0 +1,27 @@
+# Avisos y actualizaciones de dependencias (una PR al mes por tipo, agrupada).
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    groups:
+      all:
+        patterns: ["*"]
+  - package-ecosystem: "gradle"
+    directory: "/android"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    groups:
+      all:
+        patterns: ["*"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    groups:
+      all:
+        patterns: ["*"]

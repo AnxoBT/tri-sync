@@ -1,5 +1,17 @@
 {
   "_info": "Novedades que ve el usuario al actualizar (la más nueva arriba). Al subir VERSION, añade aquí la entrada de esa versión: 3-5 frases cortas en español e inglés.",
+  "1.0.1": {
+    "es": [
+      "Lo que aplicas se ve al momento en Revisar, Historial y Estadísticas (también con un export viejo de Letterboxd y al quitar o conectar apps).",
+      "Toda la app en inglés si la pones en inglés: sincronización por USB y Wi-Fi, errores, progreso, historial y avisos de Android.",
+      "La sincronización por Wi-Fi ya no se queda colgada si el otro dispositivo deja de contestar."
+    ],
+    "en": [
+      "What you apply shows up at once in Review, History and Statistics (also with an old Letterboxd export and when removing or connecting apps).",
+      "The whole app in English when you choose English: USB and Wi-Fi sync, errors, progress, history and Android notices.",
+      "Wi-Fi sync no longer hangs if the other device stops answering."
+    ]
+  },
   "1.0.0": {
     "es": [
       "Primera versión pública.",
