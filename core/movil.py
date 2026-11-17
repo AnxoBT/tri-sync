@@ -20,7 +20,6 @@ from .config import IMPORTADOS, REQUIRED, ROOT
 PAQUETE = "com.anxobt.trisync"
 PUERTO_MOVIL = 8765  # el servidor de la app en el móvil (el mismo que en el PC: así vale el permiso de AniList)
 PUERTO_PUENTE = 8783  # en el PC, reenviado por adb al del móvil
-OBSOLETOS = {"meta_dinero.json", "meta_dinero2.json", "meta_dinero3.json"}
 SIN_VENTANA = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
@@ -164,7 +163,6 @@ def sincronizar_movil(out=print):
         if not r.get("ok"):
             raise RuntimeError(r.get("texto") or "El móvil no aceptó los datos")
         alli = r.get("cambios", [])
-        out("Listo · aquí: " + (", ".join(aqui) or "nada nuevo") + " · en el móvil: " + (", ".join(alli) or "nada nuevo"))
     finally:
         _adb("forward", "--remove", f"tcp:{PUERTO_PUENTE}")
     return {"aqui": aqui, "alli": alli}

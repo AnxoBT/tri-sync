@@ -316,10 +316,49 @@ class Idioma(unittest.TestCase):
         import re
         d = json.loads((Path(__file__).resolve().parent.parent / "web" / "i18n_en.json").read_text(encoding="utf-8"))
         self.assertGreater(len(d["exactos"]), 400)
-        for patron, sust in d["patrones"]:
+        for patron, sust, *flags in d["patrones"]:
             re.compile(patron)
             self.assertIsInstance(sust, str)
+            self.assertIn(flags, ([], ["g"]))  # index.html: new RegExp(patrón, 'g' o nada)
+            self.assertNotIn("(?<", patron)  # sin lookbehind ni grupos con nombre (WebView o Safari antiguos)
         self.assertTrue(all(isinstance(v, str) and v for v in d["exactos"].values()))
+
+    def test_mensajes_de_sincronizar_en_ingles(self):
+        """Lo que sincro, wifi y movil enseñan en la página (errores y progreso) tiene su inglés en i18n_en.json:
+        o es un texto exacto o lo coge algún patrón."""
+        import ast
+        import re
+        raiz = Path(__file__).resolve().parent.parent
+        d = json.loads((raiz / "web" / "i18n_en.json").read_text(encoding="utf-8"))
+        patrones = [re.compile(p) for p, *_ in d["patrones"]]
+
+        def texto(n):  # lo variable de un f-string o de un «x if y else z» cuenta como «X1»
+            if isinstance(n, ast.Constant):
+                return n.value if isinstance(n.value, str) else "X1"
+            if isinstance(n, ast.JoinedStr):
+                return "".join(v.value if isinstance(v, ast.Constant) else "X1" for v in n.values)
+            if isinstance(n, ast.BinOp):
+                return texto(n.left) + texto(n.right)
+            if isinstance(n, ast.BoolOp):  # «r.get("texto") or "El móvil no aceptó los datos"»
+                return next((v.value for v in n.values if isinstance(v, ast.Constant)), "X1")
+            return "X1"
+
+        faltan, vistos = [], 0
+        for f in ("sincro.py", "wifi.py", "movil.py"):
+            for n in ast.walk(ast.parse((raiz / "core" / f).read_text(encoding="utf-8"))):
+                s = None
+                if isinstance(n, ast.Call) and n.args and \
+                        getattr(n.func, "id", getattr(n.func, "attr", "")) in ("RuntimeError", "ValueError", "out", "log"):
+                    s = texto(n.args[0])
+                elif isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Subscript) \
+                        and getattr(n.targets[0].slice, "value", None) == "error":  # ESTADO["error"] = "…"
+                    s = texto(n.value)
+                if s and re.search("[a-záéíóúñ]", s, re.I):
+                    vistos += 1
+                    if s not in d["exactos"] and not any(p.search(s) for p in patrones):
+                        faltan.append(f"{f}: {s}")
+        self.assertGreater(vistos, 25)
+        self.assertEqual(faltan, [])
 
 
 class Novedades(unittest.TestCase):

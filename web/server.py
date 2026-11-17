@@ -535,8 +535,7 @@ def _ganchos_wifi():  # quien espera tampoco mezcla datos a mitad de una revisi√
 def _movil():
     from core import movil
     try:
-        movil.sincronizar_movil(MOV["mensajes"].append)
-        MOV["fin"] = True
+        MOV["fin"] = movil.sincronizar_movil(MOV["mensajes"].append)  # {aqui, alli}: la p√°gina lo pinta en su idioma
     except Exception as e:
         MOV["error"] = str(e)
     finally:

@@ -28,6 +28,7 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.SecureRandom
+import java.util.Locale
 import kotlin.concurrent.thread
 
 /**
@@ -77,7 +78,8 @@ class MainActivity : Activity() {
         }
         setContentView(marco)
         configurarWeb()
-        web.loadDataWithBaseURL(null, PANTALLA_CARGA, "text/html", "utf-8", null)
+        web.loadDataWithBaseURL(null, PANTALLA_CARGA.replace("Abriendo Tri-Sync…", tr("Abriendo Tri-Sync…", "Opening Tri-Sync…")),
+            "text/html", "utf-8", null)
 
         if (!Python.isStarted()) Python.start(AndroidPlatform(this))
         val datos = File(filesDir, "datos").apply { mkdirs() }.absolutePath
@@ -95,8 +97,18 @@ class MainActivity : Activity() {
                 }
                 Thread.sleep(150)
             }
-            runOnUiThread { Toast.makeText(this, "Tri-Sync no ha podido arrancar", Toast.LENGTH_LONG).show() }
+            runOnUiThread { Toast.makeText(this, tr("Tri-Sync no ha podido arrancar", "Tri-Sync couldn't start"), Toast.LENGTH_LONG).show() }
         }
+    }
+
+    /** El idioma de la app, como en la página: el de Configuración (IDIOMA del .env) o, si no hay, el del móvil. */
+    private fun tr(es: String, en: String): String {
+        val idioma = try {
+            File(filesDir, "datos/.env").readLines().map { it.trim() }.firstOrNull { it.startsWith("IDIOMA=") }
+                ?.substringAfter("=")?.trim()?.trim('"', '\'') ?: ""
+        } catch (e: Exception) { "" }
+        val ingles = if (idioma.isNotEmpty()) idioma == "en" else !Locale.getDefault().language.startsWith("es")
+        return if (ingles) en else es
     }
 
     private fun responde(): Boolean = try {
@@ -144,7 +156,7 @@ class MainActivity : Activity() {
                 subida = cb
                 val i = Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
                 return try {
-                    startActivityForResult(Intent.createChooser(i, "Elige el zip del export"), ELEGIR_ARCHIVO); true
+                    startActivityForResult(Intent.createChooser(i, tr("Elige el zip del export", "Pick the export zip")), ELEGIR_ARCHIVO); true
                 } catch (e: Exception) {
                     subida = null; false
                 }
@@ -158,14 +170,14 @@ class MainActivity : Activity() {
             dm.enqueue(DownloadManager.Request(Uri.parse(url)).setMimeType(tipo)
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, nombre))
-            Toast.makeText(this, "Descargando $nombre en Descargas", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, tr("Descargando $nombre en Descargas", "Downloading $nombre to Downloads"), Toast.LENGTH_SHORT).show()
         }
     }
 
     /** Abre el instalador de Android con el APK que ha descargado la actualización (files/datos/apk/Tri-Sync.apk). */
     private fun instalarActualizacion() {
         if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
-            Toast.makeText(this, "Permite instalar apps de Tri-Sync y vuelve a pulsar Actualizar", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, tr("Permite instalar apps de Tri-Sync y vuelve a pulsar Actualizar", "Allow Tri-Sync to install apps and tap Update again"), Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
             web.loadUrl(INICIO)
             return
@@ -181,7 +193,7 @@ class MainActivity : Activity() {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, url))
         } catch (e: Exception) {
-            Toast.makeText(this, "No hay ninguna app para abrir $url", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, tr("No hay ninguna app para abrir $url", "There's no app to open $url"), Toast.LENGTH_LONG).show()
         }
     }
 

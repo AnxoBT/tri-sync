@@ -333,7 +333,7 @@
 <div class="modal" id="modal"><div class="box">
   <h2 id="mT"></h2>
   <div id="mP" class="hidden"><div class="pbar"><i id="mPi"></i></div><div id="mPt" class="ptxt"></div></div>
-  <div id="mF"></div><pre id="mL"></pre>
+  <div id="mF"></div><pre id="mL" class="no-i18n"></pre>
   <div style="text-align:right;margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
     <button id="bCancel" class="hidden" onclick="cancelar()">Cancelar</button>
     <button id="bCerrar" onclick="modal.classList.remove('on')">Cerrar</button></div>
@@ -347,9 +347,9 @@ let LANG = 'es', I18N = {exactos: {}}, PATRONES = [];
 const MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const MESES_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const RE_MES = MESES_ES.join('|'), mesEn = m => MESES_EN[MESES_ES.indexOf(m)];
-function enIngles(s) {
+function enIngles(s, lineas) {  // lineas: respeta los saltos de línea (avisos de confirm/alert)
   if (LANG !== 'en' || !s || !/[a-záéíóúñ]/i.test(s)) return s;
-  const k = s.trim().replace(/\s+/g, ' ');
+  const k = s.trim().replace(lineas ? /[ \t]+/g : /\s+/g, ' ');
   if (!k) return s;
   const ex = I18N.exactos[k];
   const borde = x => (/^\s/.test(s) ? ' ' : '') + x + (/\s$/.test(s) ? ' ' : '');  // los espacios de los bordes se quedan
@@ -384,9 +384,9 @@ const IDIOMA_LISTO = (async () => {
   if (LANG === 'en') {
     try {
       I18N = await (await fetch('/i18n_en.json')).json();
-      PATRONES = (I18N.patrones || []).map(([re, sust]) => [new RegExp(re), sust]);
+      PATRONES = (I18N.patrones || []).map(([re, sust, fl]) => [new RegExp(re, fl || ''), sust]);  // fl: 'g' para todas las veces
     } catch (e) { LANG = 'es'; }
-    for (const f of ['confirm', 'alert']) { const orig = window[f].bind(window); window[f] = m => orig(enIngles(String(m))); }
+    for (const f of ['confirm', 'alert']) { const orig = window[f].bind(window); window[f] = m => orig(enIngles(String(m), true)); }
     traducir(document.body);
     new MutationObserver(ms => { for (const m of ms) m.type === 'childList' ? m.addedNodes.forEach(traducir) : traducir(m.target); })
       .observe(document.body, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'placeholder', 'data-tip']});
@@ -941,7 +941,7 @@ function fin(r) {
   $('mL').classList.toggle('hidden', !(res.log || []).length);
   const cancelado = (res.log || []).some(l => l.includes('CANCELADO'));
   $('mT').textContent = (simulacion ? 'Simulación' : cancelado ? 'Cancelado' : (res.ok ? 'Hecho' : 'Error')) + ` · ${r.total} acciones`;
-  $('mL').textContent = (res.log || []).join('\n');
+  $('mL').textContent = (res.log || []).map(l => enIngles(l)).join('\n');  // línea a línea (no-i18n: el bloque entero no)
   $('mF').innerHTML = (res.archivos || []).map(f => `<div class="file">📄 ${esc(f.texto)}<br><small>${esc(f.archivo)}</small><br>
       ${IOS ? `<button onclick='compartir(${JSON.stringify(f.archivo)})'>Compartir el CSV…</button>` : ANDROID ? `<a href="/api/descargar/${encodeURIComponent(f.archivo.split(/[\\/]/).pop())}">Descargar el CSV ↓</a> ·` : `<button onclick='abrir(${JSON.stringify(f.archivo)})'>Abrir carpeta</button>`}
       <a href="${esc(f.abrir)}" target="_blank">Abrir importador ↗</a></div>`).join('');
@@ -979,7 +979,7 @@ async function pasarMovil() {
   if (!r.ok) { $('movInfo').innerHTML = `<span class="bad">${esc(r.texto)}</span>`; return; }
   const t = setInterval(async () => {
     const m = await (await fetch('/api/movil/estado', {method: 'POST'})).json();
-    $('movInfo').innerHTML = m.error ? `<span class="bad">${esc(m.error)}</span>` : m.fin ? `<span class="ok">✓ ${esc(m.mensajes.slice(-1)[0] || 'Hecho')}</span>` : esc(m.mensajes.slice(-1)[0] || 'Empezando…');
+    $('movInfo').innerHTML = m.error ? `<span class="bad">${esc(m.error)}</span>` : m.fin ? `<span class="ok">✓ Listo · aquí: ${esc(listaCambios(m.fin.aqui))} · en el móvil: ${esc(listaCambios(m.fin.alli))}</span>` : esc(m.mensajes.slice(-1)[0] || 'Empezando…');
     if (!m.activo) { clearInterval(t); if (m.fin) { estado(); cargarDiff(); cargarCfg(); } }
   }, 800);
 }

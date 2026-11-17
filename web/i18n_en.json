@@ -535,9 +535,64 @@
   "código incorrecto o mensaje alterado": "wrong code or tampered message",
   "mensaje incompleto": "incomplete message",
   "Lo de Letterboxd sale de la lista al generar el CSV: impórtalo en Letterboxd; si no, volverá a salir cuando descargues un export nuevo.": "Letterboxd items leave the list when the CSV is created: import it on Letterboxd; otherwise they'll show up again when you download a new export.",
-  "Actualizando la revisión y las estadísticas con lo aplicado…": "Updating the review and statistics with what was applied…"
+  "Actualizando la revisión y las estadísticas con lo aplicado…": "Updating the review and statistics with what was applied…",
+  "Tri-Sync no está instalado en el móvil y no hay APK compilado en android/": "Tri-Sync isn't installed on the phone and there's no built APK in android/",
+  "El móvil no aceptó los datos": "The phone didn't accept the data",
+  "No encuentro adb (Android SDK platform-tools). Pon su ruta en ADB del .env": "I can't find adb (Android SDK platform-tools). Put its path in ADB in the .env",
+  "No es un zip: elige el zip tal cual lo descargas de Dixmax o Letterboxd": "It isn't a zip: pick the zip exactly as you download it from Dixmax or Letterboxd",
+  "No parece un export de Dixmax ni de Letterboxd": "It doesn't look like a Dixmax or Letterboxd export",
+  "Guardando una copia de la versión actual…": "Saving a copy of the current version…",
+  "Instalando…": "Installing…",
+  "Comprobando librerías…": "Checking libraries…",
+  "En el iPhone, descarga el IPA nuevo de la release e instálalo con Sideloadly o AltStore": "On the iPhone, download the new IPA from the release and install it with Sideloadly or AltStore",
+  "Descargado: ahora se abre el instalador de Android": "Downloaded: the Android installer opens now",
+  "Esta carpeta es un clon de git: actualiza con «git pull»": "This folder is a git clone: update with «git pull»",
+  "La descarga no parece de Tri-Sync": "The download doesn't look like Tri-Sync",
+  "La release no trae APK": "The release has no APK",
+  "AniList: demasiadas peticiones seguidas, prueba en un rato": "AniList: too many requests in a row, try again in a while",
+  "El permiso de AniList no vale o ha caducado: Configuración → Conectar con AniList": "The AniList permission is invalid or has expired: Settings → Connect with AniList",
+  "AniList: actualizando la lista de equivalencias de anime…": "AniList: updating the anime match list…",
+  "La respuesta de Letterboxd no coincide con la petición (vuelve a pulsar Conectar)": "Letterboxd's response doesn't match the request (press Connect again)",
+  "Letterboxd no está conectado por API (Configuración → Conectar con Letterboxd)": "Letterboxd isn't connected through the API (Settings → Connect the API)",
+  "El permiso de Letterboxd ha caducado: vuelve a conectar": "The Letterboxd permission has expired: connect again",
+  "Falta SERIALIZD_TOKEN en .env": "SERIALIZD_TOKEN is missing from the .env",
+  "El token de Serializd ha caducado: copia de nuevo la cookie tvproject_credentials al .env": "The Serializd token has expired: copy the tvproject_credentials cookie to the .env again",
+  "Faltan DIXMAX_API_KEY y/o DIXMAX_AUTH_KEY (pestaña Configuración)": "DIXMAX_API_KEY and/or DIXMAX_AUTH_KEY are missing (Settings tab)",
+  "sin export (solo API)": "no export (API only)",
+  "Dixmax: export reciente, no hace falta revisar episodios por la API": "Dixmax: recent export, no need to check episodes through the API",
+  "Sin Dixmax, Letterboxd (películas) y Serializd (series) no tienen nada en común que comparar: conecta AniList o Dixmax para revisar. Las estadísticas sí salen con lo que tienes.": "Without Dixmax, Letterboxd (films) and Serializd (series) have nothing in common to compare: connect AniList or Dixmax to review. Statistics still work with what you have.",
+  "Letterboxd: no hay export (descárgalo e impórtalo); de momento se revisa lo demás": "Letterboxd: no export (download and import it); the rest is reviewed for now",
+  "Conecta al menos una app en Configuración": "Connect at least one app in Settings",
+  "Distinto en AniList": "Different on AniList",
+  "Solo en Serializd": "Only on Serializd",
+  "Nota solo en Letterboxd": "Rating only on Letterboxd",
+  "Me gusta en Letterboxd, no favorita en Dixmax": "Liked on Letterboxd, not favourite on Dixmax",
+  "En Dixmax «Favorita» sustituye a «Vista» (sigue en tu lista de vistas)": "On Dixmax «Favourite» replaces «Watched» (it stays in your watched list)",
+  "En Dixmax «Favorita» sustituye a «Vista»": "On Dixmax «Favourite» replaces «Watched»",
+  "Letterboxd no permite importar «me gusta»: ponlo con el enlace": "Letterboxd doesn't allow importing likes: add it with the link",
+  "Subir a AniList (estado, episodios, nota y fechas)": "Upload to AniList (status, episodes, rating and dates)",
+  "completado": "completed",
+  "abandonado": "dropped",
+  "en pausa": "paused",
+  "reviendo": "rewatching",
+  "siguiendo": "watching",
+  "No hay (opcional: la API lo lee todo)": "None (optional: the API reads everything)",
+  "API oficial conectada (se pueden aplicar cambios)": "Official API connected (changes can be applied)",
+  "Falta el permiso: pulsa «Conectar con AniList»": "Permission missing: press «Connect with AniList»",
+  "Pon antes el client_id y el client_secret de tu app de la API de Letterboxd": "First enter the client_id and client_secret of your Letterboxd API app",
+  "Espera a que termine la revisión o la aplicación en marcha": "Wait for the running review or application to finish",
+  "Pulsa «Conectar con AniList» en Tri-Sync y vuelve a autorizar": "Press «Connect with AniList» in Tri-Sync and authorize again",
+  "Sin revisar todavía": "Not reviewed yet",
+  "Comprobando una muestra…": "Checking a sample…",
+  "[AniList] actividad de listas restaurada como estaba": "[AniList] list activity restored as it was",
+  "[AniList] favoritos ordenados por tu nota": "[AniList] favourites sorted by your rating",
+  "ok (fecha conservada)": "ok (date kept)"
  },
  "patrones": [
+  [
+   "^Conectado como (.+) \\(los cambios se aplican directamente\\)$",
+   "Connected as $1 (changes are applied directly)"
+  ],
   [
    "^¿Aplicar (\\d+) acciones de verdad\\?\n\n(.+) se cambian directamente\\. ",
    "Apply $1 actions for real?\n\n$2 are changed directly. "
@@ -823,6 +878,50 @@
    "AniList: reading $1 anime (first time only)…"
   ],
   [
+   "^Estadísticas: no se pudieron calcular \\((.+)\\)$",
+   "Statistics: couldn't calculate them ($1)"
+  ],
+  [
+   "^Estadísticas: fichas de Dixmax de (\\d+) títulos \\(solo la primera vez, ~(\\d+) min\\)…$",
+   "Statistics: Dixmax details of $1 titles (first time only, ~$2 min)…"
+  ],
+  [
+   "^Estadísticas: fichas de Dixmax (\\d+)/(\\d+) \\(solo la primera vez\\)$",
+   "Statistics: Dixmax details $1/$2 (first time only)"
+  ],
+  [
+   "^Estadísticas: popularidad y reparto completo de (\\d+) series \\(TVmaze, solo la primera vez, ~(\\d+) min\\)…$",
+   "Statistics: popularity and full cast of $1 series (TVmaze, first time only, ~$2 min)…"
+  ],
+  [
+   "^Estadísticas: fichas de (\\d+) películas \\(solo la primera vez\\)…$",
+   "Statistics: details of $1 films (first time only)…"
+  ],
+  [
+   "^Estadísticas: fichas de (\\d+) series \\(solo la primera vez\\)…$",
+   "Statistics: details of $1 series (first time only)…"
+  ],
+  [
+   "^Estadísticas: fichas de (\\d+) animes…$",
+   "Statistics: details of $1 anime…"
+  ],
+  [
+   "^Estadísticas: países de (\\d+) películas \\(Wikidata, solo la primera vez\\)…$",
+   "Statistics: countries of $1 films (Wikidata, first time only)…"
+  ],
+  [
+   "^Estadísticas: presupuesto y taquilla de (\\d+) películas \\(Wikidata\\)…$",
+   "Statistics: budget and box office of $1 films (Wikidata)…"
+  ],
+  [
+   "^Estadísticas: países (\\d+)/(\\d+)$",
+   "Statistics: countries $1/$2"
+  ],
+  [
+   "^Estadísticas: películas (\\d+)/(\\d+)$",
+   "Statistics: films $1/$2"
+  ],
+  [
    "^Estadísticas: (.+)$",
    "Statistics: $1"
   ],
@@ -907,8 +1006,8 @@
    "Letterboxd: TMDB ids $1"
   ],
   [
-   "^⚠ revisa: en Serializd hay (\\d+) episodios y AniList cuenta (\\d+)",
-   "⚠ check: Serializd has $1 episodes and AniList counts $2"
+   "^⚠ revisa: en (Serializd|Dixmax) hay (\\d+) episodios y AniList cuenta (\\d+)",
+   "⚠ check: $1 has $2 episodes and AniList counts $3"
   ],
   [
    "^¿Quitar (.+) de Tri-Sync\\?\n\nSe borran sus claves de este (móvil|PC) \\(y de tus otros dispositivos cuando sincronices\\) y deja de revisarse\\. En (.+) no se toca nada\\.$",
@@ -923,8 +1022,8 @@
    "$1 · here: $2 · there: $3"
   ],
   [
-   "^Listo · aquí: (.+) · en el móvil: (.+)$",
-   "Done · here: $1 · on the phone: $2"
+   "^(✓ )?Listo · aquí: (.+) · en el móvil: (.+)$",
+   "$1Done · here: $2 · on the phone: $3"
   ],
   [
    "^Conectando con (.+)…$",
@@ -935,8 +1034,8 @@
    "Phone connected ($1)"
   ],
   [
-   "^Instalando Tri-Sync (.+) en el móvil(.*)…$",
-   "Installing Tri-Sync $1 on the phone…"
+   "^Instalando Tri-Sync (.+?) en el móvil(.*)…$",
+   "Installing Tri-Sync $1 on the phone$2…"
   ],
   [
    "^Pasándole Tri-Sync (.+)…$",
@@ -981,6 +1080,408 @@
   [
    "^1 cambio aplicado y quitado de la lista\\.$",
    "1 change applied and removed from the list."
+  ],
+  [
+   " \\(tenía la (.+)\\)…$",
+   " (it had $1)…"
+  ],
+  [
+   "^No se pudo instalar el APK: (.+)$",
+   "Couldn't install the APK: $1"
+  ],
+  [
+   "^Al export le faltan archivos: (.+)$",
+   "The export is missing files: $1"
+  ],
+  [
+   "^No se pudo actualizar: (.+)$",
+   "Couldn't update: ⟦$1⟧"
+  ],
+  [
+   "^Descargando la versión (.+)…$",
+   "Downloading version $1…"
+  ],
+  [
+   "^Descargando Tri-Sync (.+) para Android…$",
+   "Downloading Tri-Sync $1 for Android…"
+  ],
+  [
+   "^Versión (.+) instalada\\. Reiniciando…$",
+   "Version $1 installed. Restarting…"
+  ],
+  [
+   "GitHub respondió (\\d+)",
+   "GitHub replied $1"
+  ],
+  [
+   " \\(demasiadas consultas: prueba más tarde\\)",
+   " (too many requests: try again later)"
+  ],
+  [
+   "Sin conexión con GitHub \\(([^)]+)\\)",
+   "No connection to GitHub ($1)"
+  ],
+  [
+   "^AniList respondió (\\d+): ",
+   "AniList replied $1: "
+  ],
+  [
+   "^AniList: no se pudo revisar \\((.+)\\)$",
+   "AniList: couldn't review it ($1)"
+  ],
+  [
+   "^Letterboxd no tiene la película con TMDB (\\d+)$",
+   "Letterboxd doesn't have the film with TMDB $1"
+  ],
+  [
+   "^Letterboxd no dio el permiso \\((\\d+)\\): ",
+   "Letterboxd didn't grant permission ($1): "
+  ],
+  [
+   "^Serializd \\((.+), página (\\d+)\\): ",
+   "Serializd ($1, page $2): "
+  ],
+  [
+   "^Respuesta inesperada de Dixmax \\((.+)\\)$",
+   "Unexpected response from Dixmax ($1)"
+  ],
+  [
+   "^Dixmax: (.+) \\(código (\\d+)\\)$",
+   "Dixmax: $1 (code $2)"
+  ],
+  [
+   "^No encuentro ningún export '(.+)' \\(zip o carpeta\\) en (.+)\\. Descárgalo y vuelve a revisar\\.$",
+   "I can't find any '$1' export (zip or folder) in $2. Download it and review again."
+  ],
+  [
+   " \\+ API en directo$",
+   " + live API"
+  ],
+  [
+   "^Dixmax: revisión rápida, (\\d+) series con novedades se miran por la API \\((\\d+) sin cambios\\)$",
+   "Dixmax: quick review, $1 series with new activity are checked through the API ($2 unchanged)"
+  ],
+  [
+   "^Dixmax: episodios (\\d+)/(\\d+)$",
+   "Dixmax: episodes $1/$2"
+  ],
+  [
+   "^Dixmax en directo: (\\d+) novedades y (\\d+) cambios respecto al export$",
+   "Dixmax live: $1 new and $2 changed compared with the export"
+  ],
+  [
+   "^Vista el (\\S+)",
+   "Watched on $1"
+  ],
+  [
+   " \\(fecha aproximada: Dixmax no la dio\\)$",
+   " (approximate date: Dixmax didn't give it)"
+  ],
+  [
+   "^(\\d+) episodios \\(p\\. ej\\. ",
+   "$1 episodes (e.g. "
+  ],
+  [
+   "^(\\d+) \\(p\\. ej\\. ",
+   "$1 (e.g. "
+  ],
+  [
+   " · (\\d+) con fecha aproximada \\(Dixmax no la dio\\)$",
+   " · $1 with an approximate date (Dixmax didn't give it)"
+  ],
+  [
+   "^lista: (.+)$",
+   "list: $1"
+  ],
+  [
+   "^Fecha Dixmax (.+)$",
+   "Dixmax date $1"
+  ],
+  [
+   "(quitar |Serializd: |, )(vista|viendo|pendiente|abandonada)(?=,|\\)|$| ·)",
+   "$1⟦$2⟧",
+   "g"
+  ],
+  [
+   "^Dixmax: (vista|viendo|pendiente|abandonada) · Serializd: ",
+   "Dixmax: ⟦$1⟧ · Serializd: "
+  ],
+  [
+   "^Dejarla solo como '(.+?)' en Serializd$",
+   "Keep it only as '⟦$1⟧' on Serializd"
+  ],
+  [
+   "^Dejarla solo como '(.+?)' \\(quitar (.+)\\)$",
+   "Keep it only as '⟦$1⟧' (remove $2)"
+  ],
+  [
+   "^Poner en Serializd como '(.+)'$",
+   "Set on Serializd as '$1'"
+  ],
+  [
+   "añadir como pendiente",
+   "add as planning",
+   "g"
+  ],
+  [
+   "añadir como (completado|viendo|pendiente|abandonado|en pausa|reviendo|vista|terminada|siguiendo|abandonada)",
+   "add as ⟦$1⟧",
+   "g"
+  ],
+  [
+   "♥ favorito\\b",
+   "♥ favourite",
+   "g"
+  ],
+  [
+   "\\bepisodios (\\d+) → (\\d+)",
+   "episodes $1 → $2",
+   "g"
+  ],
+  [
+   "\\bnota (\\S+) → ",
+   "rating $1 → ",
+   "g"
+  ],
+  [
+   "\\bfecha de inicio\\b",
+   "start date",
+   "g"
+  ],
+  [
+   "\\bfecha de fin\\b",
+   "end date",
+   "g"
+  ],
+  [
+   "(^|: |, )(completado|viendo|pendiente|abandonado|en pausa|reviendo|vista|terminada|siguiendo|abandonada|nada) → (completado|viendo|pendiente|abandonado|en pausa|reviendo|vista|terminada|siguiendo|abandonada)(?=,| ·|$)",
+   "$1⟦$2⟧ → ⟦$3⟧",
+   "g"
+  ],
+  [
+   " · y (\\d+) más$",
+   " · and $1 more"
+  ],
+  [
+   "^(.+) · aún no estrenado$",
+   "⟦$1⟧ · not released yet"
+  ],
+  [
+   " \\(no existe\\)",
+   " (doesn't exist)",
+   "g"
+  ],
+  [
+   "^(.+) \\(carpeta\\) · ",
+   "$1 (folder) · "
+  ],
+  [
+   " · descargado (\\S+ \\S+) \\(",
+   " · downloaded $1 ("
+  ],
+  [
+   " · archivos OK: ",
+   " · files OK: "
+  ],
+  [
+   " · hay (\\d+) más antiguos \\(se ignoran\\)",
+   " · $1 older ones (ignored)"
+  ],
+  [
+   " · ⚠ antiguo, descarga uno nuevo$",
+   " · ⚠ old, download a new one"
+  ],
+  [
+   " · ⚠ fechas poco actualizadas$",
+   " · ⚠ dates not very up to date"
+  ],
+  [
+   "^No encontrado: descárgalo e impórtalo \\(zip que empiece por '(.+)'\\)$",
+   "Not found: download and import it (a zip starting with '$1')"
+  ],
+  [
+   "^No se pudieron calcular: (.+)$",
+   "Couldn't calculate them: ⟦$1⟧"
+  ],
+  [
+   " · cancelando \\(termina la acción en curso\\)…$",
+   " · cancelling (finishing the current action)…"
+  ],
+  [
+   "^(\\d+) registros/notas → importador de Letterboxd$",
+   "$1 entries/ratings → Letterboxd importer"
+  ],
+  [
+   "^(\\d+) películas → tu watchlist > Import$",
+   "$1 films → your watchlist > Import"
+  ],
+  [
+   "^(🎬|📺) (.+): añadida como pendiente",
+   "$1 $2: added to your watchlist"
+  ],
+  [
+   "^(🎬|📺) (.+): añadida como (vista|terminada|siguiendo|abandonada)",
+   "$1 $2: added as ⟦$3⟧"
+  ],
+  [
+   "(: added (?:as|to) .+), nota (\\S+)$",
+   "$1, rating $2"
+  ],
+  [
+   "(: added (?:as|to) .+) \\((\\d+) episodios\\)$",
+   "$1 ($2 episodes)"
+  ],
+  [
+   "^(🎬|📺) (.+): ♥ favorita$",
+   "$1 $2: ♥ favourite"
+  ],
+  [
+   "^📺 (.+): \\+1 episodio \\((.+)\\)$",
+   "📺 $1: +1 episode ($2)"
+  ],
+  [
+   "^📺 (.+): \\+(\\d+) episodios \\((.+)\\)$",
+   "📺 $1: +$2 episodes ($3)"
+  ],
+  [
+   "^⛔ CANCELADO: se hicieron (\\d+) de (\\d+); el resto no se ha tocado\\. Haz una revisión rápida para ver lo que falta\\.$",
+   "⛔ CANCELLED: $1 of $2 were done; the rest hasn't been touched. Run a quick review to see what's left."
+  ],
+  [
+   "^\\[Dixmax\\] restauradas (\\d+) fechas que quedaron pendientes de una aplicación interrumpida$",
+   "[Dixmax] restored $1 dates left pending by an interrupted application"
+  ],
+  [
+   "^\\[AniList\\] (.+): (\\d+) entradas$",
+   "[AniList] $1: $2 entries"
+  ],
+  [
+   ": no se pudo \\((.+)\\)$",
+   ": failed ($1)"
+  ],
+  [
+   "^\\[AniList\\] no se pudieron ordenar los favoritos \\((.+)\\)$",
+   "[AniList] couldn't sort the favourites ($1)"
+  ],
+  [
+   "^\\[Comprobación\\] AniList conectado como NADIE: Configuración → Conectar con AniList$",
+   "[Check] AniList connected as NOBODY: Settings → Connect with AniList"
+  ],
+  [
+   "^\\[Comprobación\\] Letterboxd conectado por API como ",
+   "[Check] Letterboxd connected through the API as "
+  ],
+  [
+   "^\\[Comprobación\\] Dixmax \\(API oficial\\) conectado como ",
+   "[Check] Dixmax (official API) connected as "
+  ],
+  [
+   "^\\[Comprobación\\] (Serializd|AniList) conectado como ",
+   "[Check] $1 connected as "
+  ],
+  [
+   "^\\[Comprobación\\] lectura de fechas OK ",
+   "[Check] date reading OK "
+  ],
+  [
+   "^\\[Comprobación\\] tiempo estimado: ~(\\d+) min para (\\d+) favoritas \\(límite de la API\\)$",
+   "[Check] estimated time: ~$1 min for $2 favourites (API limit)"
+  ],
+  [
+   "^\\[Letterboxd\\] ERROR buscando las películas: ",
+   "[Letterboxd] ERROR looking up the films: "
+  ],
+  [
+   "^(\\[Letterboxd\\] .+): diario (\\d{4}-\\d\\d-\\d\\d)",
+   "$1: diary $2"
+  ],
+  [
+   "^(\\[Letterboxd\\] .+): nota( · |$)",
+   "$1: rating$2"
+  ],
+  [
+   "^(\\[Letterboxd\\] .+): añadir a la watchlist$",
+   "$1: add to the watchlist"
+  ],
+  [
+   "^\\[Letterboxd\\] se generaría un CSV con (\\d+) registros/notas para el importador$",
+   "[Letterboxd] a CSV with $1 entries/ratings would be created for the importer"
+  ],
+  [
+   "^\\[Letterboxd\\] se generaría un CSV de watchlist con (\\d+) películas$",
+   "[Letterboxd] a watchlist CSV with $1 films would be created"
+  ],
+  [
+   "^\\[Letterboxd\\] CSV con (\\d+) registros/notas: ",
+   "[Letterboxd] CSV with $1 entries/ratings: "
+  ],
+  [
+   "^\\[Letterboxd\\] CSV de watchlist con (\\d+): ",
+   "[Letterboxd] watchlist CSV with $1: "
+  ],
+  [
+   "^(\\[Serializd\\] .+): subir (\\d+) episodios con su fecha$",
+   "$1: upload $2 episodes with their date"
+  ],
+  [
+   "^(\\[Serializd\\] .+): dejar como (\\S+)",
+   "$1: set as $2"
+  ],
+  [
+   " \\(quitar de (.+)\\)$",
+   " (remove from $1)"
+  ],
+  [
+   "^(\\[Serializd\\] .+): temporadas vistas \\+ registro de serie (\\S+) nota (.+)$",
+   "$1: seasons watched + series entry $2 rating $3"
+  ],
+  [
+   "^(\\[Serializd\\] .+): nota (\\S+) \\(actualizar la existente\\)$",
+   "$1: rating $2 (update the existing one)"
+  ],
+  [
+   "^(\\[Serializd\\] .+): nota (\\S+) \\(nueva valoración\\)$",
+   "$1: rating $2 (new rating)"
+  ],
+  [
+   "^(\\[Serializd\\] .+): ♥ en el registro de serie$",
+   "$1: ♥ on the series entry"
+  ],
+  [
+   "^(\\[Dixmax\\] .+): marcar como favorita conservando la fecha ",
+   "$1: mark as favourite keeping the date "
+  ],
+  [
+   "^(\\[Dixmax\\] .+): marcar como favorita \\(fecha leída de Dixmax\\)$",
+   "$1: mark as favourite (date read from Dixmax)"
+  ],
+  [
+   "^(\\[Dixmax\\] .+): marcar como vista$",
+   "$1: mark as watched"
+  ],
+  [
+   "^(\\[Dixmax\\] .+): nota (\\S+) -> ",
+   "$1: rating $2 -> "
+  ],
+  [
+   "^Comprobación (.+): OK \\(",
+   "Check $1: OK ("
+  ],
+  [
+   "^Comprobación (.+): REVISAR \\(",
+   "Check $1: REVIEW ("
+  ],
+  [
+   "^(\\d+) favoritas marcadas con su fecha original$",
+   "$1 favourites marked with their original date"
+  ],
+  [
+   "^ok, pero la fecha quedó en (\\S+) \\(antes (\\S+)\\)$",
+   "ok, but the date ended up as $1 (was $2)"
+  ],
+  [
+   "^\\[manual\\] (.+): hazlo a mano \\(enlaces en la web\\)$",
+   "[manual] $1: do it by hand (links on the page)"
   ]
  ]
 }
