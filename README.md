@@ -41,6 +41,8 @@
   </tr>
 </table>
 
+<p align="center"><img src="docs/screenshots/en_welcome.gif" width="420" alt="Welcome guide: how Tri-Sync works"></p>
+
 ### Features
 
 **Apps: connect only the ones you use**
@@ -234,6 +236,8 @@ released under the same licence, with its source code.
     </td>
   </tr>
 </table>
+
+<p align="center"><img src="docs/screenshots/es_welcome.gif" width="420" alt="Guía de bienvenida: cómo funciona Tri-Sync"></p>
 
 ### Funciones
 
